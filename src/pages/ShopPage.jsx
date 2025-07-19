@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/logo.svg";
+import productImage from "../assets/product.jpg";
 
 function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
     const [isInWishlist, setIsInWishlist] = useState(false);
@@ -287,7 +287,7 @@ function ShopPage() {
             rating: 4.2,
             reviews: 124,
             badge: "Top Seller",
-            image: logo,
+            image: productImage,
             category: "black-tea",
             description: "Premium organic black tea from the gardens of Assam with rich malty flavor",
             stock: 15,
@@ -305,7 +305,7 @@ function ShopPage() {
             rating: 4.0,
             reviews: 98,
             badge: "Pure Bliss",
-            image: logo,
+            image: productImage,
             category: "green-tea",
             description: "Fresh green tea leaves with natural antioxidants for daily wellness",
             stock: 8,
@@ -323,7 +323,7 @@ function ShopPage() {
             rating: 4.1,
             reviews: 74,
             badge: "Few Left",
-            image: logo,
+            image: productImage,
             category: "herbal-tea",
             description: "Aromatic blend of herbs and spices for natural wellness",
             stock: 3,
@@ -341,7 +341,7 @@ function ShopPage() {
             rating: 4.3,
             reviews: 156,
             badge: "Classic",
-            image: logo,
+            image: productImage,
             category: "black-tea",
             description: "Classic Earl Grey with bergamot oil for an elegant tea experience",
             stock: 12,
@@ -359,7 +359,7 @@ function ShopPage() {
             rating: 4.4,
             reviews: 89,
             badge: "Relaxing",
-            image: logo,
+            image: productImage,
             category: "herbal-tea",
             description: "Soothing chamomile flowers for relaxation and better sleep",
             stock: 20,
@@ -377,7 +377,7 @@ function ShopPage() {
             rating: 4.5,
             reviews: 203,
             badge: "Best Seller",
-            image: logo,
+            image: productImage,
             category: "masala-chai",
             description: "Traditional Indian spiced tea blend with authentic flavors",
             stock: 25,
@@ -395,7 +395,7 @@ function ShopPage() {
             rating: 4.6,
             reviews: 67,
             badge: "Premium",
-            image: logo,
+            image: productImage,
             category: "white-tea",
             description: "Delicate white tea with subtle flavors and maximum health benefits",
             stock: 5,
@@ -413,7 +413,7 @@ function ShopPage() {
             rating: 4.2,
             reviews: 91,
             badge: "Traditional",
-            image: logo,
+            image: productImage,
             category: "oolong-tea",
             description: "Semi-fermented tea with complex flavors and health benefits",
             stock: 0,
@@ -431,7 +431,7 @@ function ShopPage() {
             rating: 4.1,
             reviews: 112,
             badge: "Fragrant",
-            image: logo,
+            image: productImage,
             category: "green-tea",
             description: "Green tea scented with jasmine flowers for aromatic experience",
             stock: 18,

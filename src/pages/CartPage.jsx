@@ -1,5 +1,5 @@
 import { useState } from "react";
-import logo from "../assets/logo.svg";
+import productImage from "../assets/product.jpg";
 
 function CartPage() {
     const [cartItems] = useState([
@@ -8,7 +8,7 @@ function CartPage() {
             name: "Organic Assam Black Tea",
             price: 699,
             oldPrice: 899,
-            image: logo,
+            image: productImage,
             quantity: 2,
             size: "250g",
             inStock: true,
@@ -19,7 +19,7 @@ function CartPage() {
             name: "Premium Green Tea",
             price: 849,
             oldPrice: 999,
-            image: logo,
+            image: productImage,
             quantity: 1,
             size: "500g",
             inStock: true,
@@ -30,7 +30,7 @@ function CartPage() {
             name: "Herbal Fusion Tea",
             price: 599,
             oldPrice: 749,
-            image: logo,
+            image: productImage,
             quantity: 3,
             size: "300g",
             inStock: false,
@@ -201,7 +201,7 @@ function CartPage() {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {[1, 2].map((item) => (
                                             <div key={item} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:shadow-md transition">
-                                                <img src={logo} alt="Recommended Tea" className="w-16 h-16 object-cover rounded-lg" />
+                                                <img src={productImage} alt="Recommended Tea" className="w-16 h-16 object-cover rounded-lg" />
                                                 <div className="flex-1">
                                                     <h4 className="font-semibold text-[#3a1f1f] text-sm">Earl Grey Tea</h4>
                                                     <p className="text-xs text-[#5b4636] mb-1">Classic blend with bergamot</p>

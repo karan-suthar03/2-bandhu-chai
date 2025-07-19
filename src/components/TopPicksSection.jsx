@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/logo.svg";
+import productImage from "../assets/product.jpg";
 
 function ProductCard({ product }) {
     const navigate = useNavigate();
@@ -72,7 +72,7 @@ function TopPicksSection() {
             rating: 4.2,
             reviews: 124,
             badge: "Top Seller",
-            image: logo
+            image: productImage
         },
         {
             id: 2,
@@ -83,7 +83,7 @@ function TopPicksSection() {
             rating: 4.0,
             reviews: 98,
             badge: "Pure Bliss",
-            image: logo
+            image: productImage
         },
         {
             id: 3,
@@ -94,7 +94,7 @@ function TopPicksSection() {
             rating: 4.1,
             reviews: 74,
             badge: "Few Left",
-            image: logo
+            image: productImage
         }
     ];
 

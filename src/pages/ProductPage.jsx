@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import logo from "../assets/logo.svg";
+import productImage from "../assets/product.jpg";
 
 function ProductPage() {
     const { productId } = useParams();
@@ -23,7 +23,7 @@ function ProductPage() {
             rating: 4.2,
             reviews: 124,
             badge: "Top Seller",
-            images: [logo, logo, logo, logo],
+            images: [productImage, productImage, productImage, productImage],
             category: "black-tea",
             description: "Experience the rich, malty flavors of our premium organic Assam black tea. Sourced directly from the renowned tea gardens of Assam, this full-bodied tea delivers a robust taste with hints of honey and a lingering finish. Perfect for morning brewing or afternoon tea time.",
             longDescription: "Our Organic Assam Black Tea is carefully handpicked from single-estate gardens in the Brahmaputra Valley. The unique terroir of Assam, combined with traditional processing methods, creates a tea that's both bold and smooth. This FTGFOP (Finest Tippy Golden Flowery Orange Pekoe) grade tea contains golden tips that add sweetness and complexity to every cup.",
@@ -530,7 +530,7 @@ function ProductPage() {
                             {[1, 2, 3, 4].map((item) => (
                                 <div key={item} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                                     <div className="h-48 bg-gray-200 flex items-center justify-center">
-                                        <img src={logo} alt="Related Product" className="w-20 h-20 object-cover" />
+                                        <img src={productImage} alt="Related Product" className="w-20 h-20 object-cover" />
                                     </div>
                                     <div className="p-4">
                                         <h4 className="font-semibold text-[#3a1f1f] mb-2">Related Tea Product</h4>

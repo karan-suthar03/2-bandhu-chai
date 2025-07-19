@@ -563,7 +563,7 @@ function ShopPage() {
                     </div>
                 </section>
 
-                <section className="bg-white py-8 px-4 border-b sticky top-16 z-40 shadow-sm">
+                <section className="bg-white py-8 px-4 border-b shadow-sm">
                     <div className="max-w-7xl mx-auto">
                         <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 items-center justify-between">
                             <div className="relative flex-1 max-w-md">

@@ -5,7 +5,7 @@ import organicIcon from "../assets/icons/organic_icon.svg";
 import first from "../assets/first.webp";
 import second from "../assets/second.avif";
 import third from "../assets/third.webp";
-import fourth from "../assets/fouth.png";
+import fourth from "../assets/fouth-min.png";
 
 function FeatureCard({ item, index }) {
     return (

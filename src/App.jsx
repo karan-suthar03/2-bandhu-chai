@@ -14,7 +14,7 @@ import PoliciesPage from "./pages/PoliciesPage";
 
 function App() {
   return (
-    <Router>
+    <Router basename="/2-bandhu-chai">
       <ScrollToTop />
       <Navbar />
       <Routes>

@@ -5,7 +5,7 @@ const getProducts = async (params) => {};
 const getFeaturedProducts = async () => {
     try {
         const response = await axiosInstance.get('/products/featured');
-        return response.data;
+        return response.data.data;
     } catch (error) {
         console.error('Error fetching featured products:', error);
         throw error;

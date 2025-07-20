@@ -16,11 +16,11 @@ async function getFeaturedProducts(req,res) {
         const featuredProducts = result.map(product => ({
             id: product.id,
             name: product.name,
-            price: product.price,
-            oldPrice: product.oldPrice,
-            discount: product.discount,
+            price: "₹"+ product.price,
+            oldPrice: "₹"+ product.oldPrice,
+            discount: product.discount* 100 + '% Off',
             rating: product.rating,
-            reviews: product.reviews,
+            reviews: 10,
             badge: product.badge,
             image: product.image
         }));

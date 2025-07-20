@@ -7,7 +7,7 @@ function ProductCard({ product }) {
     const navigate = useNavigate();
 
     const handleProductClick = () => {
-        navigate(`/product/1`);
+        navigate(`/product/${product.id}`);
     };
 
     return (
@@ -63,51 +63,16 @@ function ProductCard({ product }) {
     );
 }
 
-const products = [
-    {
-        id: 1,
-        name: "Organic Assam Black Tea - 250g",
-        price: "₹699",
-        oldPrice: "₹899",
-        discount: "22% Off",
-        rating: 4.2,
-        reviews: 124,
-        badge: "Top Seller",
-        image: productImage
-    },
-    {
-        id: 2,
-        name: "Premium Green Tea - 500g",
-        price: "₹849",
-        oldPrice: "₹999",
-        discount: "15% Off",
-        rating: 4.0,
-        reviews: 98,
-        badge: "Pure Bliss",
-        image: productImage
-    },
-    {
-        id: 3,
-        name: "Herbal Fusion Tea - 300g",
-        price: "₹599",
-        oldPrice: "₹749",
-        discount: "20% Off",
-        rating: 4.1,
-        reviews: 74,
-        badge: "Few Left",
-        image: productImage
-    }
-];
-
-
 function TopPicksSection() {
     const [products, setProducts] = useState([]);
 
     useEffect(() => {
         getFeaturedProducts().then((data) => {
-            console.log(data);
+            setProducts(data);
         });
     }, []);
+
+    if (products.length === 0) return null;
     return (
         <section className="bg-[#f7ebc9] py-16 px-4 sm:px-8 lg:px-24">
             <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#3a1f1f] text-center mb-12 tracking-tight">
@@ -115,8 +80,8 @@ function TopPicksSection() {
             </h3>
 
             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-                {products.map((product, index) => (
-                    <ProductCard key={index} product={product} />
+                {products.map((product) => (
+                    <ProductCard key={product.id} product={product} />
                 ))}
             </div>
         </section>

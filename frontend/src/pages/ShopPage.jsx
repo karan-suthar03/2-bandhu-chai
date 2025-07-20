@@ -8,7 +8,7 @@ function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
     const navigate = useNavigate();
 
     const handleProductClick = () => {
-        navigate(`/product/1`);
+        navigate(`/product/${product.id}`);
     };
 
     return (

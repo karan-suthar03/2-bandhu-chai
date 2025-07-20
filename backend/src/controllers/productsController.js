@@ -105,4 +105,52 @@ async function getFeaturedProducts(req,res) {
     }
 }
 
-export { getProducts, getFeaturedProducts };
+async function getProduct(req,res){
+    const { productId } = req.params;
+    try {
+        const product = await prisma.product.findUnique({
+            where: { id: parseInt(productId) }
+        });
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                id: product.id,
+                name: product.name,
+                price: "₹"+ product.price,
+                oldPrice: "₹"+ product.oldPrice,
+                discount: product.discount* 100 + '% Off',
+                rating: product.rating,
+                // reviews: product.reviews,
+                badge: product.badge,
+                images: product.images,
+                category: product.category,
+                description: product.description,
+                longDescription: product.longDescription,
+                stock: product.stock,
+                organic: product.organic,
+                fastDelivery: product.fastDelivery,
+                isNew: product.isNew,
+                sizes:product.sizes,
+                features: product.features,
+                specifications: product.specifications,
+                brewingInstructions: []
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching product:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch product'
+        });
+    }
+}
+
+export { getProducts, getFeaturedProducts, getProduct };

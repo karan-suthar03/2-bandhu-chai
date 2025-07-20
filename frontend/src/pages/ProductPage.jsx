@@ -1,7 +1,33 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import productImage from "../assets/product.jpg";
-
+import {getProduct} from "../api/products.js";
+const reviewsData = [
+    {
+        id: 1,
+        name: "Rajesh Kumar",
+        rating: 5,
+        date: "2 days ago",
+        comment: "Excellent quality tea! The aroma is fantastic and the taste is rich and full-bodied. Highly recommended for tea lovers.",
+        verified: true
+    },
+    {
+        id: 2,
+        name: "Priya Sharma",
+        rating: 4,
+        date: "1 week ago",
+        comment: "Very good tea. The packaging is also premium. The taste is authentic and strong. Will order again.",
+        verified: true
+    },
+    {
+        id: 3,
+        name: "Amit Patel",
+        rating: 5,
+        date: "2 weeks ago",
+        comment: "Best Assam tea I've had in years. The organic certification gives me confidence in the quality. Fast delivery too!",
+        verified: true
+    }
+];
 function ProductPage() {
     const { productId } = useParams();
     const [product, setProduct] = useState(null);
@@ -12,95 +38,19 @@ function ProductPage() {
     const [reviews, setReviews] = useState([]);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [isInWishlist, setIsInWishlist] = useState(false);
-
-    const productData = {
-        1: {
-            id: 1,
-            name: "Organic Assam Black Tea",
-            price: "₹699",
-            oldPrice: "₹899",
-            discount: "22% Off",
-            rating: 4.2,
-            reviews: 124,
-            badge: "Top Seller",
-            images: [productImage, productImage, productImage, productImage],
-            category: "black-tea",
-            description: "Experience the rich, malty flavors of our premium organic Assam black tea. Sourced directly from the renowned tea gardens of Assam, this full-bodied tea delivers a robust taste with hints of honey and a lingering finish. Perfect for morning brewing or afternoon tea time.",
-            longDescription: "Our Organic Assam Black Tea is carefully handpicked from single-estate gardens in the Brahmaputra Valley. The unique terroir of Assam, combined with traditional processing methods, creates a tea that's both bold and smooth. This FTGFOP (Finest Tippy Golden Flowery Orange Pekoe) grade tea contains golden tips that add sweetness and complexity to every cup.",
-            stock: 15,
-            organic: true,
-            fastDelivery: true,
-            isNew: false,
-            sizes: [
-                { size: "100g", price: "₹349", oldPrice: "₹449" },
-                { size: "250g", price: "₹699", oldPrice: "₹899" },
-                { size: "500g", price: "₹1299", oldPrice: "₹1699" }
-            ],
-            features: [
-                "100% Organic Certified",
-                "Single Estate Tea",
-                "Rich in Antioxidants",
-                "Bold Malty Flavor",
-                "FTGFOP Grade",
-                "Handpicked Leaves"
-            ],
-            specifications: {
-                "Tea Type": "Black Tea",
-                "Origin": "Assam, India",
-                "Grade": "FTGFOP",
-                "Caffeine Level": "High",
-                "Brewing Time": "3-5 minutes",
-                "Water Temperature": "95-100°C",
-                "Shelf Life": "2 years from manufacturing"
-            },
-            brewingInstructions: [
-                "Use 1 teaspoon (2-3g) per cup",
-                "Heat water to 95-100°C",
-                "Steep for 3-5 minutes",
-                "Add milk and sugar as desired",
-                "Enjoy hot for best flavor"
-            ]
-        }
-    };
-
-    const reviewsData = [
-        {
-            id: 1,
-            name: "Rajesh Kumar",
-            rating: 5,
-            date: "2 days ago",
-            comment: "Excellent quality tea! The aroma is fantastic and the taste is rich and full-bodied. Highly recommended for tea lovers.",
-            verified: true
-        },
-        {
-            id: 2,
-            name: "Priya Sharma",
-            rating: 4,
-            date: "1 week ago",
-            comment: "Very good tea. The packaging is also premium. The taste is authentic and strong. Will order again.",
-            verified: true
-        },
-        {
-            id: 3,
-            name: "Amit Patel",
-            rating: 5,
-            date: "2 weeks ago",
-            comment: "Best Assam tea I've had in years. The organic certification gives me confidence in the quality. Fast delivery too!",
-            verified: true
-        }
-    ];
-
     useEffect(() => {
-        const fetchProduct = () => {
-            const productInfo = productData[productId];
-            if (productInfo) {
-                setProduct(productInfo);
-                setSelectedSize(productInfo.sizes[1].size);
-                setReviews(reviewsData);
+        getProduct(productId).then((product) => {
+            if (!product) {
+                console.error("Product not found");
+                return;
             }
-        };
-
-        fetchProduct();
+            setProduct(product);
+            setSelectedSize(product.sizes[1].size);
+            setReviews(reviewsData);
+        }).catch((error) => {
+            console.error("Error fetching product:", error);
+            setProduct(null);
+        })
         window.scrollTo(0, 0);
     }, [productId]);
 
@@ -266,7 +216,7 @@ function ProductPage() {
 
                                 {}
                                 <div>
-                                    <p className="text-[#5b4636] text-lg leading-relaxed">
+                                    <p className="text-[#5b4636] text-lg leading-relaxed break-words whitespace-pre-wrap">
                                         {product.description}
                                     </p>
                                 </div>
@@ -429,7 +379,7 @@ function ProductPage() {
                             {activeTab === "description" && (
                                 <div className="space-y-6">
                                     <h3 className="text-2xl font-bold text-[#3a1f1f]">Product Description</h3>
-                                    <p className="text-[#5b4636] text-lg leading-relaxed">
+                                    <p className="text-[#5b4636] text-lg leading-relaxed break-words whitespace-pre-wrap">
                                         {product.longDescription}
                                     </p>
                                 </div>

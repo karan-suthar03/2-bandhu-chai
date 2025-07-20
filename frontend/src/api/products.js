@@ -20,4 +20,14 @@ const getFeaturedProducts = async () => {
     }
 };
 
-export { getProducts, getFeaturedProducts };
+const getProduct = async (productId) => {
+    try {
+        const response = await axiosInstance.get(`/products/${productId}`);
+        return response.data.data;
+    } catch (error) {
+        console.error('Error fetching product:', error);
+        throw error;
+    }
+}
+
+export { getProducts, getFeaturedProducts, getProduct};

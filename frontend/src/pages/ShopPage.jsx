@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import productImage from "../assets/product.jpg";
+import {getProducts} from "../api/products.js";
 
 function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
     const [isInWishlist, setIsInWishlist] = useState(false);
@@ -266,8 +266,19 @@ function ShopPage() {
     const [quickViewProduct, setQuickViewProduct] = useState(null);
     const [cartItems, setCartItems] = useState([]);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+    const [products, setProducts] = useState([]);
 
-    // Success message auto-hide
+    useEffect(()=>{
+        getProducts({
+            sortBy,
+            priceRange,
+            searchTerm,
+            selectedCategory
+        }).then((data)=>{
+            setProducts(data)
+        }).catch()
+    },[priceRange, searchTerm, selectedCategory, sortBy])
+
     useEffect(() => {
         if (showSuccessMessage) {
             const timer = setTimeout(() => {
@@ -276,171 +287,6 @@ function ShopPage() {
             return () => clearTimeout(timer);
         }
     }, [showSuccessMessage]);
-
-    const products = [
-        {
-            id: 1,
-            name: "Organic Assam Black Tea - 250g",
-            price: "₹699",
-            oldPrice: "₹899",
-            discount: "22% Off",
-            rating: 4.2,
-            reviews: 124,
-            badge: "Top Seller",
-            image: productImage,
-            category: "black-tea",
-            description: "Premium organic black tea from the gardens of Assam with rich malty flavor",
-            stock: 15,
-            organic: true,
-            fastDelivery: true,
-            isNew: false,
-            features: ["100% Organic", "Rich Antioxidants", "Bold Flavor", "Single Estate"]
-        },
-        {
-            id: 2,
-            name: "Premium Green Tea - 500g",
-            price: "₹849",
-            oldPrice: "₹999",
-            discount: "15% Off",
-            rating: 4.0,
-            reviews: 98,
-            badge: "Pure Bliss",
-            image: productImage,
-            category: "green-tea",
-            description: "Fresh green tea leaves with natural antioxidants for daily wellness",
-            stock: 8,
-            organic: true,
-            fastDelivery: true,
-            isNew: false,
-            features: ["High in Antioxidants", "Fresh Leaves", "Weight Management", "Heart Healthy"]
-        },
-        {
-            id: 3,
-            name: "Herbal Fusion Tea - 300g",
-            price: "₹599",
-            oldPrice: "₹749",
-            discount: "20% Off",
-            rating: 4.1,
-            reviews: 74,
-            badge: "Few Left",
-            image: productImage,
-            category: "herbal-tea",
-            description: "Aromatic blend of herbs and spices for natural wellness",
-            stock: 3,
-            organic: true,
-            fastDelivery: false,
-            isNew: false,
-            features: ["Caffeine Free", "Natural Herbs", "Digestive Aid", "Stress Relief"]
-        },
-        {
-            id: 4,
-            name: "Earl Grey Tea - 200g",
-            price: "₹549",
-            oldPrice: "₹699",
-            discount: "21% Off",
-            rating: 4.3,
-            reviews: 156,
-            badge: "Classic",
-            image: productImage,
-            category: "black-tea",
-            description: "Classic Earl Grey with bergamot oil for an elegant tea experience",
-            stock: 12,
-            organic: false,
-            fastDelivery: true,
-            isNew: false,
-            features: ["Bergamot Oil", "Classic Blend", "Afternoon Tea", "Aromatic"]
-        },
-        {
-            id: 5,
-            name: "Chamomile Tea - 150g",
-            price: "₹449",
-            oldPrice: "₹549",
-            discount: "18% Off",
-            rating: 4.4,
-            reviews: 89,
-            badge: "Relaxing",
-            image: productImage,
-            category: "herbal-tea",
-            description: "Soothing chamomile flowers for relaxation and better sleep",
-            stock: 20,
-            organic: true,
-            fastDelivery: true,
-            isNew: true,
-            features: ["Sleep Aid", "Calming", "Pure Flowers", "Bedtime Tea"]
-        },
-        {
-            id: 6,
-            name: "Masala Chai - 400g",
-            price: "₹799",
-            oldPrice: "₹999",
-            discount: "20% Off",
-            rating: 4.5,
-            reviews: 203,
-            badge: "Best Seller",
-            image: productImage,
-            category: "masala-chai",
-            description: "Traditional Indian spiced tea blend with authentic flavors",
-            stock: 25,
-            organic: false,
-            fastDelivery: true,
-            isNew: false,
-            features: ["Traditional Spices", "Authentic Recipe", "Warming", "Energy Boost"]
-        },
-        {
-            id: 7,
-            name: "White Tea - 100g",
-            price: "₹1299",
-            oldPrice: "₹1599",
-            discount: "19% Off",
-            rating: 4.6,
-            reviews: 67,
-            badge: "Premium",
-            image: productImage,
-            category: "white-tea",
-            description: "Delicate white tea with subtle flavors and maximum health benefits",
-            stock: 5,
-            organic: true,
-            fastDelivery: false,
-            isNew: true,
-            features: ["Highest Antioxidants", "Delicate Flavor", "Premium Quality", "Hand Picked"]
-        },
-        {
-            id: 8,
-            name: "Oolong Tea - 250g",
-            price: "₹899",
-            oldPrice: "₹1099",
-            discount: "18% Off",
-            rating: 4.2,
-            reviews: 91,
-            badge: "Traditional",
-            image: productImage,
-            category: "oolong-tea",
-            description: "Semi-fermented tea with complex flavors and health benefits",
-            stock: 0,
-            organic: true,
-            fastDelivery: false,
-            isNew: false,
-            features: ["Complex Flavors", "Traditional Process", "Weight Loss", "Metabolism Boost"]
-        },
-        {
-            id: 9,
-            name: "Jasmine Green Tea - 200g",
-            price: "₹699",
-            oldPrice: "₹849",
-            discount: "18% Off",
-            rating: 4.1,
-            reviews: 112,
-            badge: "Fragrant",
-            image: productImage,
-            category: "green-tea",
-            description: "Green tea scented with jasmine flowers for aromatic experience",
-            stock: 18,
-            organic: true,
-            fastDelivery: true,
-            isNew: false,
-            features: ["Floral Aroma", "Green Tea Benefits", "Scented", "Evening Tea"]
-        }
-    ];
 
     const categories = [
         { id: "all", name: "All Teas" },

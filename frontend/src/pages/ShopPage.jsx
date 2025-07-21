@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {getProducts} from "../api/products.js";
+import { useCart } from "../context/CartContext";
+import { getProducts } from "../api/products.js";
 
+import {formatCurrency, formatDiscount} from "../utils/priceUtils.js";
 function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
     const [isInWishlist, setIsInWishlist] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
+    const { isInCart } = useCart();
     const navigate = useNavigate();
 
     const handleProductClick = () => {
@@ -94,12 +97,12 @@ function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
                 <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
 
                 <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xl font-bold text-[#3a1f1f]">{product.price}</span>
+                    <span className="text-xl font-bold text-[#3a1f1f]">{formatCurrency(product.price)}</span>
                     {product.oldPrice && (
                         <>
-                            <span className="text-sm text-gray-500 line-through">{product.oldPrice}</span>
+                            <span className="text-sm text-gray-500 line-through">{formatCurrency(product.oldPrice)}</span>
                             <span className="text-xs font-medium text-[#e67e22] bg-orange-100 px-2 py-1 rounded">
-                                {product.discount}
+                                {formatDiscount(product.discount)}
                             </span>
                         </>
                     )}
@@ -136,10 +139,12 @@ function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
                         className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                             product.stock === 0 
                                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                : isInCart(product.id)
+                                ? 'bg-green-100 border-2 border-green-500 text-green-700'
                                 : 'bg-white border-2 border-[#e67e22] text-[#e67e22] hover:bg-[#e67e22] hover:text-white hover:scale-105'
                         }`}
                     >
-                        {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                        {product.stock === 0 ? 'Out of Stock' : isInCart(product.id) ? 'In Cart' : 'Add to Cart'}
                     </button>
                     <button 
                         onClick={(e) => {
@@ -162,6 +167,7 @@ function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
 }
 
 function QuickViewModal({ product, onClose, onAddToCart, onBuyNow }) {
+    const { isInCart } = useCart();
     if (!product) return null;
 
     return (
@@ -187,12 +193,12 @@ function QuickViewModal({ product, onClose, onAddToCart, onBuyNow }) {
                             <p className="text-gray-600 mb-4">{product.description}</p>
                             
                             <div className="flex items-center gap-3 mb-4">
-                                <span className="text-3xl font-bold text-[#3a1f1f]">{product.price}</span>
+                                <span className="text-3xl font-bold text-[#3a1f1f]">{formatCurrency(product.price)}</span>
                                 {product.oldPrice && (
                                     <>
-                                        <span className="text-lg text-gray-500 line-through">{product.oldPrice}</span>
+                                        <span className="text-lg text-gray-500 line-through">{formatCurrency(product.oldPrice)}</span>
                                         <span className="text-sm font-medium text-[#e67e22] bg-orange-100 px-2 py-1 rounded">
-                                            {product.discount}
+                                            {formatDiscount(product.discount)}
                                         </span>
                                     </>
                                 )}
@@ -236,9 +242,13 @@ function QuickViewModal({ product, onClose, onAddToCart, onBuyNow }) {
                                         onAddToCart(product);
                                         onClose();
                                     }}
-                                    className="flex-1 bg-white border-2 border-[#e67e22] text-[#e67e22] py-3 rounded-lg font-medium hover:bg-[#e67e22] hover:text-white transition"
+                                    className={`flex-1 py-3 rounded-lg font-medium transition ${
+                                        isInCart(product.id)
+                                            ? 'bg-green-100 border-2 border-green-500 text-green-700'
+                                            : 'bg-white border-2 border-[#e67e22] text-[#e67e22] hover:bg-[#e67e22] hover:text-white'
+                                    }`}
                                 >
-                                    Add to Cart
+                                    {isInCart(product.id) ? 'In Cart' : 'Add to Cart'}
                                 </button>
                                 <button 
                                     onClick={() => {
@@ -264,9 +274,9 @@ function ShopPage() {
     const [sortBy, setSortBy] = useState("name");
     const [searchTerm, setSearchTerm] = useState("");
     const [quickViewProduct, setQuickViewProduct] = useState(null);
-    const [cartItems, setCartItems] = useState([]);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [products, setProducts] = useState([]);
+    const { addToCart } = useCart();
 
     useEffect(()=>{
         getProducts({
@@ -314,43 +324,10 @@ function ShopPage() {
         { id: "reviews", name: "Most Reviews" }
     ];
 
-    const filteredProducts = products.filter(product => {
-        const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        const price = parseInt(product.price.replace(/[₹,]/g, ''));
-        let matchesPrice = true;
-        
-        if (priceRange !== "all") {
-            if (priceRange === "0-500") matchesPrice = price < 500;
-            else if (priceRange === "500-800") matchesPrice = price >= 500 && price <= 800;
-            else if (priceRange === "800-1000") matchesPrice = price >= 800 && price <= 1000;
-            else if (priceRange === "1000+") matchesPrice = price > 1000;
-        }
-        
-        return matchesCategory && matchesSearch && matchesPrice;
-    });
 
-    const sortedProducts = [...filteredProducts].sort((a, b) => {
-        if (sortBy === "name") return a.name.localeCompare(b.name);
-        if (sortBy === "price-low") return parseInt(a.price.replace(/[₹,]/g, '')) - parseInt(b.price.replace(/[₹,]/g, ''));
-        if (sortBy === "price-high") return parseInt(b.price.replace(/[₹,]/g, '')) - parseInt(a.price.replace(/[₹,]/g, ''));
-        if (sortBy === "rating") return b.rating - a.rating;
-        if (sortBy === "reviews") return b.reviews - a.reviews;
-        return 0;
-    });
 
     const handleAddToCart = (product) => {
-        const existingItem = cartItems.find(item => item.id === product.id);
-        if (existingItem) {
-            setCartItems(cartItems.map(item => 
-                item.id === product.id 
-                    ? { ...item, quantity: item.quantity + 1 }
-                    : item
-            ));
-        } else {
-            setCartItems([...cartItems, { ...product, quantity: 1 }]);
-        }
+        addToCart(product.id);
         setShowSuccessMessage(true);
         console.log("Added to cart:", product);
     };
@@ -488,7 +465,7 @@ function ShopPage() {
 
                         <div className="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div className="text-sm text-[#5b4636] font-medium">
-                                Showing {sortedProducts.length} of {products.length} products
+                                Showing {products.length} products
                             </div>
                             
                             <div className="flex flex-wrap gap-2">
@@ -532,7 +509,7 @@ function ShopPage() {
 
                 <section className="py-12 px-4">
                     <div className="max-w-7xl mx-auto">
-                        {sortedProducts.length === 0 ? (
+                        {products.length === 0 ? (
                             <div className="text-center py-12">
                                 <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -542,7 +519,7 @@ function ShopPage() {
                             </div>
                         ) : (
                             <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                {sortedProducts.map((product) => (
+                                {products.map((product) => (
                                     <ProductCard 
                                         key={product.id} 
                                         product={product} 

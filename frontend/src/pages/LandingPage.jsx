@@ -1,12 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import HeroSection from "../components/HeroSection";
 import WhyChooseUsSection from "../components/WhyChooseUsSection";
 import TopPicksSection from "../components/TopPicksSection";
 import FeaturesSection from "../components/FeaturesSection";
-import Footer from "../components/Footer";
-import logo from "../assets/logo.svg";
 
 function StatsCounter({ target, duration = 2000, suffix = "" }) {
     const [count, setCount] = useState(0);

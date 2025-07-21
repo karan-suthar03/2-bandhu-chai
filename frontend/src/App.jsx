@@ -1,5 +1,6 @@
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { CartProvider } from "./context/CartContext";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -14,21 +15,23 @@ import PoliciesPage from "./pages/PoliciesPage";
 
 function App() {
   return (
-    <Router basename="/2-bandhu-chai">
-      <ScrollToTop />
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/shop" element={<ShopPage />} />
-        <Route path="/product/:productId" element={<ProductPage />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/faq" element={<FAQPage />} />
-        <Route path="/policies" element={<PoliciesPage />} />
-      </Routes>
-      <Footer />
-    </Router>
+    <CartProvider>
+      <Router basename="/2-bandhu-chai">
+        <ScrollToTop />
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/product/:productId" element={<ProductPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/faq" element={<FAQPage />} />
+          <Route path="/policies" element={<PoliciesPage />} />
+        </Routes>
+        <Footer />
+      </Router>
+    </CartProvider>
   );
 }
 

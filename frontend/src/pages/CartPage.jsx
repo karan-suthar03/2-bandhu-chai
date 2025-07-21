@@ -1,42 +1,113 @@
-import { useState } from "react";
+import {useEffect, useState, useMemo} from "react";
 import productImage from "../assets/product.jpg";
+import {useCart} from "../context/CartContext.jsx";
+import {getCartItems} from "../api/products.js";
+import {formatDiscount, formatPrice} from "../utils/priceUtils.js";
 
 function CartPage() {
-    const [cartItems] = useState([
-        {
-            id: 1,
-            name: "Organic Assam Black Tea",
-            price: 699,
-            oldPrice: 899,
-            image: productImage,
-            quantity: 2,
-            size: "250g",
-            inStock: true,
-            discount: 22
-        },
-        {
-            id: 2,
-            name: "Premium Green Tea",
-            price: 849,
-            oldPrice: 999,
-            image: productImage,
-            quantity: 1,
-            size: "500g",
-            inStock: true,
-            discount: 15
-        },
-        {
-            id: 3,
-            name: "Herbal Fusion Tea",
-            price: 599,
-            oldPrice: 749,
-            image: productImage,
-            quantity: 3,
-            size: "300g",
-            inStock: false,
-            discount: 20
+    const { cartItems: cartIds, removeFromCart, clearCart } = useCart();
+    const [cartItems, setCartItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [lastFetchedIds, setLastFetchedIds] = useState('');
+
+    const cartIdsString = useMemo(() => {
+        return cartIds.map(item => item.id).sort().join(',');
+    }, [cartIds]);
+
+    useEffect(() => {
+        const fetchCartItems = async () => {
+            // Only fetch if the IDs actually changed
+            if (cartIdsString === lastFetchedIds) {
+                return;
+            }
+
+            if (cartIds.length === 0) {
+                setCartItems([]);
+                setLoading(false);
+                setLastFetchedIds('');
+                return;
+            }
+
+            try {
+                setLoading(true);
+                const productIds = cartIds.map(item => item.id);
+                const products = await getCartItems(productIds);
+                
+                if (products && products.length > 0) {
+                    // Load saved quantities from localStorage
+                    const savedQuantities = localStorage.getItem('cart-quantities');
+                    const quantities = savedQuantities ? JSON.parse(savedQuantities) : {};
+                    
+                    const cartItemsWithQuantity = products.map(product => ({
+                        ...product,
+                        quantity: quantities[product.id] || 1, // Use saved quantity or default to 1
+                    }));
+                    setCartItems(cartItemsWithQuantity);
+                } else {
+                    console.error("No products found in the cart");
+                    setCartItems([]);
+                }
+                setLastFetchedIds(cartIdsString);
+            } catch (error) {
+                console.error("Error fetching cart items:", error);
+                setCartItems([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCartItems();
+    }, [cartIdsString, lastFetchedIds, cartIds]);
+
+    // Handle remove from cart locally to avoid re-fetching
+    const handleRemoveFromCart = (productId) => {
+        // Remove from context
+        removeFromCart(productId);
+        // Remove from local cart items state immediately
+        setCartItems(prev => prev.filter(item => item.id !== productId));
+        // Update the last fetched IDs to match the new state
+        const newIds = cartIds.filter(item => item.id !== productId).map(item => item.id).sort().join(',');
+        setLastFetchedIds(newIds);
+        
+        // Clean up quantities in localStorage
+        const savedQuantities = localStorage.getItem('cart-quantities');
+        if (savedQuantities) {
+            const quantities = JSON.parse(savedQuantities);
+            delete quantities[productId];
+            localStorage.setItem('cart-quantities', JSON.stringify(quantities));
         }
-    ]);
+    };
+
+    // Handle clear cart locally
+    const handleClearCart = () => {
+        clearCart();
+        setCartItems([]);
+        setLastFetchedIds('');
+        // Clear quantities from localStorage
+        localStorage.removeItem('cart-quantities');
+    };
+
+    // Handle quantity update
+    const handleQuantityUpdate = (productId, newQuantity) => {
+        if (newQuantity < 1) return; // Don't allow quantity less than 1
+        
+        setCartItems(prev => {
+            const updatedItems = prev.map(item => 
+                item.id === productId 
+                    ? { ...item, quantity: newQuantity }
+                    : item
+            );
+            
+            // Store quantities in localStorage
+            const quantities = {};
+            updatedItems.forEach(item => {
+                quantities[item.id] = item.quantity;
+            });
+            localStorage.setItem('cart-quantities', JSON.stringify(quantities));
+            
+            return updatedItems;
+        });
+    };
 
     const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
     const totalDiscount = cartItems.reduce((total, item) => total + ((item.oldPrice - item.price) * item.quantity), 0);
@@ -94,15 +165,39 @@ function CartPage() {
                                             <h2 className="text-xl font-bold text-[#3a1f1f]">
                                                 Cart Items ({cartItems.length})
                                             </h2>
-                                            <button className="text-[#e67e22] hover:text-[#d35400] font-medium text-sm transition">
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handleClearCart();
+                                                }}
+                                                className="text-[#e67e22] hover:text-[#d35400] font-medium text-sm transition"
+                                            >
                                                 Clear All
                                             </button>
                                         </div>
                                     </div>
-
-                                    {}
-                                    <div className="divide-y divide-gray-200">
-                                        {cartItems.map((item) => (
+                                    {loading ? (
+                                        <div className="p-12 text-center">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#e67e22] mx-auto mb-4"></div>
+                                            <p className="text-[#5b4636]">Loading your cart...</p>
+                                        </div>
+                                    ) : cartItems.length === 0 ? (
+                                        <div className="p-12 text-center">
+                                            <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                                                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                </svg>
+                                            </div>
+                                            <h3 className="text-xl font-semibold text-[#3a1f1f] mb-2">Your cart is empty</h3>
+                                            <p className="text-[#5b4636] mb-4">Add some delicious tea to get started!</p>
+                                            <a href="/shop" className="inline-block bg-[#e67e22] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#d35400] transition">
+                                                Continue Shopping
+                                            </a>
+                                        </div>
+                                    ) : (
+                                        <div className="divide-y divide-gray-200">
+                                            {cartItems.map((item) => (
                                             <div key={item.id} className="p-6 hover:bg-gray-50 transition">
                                                 <div className="flex items-center space-x-4">
                                                     {}
@@ -112,14 +207,12 @@ function CartPage() {
                                                             alt={item.name}
                                                             className="w-20 h-20 object-cover rounded-lg border border-gray-200"
                                                         />
-                                                        {!item.inStock && (
-                                                            <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
-                                                                <span className="text-white text-xs font-medium">Out of Stock</span>
-                                                            </div>
-                                                        )}
+                                                        {/*{!item.inStock && (*/}
+                                                        {/*    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">*/}
+                                                        {/*        <span className="text-white text-xs font-medium">Out of Stock</span>*/}
+                                                        {/*    </div>*/}
+                                                        {/*)}*/}
                                                     </div>
-
-                                                    {}
                                                     <div className="flex-1">
                                                         <h3 className="text-lg font-semibold text-[#3a1f1f] mb-1">
                                                             {item.name}
@@ -127,34 +220,51 @@ function CartPage() {
                                                         <p className="text-sm text-[#5b4636] mb-2">Size: {item.size}</p>
                                                         <div className="flex items-center space-x-2">
                                                             <span className="text-lg font-bold text-[#3a1f1f]">
-                                                                ₹{item.price}
+                                                                ₹{formatPrice(item.price)}
                                                             </span>
                                                             {item.oldPrice && (
                                                                 <>
                                                                     <span className="text-sm text-gray-500 line-through">
-                                                                        ₹{item.oldPrice}
+                                                                        ₹{formatPrice(item.oldPrice)}
                                                                     </span>
                                                                     <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                                                        {item.discount}% off
+                                                                        {formatDiscount(item.discount)}
                                                                     </span>
                                                                 </>
                                                             )}
                                                         </div>
                                                     </div>
-
-                                                    {}
                                                     <div className="flex items-center space-x-3">
                                                         <div className="flex items-center border border-gray-300 rounded-lg">
-                                                            <button className="p-2 hover:bg-gray-100 transition">
-                                                                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    handleQuantityUpdate(item.id, item.quantity - 1);
+                                                                }}
+                                                                disabled={item.quantity <= 1}
+                                                                className={`p-2 transition ${
+                                                                    item.quantity <= 1 
+                                                                        ? 'text-gray-300 cursor-not-allowed' 
+                                                                        : 'text-gray-600 hover:bg-gray-100'
+                                                                }`}
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4" />
                                                                 </svg>
                                                             </button>
                                                             <span className="px-4 py-2 font-semibold text-[#3a1f1f] min-w-[3rem] text-center">
                                                                 {item.quantity}
                                                             </span>
-                                                            <button className="p-2 hover:bg-gray-100 transition">
-                                                                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    handleQuantityUpdate(item.id, item.quantity + 1);
+                                                                }}
+                                                                className="p-2 hover:bg-gray-100 transition text-gray-600"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                                 </svg>
                                                             </button>
@@ -164,17 +274,24 @@ function CartPage() {
                                                     {}
                                                     <div className="text-right">
                                                         <p className="text-lg font-bold text-[#3a1f1f]">
-                                                            ₹{item.price * item.quantity}
+                                                            ₹{formatPrice(item.price * item.quantity)}
                                                         </p>
                                                         {item.oldPrice && (
                                                             <p className="text-sm text-gray-500 line-through">
-                                                                ₹{item.oldPrice * item.quantity}
+                                                                ₹{formatPrice(item.oldPrice * item.quantity)}
                                                             </p>
                                                         )}
                                                     </div>
 
-                                                    {}
-                                                    <button className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                                                    {/* Delete button */}
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            handleRemoveFromCart(item.id);
+                                                        }}
+                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                                                    >
                                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                         </svg>
@@ -182,21 +299,21 @@ function CartPage() {
                                                 </div>
                                             </div>
                                         ))}
-                                    </div>
-
-                                    {}
-                                    <div className="p-6 bg-gray-50 border-t">
+                                        </div>
+                                    )}
+                                    {!loading && cartItems.length > 0 && (
+                                        <div className="p-6 bg-gray-50 border-t">
                                         <button className="flex items-center space-x-2 text-[#e67e22] hover:text-[#d35400] font-medium transition">
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                                             </svg>
                                             <span>Continue Shopping</span>
                                         </button>
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
-
-                                {}
-                                <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                {!loading && cartItems.length > 0 && (
+                                    <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                     <h3 className="text-lg font-bold text-[#3a1f1f] mb-4">Recommended for you</h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {[1, 2].map((item) => (
@@ -216,10 +333,12 @@ function CartPage() {
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                    </div>
+                                )}
                             </div>
 
-                            {}
+                            {/* Order Summary - only show if cart has items */}
+                            {!loading && cartItems.length > 0 && (
                             <div className="lg:col-span-1">
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                                     {}
@@ -232,28 +351,28 @@ function CartPage() {
                                         <div className="space-y-3">
                                             <div className="flex justify-between">
                                                 <span className="text-[#5b4636]">Subtotal ({cartItems.length} items)</span>
-                                                <span className="font-semibold text-[#3a1f1f]">₹{subtotal}</span>
+                                                <span className="font-semibold text-[#3a1f1f]">₹{formatPrice(subtotal)}</span>
                                             </div>
                                             <div className="flex justify-between text-green-600">
                                                 <span>Discount</span>
-                                                <span>-₹{totalDiscount}</span>
+                                                <span>-₹{formatPrice(totalDiscount)}</span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-[#5b4636]">Shipping</span>
                                                 <span className={`font-semibold ${shippingCost === 0 ? 'text-green-600' : 'text-[#3a1f1f]'}`}>
-                                                    {shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}
+                                                    {shippingCost === 0 ? 'FREE' : `₹${formatPrice(shippingCost)}`}
                                                 </span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-[#5b4636]">Tax (GST 18%)</span>
-                                                <span className="font-semibold text-[#3a1f1f]">₹{tax}</span>
+                                                <span className="font-semibold text-[#3a1f1f]">₹{formatPrice(tax)}</span>
                                             </div>
                                         </div>
 
                                         <div className="border-t pt-4">
                                             <div className="flex justify-between items-center">
                                                 <span className="text-lg font-bold text-[#3a1f1f]">Total</span>
-                                                <span className="text-2xl font-bold text-[#e67e22]">₹{finalTotal}</span>
+                                                <span className="text-2xl font-bold text-[#e67e22]">₹{formatPrice(finalTotal)}</span>
                                             </div>
                                         </div>
 
@@ -280,7 +399,7 @@ function CartPage() {
                                                 <span className="text-green-800 font-semibold">Great savings!</span>
                                             </div>
                                             <p className="text-sm text-green-700">
-                                                You saved ₹{totalDiscount} on this order!
+                                                You saved ₹{formatPrice(totalDiscount)} on this order!
                                             </p>
                                             {shippingCost === 0 && (
                                                 <p className="text-sm text-green-700 mt-1">
@@ -348,7 +467,8 @@ function CartPage() {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                        </div>
+                            )}
                         </div>
                     </div>
                 </section>

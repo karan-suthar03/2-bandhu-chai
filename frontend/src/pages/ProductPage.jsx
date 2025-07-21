@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useCart } from "../context/CartContext";
+import { getProduct } from "../api/products.js";
+import {formatCurrency, formatDiscount} from "../utils/priceUtils.js";
 import productImage from "../assets/product.jpg";
-import {getProduct} from "../api/products.js";
 const reviewsData = [
     {
         id: 1,
@@ -30,6 +32,7 @@ const reviewsData = [
 ];
 function ProductPage() {
     const { productId } = useParams();
+    const { addToCart, isInCart } = useCart();
     const [product, setProduct] = useState(null);
     const [selectedImage, setSelectedImage] = useState(0);
     const [quantity, setQuantity] = useState(1);
@@ -64,8 +67,9 @@ function ProductPage() {
     }, [showSuccessMessage]);
 
     const handleAddToCart = () => {
-        console.log("Adding to cart:", { product, quantity, size: selectedSize });
+        addToCart(product.id);
         setShowSuccessMessage(true);
+        console.log("Adding to cart:", { product, quantity, size: selectedSize });
     };
 
     const handleBuyNow = () => {
@@ -200,15 +204,15 @@ function ProductPage() {
                                 {}
                                 <div className="flex items-center space-x-4">
                                     <span className="text-4xl font-bold text-[#3a1f1f]">
-                                        {product.sizes.find(s => s.size === selectedSize)?.price || product.price}
+                                        {formatCurrency(product.sizes.find(s => s.size === selectedSize)?.price || product.price)}
                                     </span>
                                     {product.oldPrice && (
                                         <>
                                             <span className="text-xl text-gray-500 line-through">
-                                                {product.sizes.find(s => s.size === selectedSize)?.oldPrice || product.oldPrice}
+                                                {formatCurrency(product.sizes.find(s => s.size === selectedSize)?.oldPrice || product.oldPrice)}
                                             </span>
                                             <span className="bg-[#e67e22] text-white px-3 py-1 rounded-lg font-medium">
-                                                {product.discount}
+                                                {formatDiscount(product.discount)}
                                             </span>
                                         </>
                                     )}
@@ -236,7 +240,7 @@ function ProductPage() {
                                                 }`}
                                             >
                                                 <div className="font-semibold">{sizeOption.size}</div>
-                                                <div className="text-sm">{sizeOption.price}</div>
+                                                <div className="text-sm">{formatCurrency(sizeOption.price)}</div>
                                             </button>
                                         ))}
                                     </div>
@@ -290,10 +294,12 @@ function ProductPage() {
                                         className={`flex-1 py-4 px-6 rounded-xl font-semibold text-lg transition-all ${
                                             product.stock === 0
                                                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                                : isInCart(product.id)
+                                                ? 'bg-green-100 border-2 border-green-500 text-green-700'
                                                 : 'bg-white border-2 border-[#e67e22] text-[#e67e22] hover:bg-[#e67e22] hover:text-white hover:scale-105'
                                         }`}
                                     >
-                                        {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                                        {product.stock === 0 ? 'Out of Stock' : isInCart(product.id) ? 'In Cart' : 'Add to Cart'}
                                     </button>
                                     <button
                                         onClick={handleBuyNow}

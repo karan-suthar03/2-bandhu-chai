@@ -30,4 +30,14 @@ const getProduct = async (productId) => {
     }
 }
 
-export { getProducts, getFeaturedProducts, getProduct};
+const getCartItems = async (cartItems) => {
+    try {
+        const response = await axiosInstance.post('/products/cart', { cartItems });
+        return response.data.data;
+    } catch (error) {
+        console.error('Error fetching cart items:', error);
+        throw error;
+    }
+};
+
+export { getProducts, getFeaturedProducts, getProduct, getCartItems };

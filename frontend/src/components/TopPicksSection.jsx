@@ -1,13 +1,20 @@
 import { useNavigate } from "react-router-dom";
-import productImage from "../assets/product.jpg";
-import {useState,useEffect} from "react";
-import {getFeaturedProducts} from "../api/products.js";
+import { useState, useEffect } from "react";
+import { useCart } from "../context/CartContext";
+import { getFeaturedProducts } from "../api/products.js";
 
+import {formatCurrency, formatDiscount} from "../utils/priceUtils.js";
 function ProductCard({ product }) {
     const navigate = useNavigate();
+    const { addToCart, isInCart } = useCart();
 
     const handleProductClick = () => {
         navigate(`/product/${product.id}`);
+    };
+
+    const handleAddToCart = (e) => {
+        e.stopPropagation();
+        addToCart(product.id);
     };
 
     return (
@@ -29,9 +36,9 @@ function ProductCard({ product }) {
                 </h4>
 
                 <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xl font-bold text-[#3a1f1f]">{product.price}</span>
-                    <span className="text-sm text-gray-500 line-through">{product.oldPrice}</span>
-                    <span className="text-xs font-medium text-[#e67e22]">{product.discount}</span>
+                    <span className="text-xl font-bold text-[#3a1f1f]">{formatCurrency(product.price)}</span>
+                    <span className="text-sm text-gray-500 line-through">{formatCurrency(product.oldPrice)}</span>
+                    <span className="text-xs font-medium text-[#e67e22]">{formatDiscount(product.discount)}</span>
                 </div>
 
                 <div className="flex items-center mb-4">
@@ -51,8 +58,15 @@ function ProductCard({ product }) {
                 </div>
 
                 <div className="flex gap-2">
-                    <button className="flex-1 bg-white border-2 border-[#e67e22] text-[#e67e22] py-2 rounded-lg text-sm font-medium hover:bg-[#e67e22] hover:text-white transition">
-                        Add to Cart
+                    <button 
+                        onClick={handleAddToCart}
+                        className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
+                            isInCart(product.id) 
+                                ? 'bg-green-100 border-2 border-green-500 text-green-700'
+                                : 'bg-white border-2 border-[#e67e22] text-[#e67e22] hover:bg-[#e67e22] hover:text-white'
+                        }`}
+                    >
+                        {isInCart(product.id) ? 'In Cart' : 'Add to Cart'}
                     </button>
                     <button className="flex-1 bg-[#e67e22] text-white py-2 rounded-lg text-sm font-medium hover:bg-[#d35400] transition">
                         Buy Now

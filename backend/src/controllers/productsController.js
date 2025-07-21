@@ -45,9 +45,9 @@ async function getProducts(req,res) {
             data: results.map(product => ({
                 id: product.id,
                 name: product.name,
-                price: "₹"+ product.price,
-                oldPrice: "₹"+ product.oldPrice,
-                discount: product.discount* 100 + '% Off',
+                price: product.price,
+                oldPrice: product.oldPrice,
+                discount: (product.discount * 100).toFixed(2),
                 rating: product.rating,
                 reviews: 112,
                 badge: product.badge,
@@ -84,9 +84,9 @@ async function getFeaturedProducts(req,res) {
         const featuredProducts = result.map(product => ({
             id: product.id,
             name: product.name,
-            price: "₹"+ product.price,
-            oldPrice: "₹"+ product.oldPrice,
-            discount: product.discount* 100 + '% Off',
+            price: product.price,
+            oldPrice: product.oldPrice,
+            discount: (product.discount * 100).toFixed(2),
             rating: product.rating,
             reviews: 10,
             badge: product.badge,
@@ -124,9 +124,9 @@ async function getProduct(req,res){
             data: {
                 id: product.id,
                 name: product.name,
-                price: "₹"+ product.price,
-                oldPrice: "₹"+ product.oldPrice,
-                discount: product.discount* 100 + '% Off',
+                price: product.price,
+                oldPrice: product.oldPrice,
+                discount: (product.discount * 100).toFixed(2),
                 rating: product.rating,
                 // reviews: product.reviews,
                 badge: product.badge,
@@ -153,4 +153,45 @@ async function getProduct(req,res){
     }
 }
 
-export { getProducts, getFeaturedProducts, getProduct };
+async function getCartItems(req, res) {
+    const { cartItems } = req.body;
+    console.log(cartItems);
+    if (!cartItems || !cartItems.length) {
+        return res.status(400).json({
+            success: false,
+            message: 'No items in cart'
+        });
+    }
+    try {
+        const products = await prisma.product.findMany({
+            where: {
+                id: { in: cartItems },
+                stock: {
+                    gt: 0
+                }
+            }
+        });
+
+        const cartProducts = products.map(product => ({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            oldPrice: product.oldPrice,
+            image: product.image,
+            discount: product.discount
+        }));
+
+        res.json({
+            success: true,
+            data: cartProducts
+        });
+    } catch (error) {
+        console.error('Error fetching cart items:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch cart items'
+        });
+    }
+}
+
+export { getProducts, getFeaturedProducts, getProduct, getCartItems };

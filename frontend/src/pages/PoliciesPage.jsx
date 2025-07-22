@@ -47,7 +47,7 @@ function PoliciesPage() {
                                     <p><strong>Last updated:</strong> January 2025</p>
                                     
                                     <h3 className="text-lg font-semibold text-[#3a1f1f] mt-6">Information We Collect</h3>
-                                    <p>We collect information you provide directly to us, such as when you create an account, make a purchase, or contact us for support.</p>
+                                    <p>We collect information you provide directly to us, such as when you make a purchase, subscribe to our newsletter, or contact us for support.</p>
                                     
                                     <h3 className="text-lg font-semibold text-[#3a1f1f] mt-6">How We Use Your Information</h3>
                                     <ul className="list-disc list-inside space-y-2">
@@ -82,7 +82,7 @@ function PoliciesPage() {
                                         <li>Product images are for illustration purposes</li>
                                     </ul>
 
-                                    <h3 className="text-lg font-semibold text-[#3a1f1f] mt-6">User Responsibilities</h3>
+                                    <h3 className="text-lg font-semibold text-[#3a1f1f] mt-6">Customer Responsibilities</h3>
                                     <p>You agree to provide accurate information and use our services lawfully. Prohibited activities include fraud, spam, or misuse of our platform.</p>
                                     
                                     <p className="mt-6">For questions about these terms, contact us at legal@bandhuchai.com</p>

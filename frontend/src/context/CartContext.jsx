@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import cartService from '../services/cartService.js';
 
 const CartContext = createContext(undefined);
 
@@ -12,39 +13,127 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
+  const [orderSummary, setOrderSummary] = useState({
+    subtotal: 0,
+    totalDiscount: 0,
+    shippingCost: 0,
+    tax: 0,
+    finalTotal: 0,
+    itemCount: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [orderSummaryLoading, setOrderSummaryLoading] = useState(false);
+  const [addToCartLoading, setAddToCartLoading] = useState(new Set()); // Track loading per product
 
   useEffect(() => {
-    const savedCart = localStorage.getItem('bandhu-cart');
-    if (savedCart) {
-      try {
-        setCartItems(JSON.parse(savedCart));
-      } catch (error) {
-        console.error('Error loading cart from localStorage:', error);
-        localStorage.removeItem('bandhu-cart');
-      }
-    }
+    loadCart();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('bandhu-cart', JSON.stringify(cartItems));
-  }, [cartItems]);
-
-  const addToCart = (productId) => {
-    setCartItems(prev => {
-      const existingItem = prev.find(item => item.id === productId);
-      if (existingItem) {
-        return prev;
+  const loadCart = async (showOrderLoading = false) => {
+    try {
+      if (showOrderLoading) {
+        setOrderSummaryLoading(true);
+      } else {
+        setLoading(true);
       }
-      return [...prev, { id: productId }];
-    });
+      
+      const cart = await cartService.getCart();
+      if (cart.success) {
+        setCartItems(cart.items);
+        setOrderSummary(cart.orderSummary);
+      }
+    } catch (error) {
+      console.error('Failed to load cart:', error);
+    } finally {
+      setLoading(false);
+      setOrderSummaryLoading(false);
+    }
   };
 
-  const removeFromCart = (productId) => {
-    setCartItems(prev => prev.filter(item => item.id !== productId));
+  const addToCart = async (productId, quantity = 1) => {
+    try {
+      setAddToCartLoading(prev => new Set(prev).add(productId));
+      setOrderSummaryLoading(true);
+      
+      const cart = await cartService.addToCart(productId, quantity);
+      if (cart.success) {
+        setCartItems(cart.items);
+        setOrderSummary(cart.orderSummary);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      return false;
+    } finally {
+      setAddToCartLoading(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+      setOrderSummaryLoading(false);
+    }
   };
 
-  const clearCart = () => {
-    setCartItems([]);
+  const removeFromCart = async (productId) => {
+    try {
+      setOrderSummaryLoading(true);
+      const cart = await cartService.removeFromCart(productId);
+      if (cart.success) {
+        setCartItems(cart.items);
+        setOrderSummary(cart.orderSummary);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to remove from cart:', error);
+      return false;
+    } finally {
+      setOrderSummaryLoading(false);
+    }
+  };
+
+  const updateQuantity = async (productId, quantity) => {
+    try {
+      setOrderSummaryLoading(true);
+      const cart = await cartService.updateCartItem(productId, quantity);
+      if (cart.success) {
+        setCartItems(cart.items);
+        setOrderSummary(cart.orderSummary);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
+      return false;
+    } finally {
+      setOrderSummaryLoading(false);
+    }
+  };
+
+  const clearCart = async () => {
+    try {
+      setOrderSummaryLoading(true);
+      const result = await cartService.clearCart();
+      if (result.success) {
+        setCartItems([]);
+        setOrderSummary({
+          subtotal: 0,
+          totalDiscount: 0,
+          shippingCost: 0,
+          tax: 0,
+          finalTotal: 0,
+          itemCount: 0
+        });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to clear cart:', error);
+      return false;
+    } finally {
+      setOrderSummaryLoading(false);
+    }
   };
 
   const isInCart = (productId) => {
@@ -52,16 +141,26 @@ export const CartProvider = ({ children }) => {
   };
 
   const getCartCount = () => {
-    return cartItems.length;
+    return orderSummary.itemCount;
+  };
+
+  const isAddingToCart = (productId) => {
+    return addToCartLoading.has(productId);
   };
 
   const value = {
     cartItems,
+    orderSummary,
+    loading,
+    orderSummaryLoading,
     addToCart,
     removeFromCart,
+    updateQuantity,
     clearCart,
     isInCart,
-    getCartCount
+    getCartCount,
+    isAddingToCart,
+    refreshCart: () => loadCart(true)
   };
 
   return (

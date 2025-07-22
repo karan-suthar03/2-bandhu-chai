@@ -18,18 +18,18 @@ function Footer() {
                 <div>
                     <h4 className="text-lg font-semibold poppins-medium mb-4">Quick Links</h4>
                     <ul className="space-y-2 text-sm poppins-regular">
-                        <li><Link to="/shop" className="hover:text-[#e67e22] transition">Shop</Link></li>
-                        <li><Link to="/about" className="hover:text-[#e67e22] transition">About Us</Link></li>
-                        <li><Link to="/contact" className="hover:text-[#e67e22] transition">Contact</Link></li>
-                        <li><Link to="/faq" className="hover:text-[#e67e22] transition">FAQ</Link></li>
-                        <li><Link to="/policies" className="hover:text-[#e67e22] transition">Policies</Link></li>
+                        <li><Link to="/shop" className="hover:text-[#e67e22] transition cursor-pointer">Shop</Link></li>
+                        <li><Link to="/about" className="hover:text-[#e67e22] transition cursor-pointer">About Us</Link></li>
+                        <li><Link to="/contact" className="hover:text-[#e67e22] transition cursor-pointer">Contact</Link></li>
+                        <li><Link to="/faq" className="hover:text-[#e67e22] transition cursor-pointer">FAQ</Link></li>
+                        <li><Link to="/policies" className="hover:text-[#e67e22] transition cursor-pointer">Policies</Link></li>
                     </ul>
                 </div>
 
                 <div>
                     <h4 className="text-lg font-semibold poppins-medium mb-4">Get in Touch</h4>
                     <p className="text-sm poppins-regular mb-2">Email: support@2bandhutea.com</p>
-                    <p className="text-sm poppins-regular mb-4">Phone: +91 123-456-7890</p>
+                    <p className="text-sm poppins-regular mb-4">Siddhant - 8805635049 | Om - 8530547606</p>
                     <div className="flex gap-4">
                         <a href="https://facebook.com/2bandhutea" className="hover:text-[#e67e22] transition">
                             <img src={facebookIcon} alt="Facebook" className="w-6 h-6 invert scale-[1.2]" />

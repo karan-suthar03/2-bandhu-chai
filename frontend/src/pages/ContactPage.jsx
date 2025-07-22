@@ -81,7 +81,7 @@ function ContactPage() {
                                         value={formData.subject}
                                         onChange={handleChange}
                                         required
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B4513] focus:border-transparent outline-none transition-all duration-300"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#8B4513] focus:border-transparent outline-none transition-all duration-300 cursor-pointer"
                                     >
                                         <option value="">Select a subject</option>
                                         <option value="general">General Inquiry</option>
@@ -129,8 +129,8 @@ function ContactPage() {
                                         <div>
                                             <h3 className="font-medium text-gray-800 mb-1">Address</h3>
                                             <p className="text-gray-600">
-                                                Tea Gardens Road, Jorhat<br/>
-                                                Assam 785001, India
+                                                Ganesh Peth, Near Shrimant Dagdusheth<br/>
+                                                Halwai Ganpati Mandir, Pune-411002
                                             </p>
                                         </div>
                                     </div>
@@ -139,8 +139,8 @@ function ContactPage() {
                                         <div className="text-2xl">📞</div>
                                         <div>
                                             <h3 className="font-medium text-gray-800 mb-1">Phone</h3>
-                                            <p className="text-gray-600">+91 12345 67890</p>
-                                            <p className="text-gray-600">+91 98765 43210</p>
+                                            <p className="text-gray-600">Siddhant - 8805635049</p>
+                                            <p className="text-gray-600">Om - 8530547606</p>
                                         </div>
                                     </div>
 
@@ -165,13 +165,12 @@ function ContactPage() {
                                 </div>
                             </div>
 
-                            {}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="bg-white rounded-lg p-6 shadow-lg text-center hover:shadow-xl transition-shadow duration-300">
                                     <div className="text-3xl mb-3">🛒</div>
                                     <h3 className="font-bold text-[#3a1f1f] mb-2">Order Support</h3>
                                     <p className="text-gray-600 text-sm mb-3">Need help with your order?</p>
-                                    <button className="text-[#8B4513] font-medium hover:underline">
+                                    <button className="text-[#8B4513] font-medium hover:underline cursor-pointer">
                                         Get Order Help
                                     </button>
                                 </div>
@@ -180,7 +179,7 @@ function ContactPage() {
                                     <div className="text-3xl mb-3">🌿</div>
                                     <h3 className="font-bold text-[#3a1f1f] mb-2">Product Info</h3>
                                     <p className="text-gray-600 text-sm mb-3">Questions about our teas?</p>
-                                    <button className="text-[#8B4513] font-medium hover:underline">
+                                    <button className="text-[#8B4513] font-medium hover:underline cursor-pointer">
                                         Learn More
                                     </button>
                                 </div>
@@ -189,7 +188,7 @@ function ContactPage() {
                                     <div className="text-3xl mb-3">🚚</div>
                                     <h3 className="font-bold text-[#3a1f1f] mb-2">Shipping Info</h3>
                                     <p className="text-gray-600 text-sm mb-3">Track your delivery</p>
-                                    <button className="text-[#8B4513] font-medium hover:underline">
+                                    <button className="text-[#8B4513] font-medium hover:underline cursor-pointer">
                                         Track Order
                                     </button>
                                 </div>
@@ -198,7 +197,7 @@ function ContactPage() {
                                     <div className="text-3xl mb-3">🤝</div>
                                     <h3 className="font-bold text-[#3a1f1f] mb-2">Wholesale</h3>
                                     <p className="text-gray-600 text-sm mb-3">Bulk order inquiries</p>
-                                    <button className="text-[#8B4513] font-medium hover:underline">
+                                    <button className="text-[#8B4513] font-medium hover:underline cursor-pointer">
                                         Contact Sales
                                     </button>
                                 </div>

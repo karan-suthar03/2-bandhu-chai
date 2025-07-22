@@ -105,14 +105,6 @@ function Navbar() {
             </Link>
 
             {}
-            <button className="hidden lg:flex items-center space-x-2 px-3 py-2 rounded-lg text-[#3a1f1f] hover:text-[#e67e22] hover:bg-[#e67e22]/10 transition-all duration-300 group">
-              <svg className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span className="text-sm font-medium">Account</span>
-            </button>
-
-            {}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -171,17 +163,6 @@ function Navbar() {
               </Link>
             ))}
             
-            {}
-            <div className="pt-4 border-t border-[#e67e22]/20">
-              <div className="flex justify-center">
-                <button className="flex flex-col items-center space-y-2 p-3 rounded-lg text-[#3a1f1f] hover:text-[#e67e22] hover:bg-[#e67e22]/10 transition-all duration-300">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span className="text-xs font-medium">Account</span>
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </div>

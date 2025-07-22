@@ -6,15 +6,15 @@ import { getFeaturedProducts } from "../api/products.js";
 import {formatCurrency, formatDiscount} from "../utils/priceUtils.js";
 function ProductCard({ product }) {
     const navigate = useNavigate();
-    const { addToCart, isInCart } = useCart();
+    const { addToCart, isInCart, isAddingToCart } = useCart();
 
     const handleProductClick = () => {
         navigate(`/product/${product.id}`);
     };
 
-    const handleAddToCart = (e) => {
+    const handleAddToCart = async (e) => {
         e.stopPropagation();
-        addToCart(product.id);
+        await addToCart(product.id);
     };
 
     return (
@@ -60,13 +60,26 @@ function ProductCard({ product }) {
                 <div className="flex gap-2">
                     <button 
                         onClick={handleAddToCart}
+                        disabled={isAddingToCart(product.id)}
                         className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
-                            isInCart(product.id) 
+                            isAddingToCart(product.id)
+                                ? 'bg-gray-100 border-2 border-gray-300 text-gray-500 cursor-not-allowed'
+                                : isInCart(product.id) 
                                 ? 'bg-green-100 border-2 border-green-500 text-green-700'
                                 : 'bg-white border-2 border-[#e67e22] text-[#e67e22] hover:bg-[#e67e22] hover:text-white'
                         }`}
                     >
-                        {isInCart(product.id) ? 'In Cart' : 'Add to Cart'}
+                        {isAddingToCart(product.id) 
+                            ? (
+                                <span className="flex items-center justify-center">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-1"></div>
+                                    Adding...
+                                </span>
+                            )
+                            : isInCart(product.id) 
+                                ? 'In Cart' 
+                                : 'Add to Cart'
+                        }
                     </button>
                     <button className="flex-1 bg-[#e67e22] text-white py-2 rounded-lg text-sm font-medium hover:bg-[#d35400] transition">
                         Buy Now

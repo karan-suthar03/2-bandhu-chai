@@ -32,11 +32,10 @@ const reviewsData = [
 ];
 function ProductPage() {
     const { productId } = useParams();
-    const { addToCart, isInCart } = useCart();
+    const { addToCart, isInCart, isAddingToCart } = useCart();
     const [product, setProduct] = useState(null);
     const [selectedImage, setSelectedImage] = useState(0);
     const [quantity, setQuantity] = useState(1);
-    const [selectedSize, setSelectedSize] = useState("");
     const [activeTab, setActiveTab] = useState("description");
     const [reviews, setReviews] = useState([]);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -48,7 +47,6 @@ function ProductPage() {
                 return;
             }
             setProduct(product);
-            setSelectedSize(product.sizes[1].size);
             setReviews(reviewsData);
         }).catch((error) => {
             console.error("Error fetching product:", error);
@@ -66,14 +64,16 @@ function ProductPage() {
         }
     }, [showSuccessMessage]);
 
-    const handleAddToCart = () => {
-        addToCart(product.id);
-        setShowSuccessMessage(true);
-        console.log("Adding to cart:", { product, quantity, size: selectedSize });
+    const handleAddToCart = async () => {
+        const success = await addToCart(product.id);
+        if (success) {
+            setShowSuccessMessage(true);
+        }
+        console.log("Adding to cart:", { product, quantity });
     };
 
     const handleBuyNow = () => {
-        console.log("Buy now:", { product, quantity, size: selectedSize });
+        console.log("Buy now:", { product, quantity });
     };
 
     const handleWishlist = () => {
@@ -111,11 +111,11 @@ function ProductPage() {
                 <section className="bg-white py-4 px-4 border-b">
                     <div className="max-w-7xl mx-auto">
                         <nav className="flex items-center space-x-2 text-sm text-[#5b4636]">
-                            <Link to="/" className="hover:text-[#e67e22] transition">Home</Link>
+                            <Link to="/" className="hover:text-[#e67e22] transition cursor-pointer">Home</Link>
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                             </svg>
-                            <Link to="/shop" className="hover:text-[#e67e22] transition">Shop</Link>
+                            <Link to="/shop" className="hover:text-[#e67e22] transition cursor-pointer">Shop</Link>
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                             </svg>
@@ -204,12 +204,12 @@ function ProductPage() {
                                 {}
                                 <div className="flex items-center space-x-4">
                                     <span className="text-4xl font-bold text-[#3a1f1f]">
-                                        {formatCurrency(product.sizes.find(s => s.size === selectedSize)?.price || product.price)}
+                                        {formatCurrency(product.price)}
                                     </span>
                                     {product.oldPrice && (
                                         <>
                                             <span className="text-xl text-gray-500 line-through">
-                                                {formatCurrency(product.sizes.find(s => s.size === selectedSize)?.oldPrice || product.oldPrice)}
+                                                {formatCurrency(product.oldPrice)}
                                             </span>
                                             <span className="bg-[#e67e22] text-white px-3 py-1 rounded-lg font-medium">
                                                 {formatDiscount(product.discount)}
@@ -223,27 +223,6 @@ function ProductPage() {
                                     <p className="text-[#5b4636] text-lg leading-relaxed break-words whitespace-pre-wrap">
                                         {product.description}
                                     </p>
-                                </div>
-
-                                {}
-                                <div>
-                                    <h3 className="text-lg font-semibold text-[#3a1f1f] mb-3">Size</h3>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        {product.sizes.map((sizeOption) => (
-                                            <button
-                                                key={sizeOption.size}
-                                                onClick={() => setSelectedSize(sizeOption.size)}
-                                                className={`p-3 rounded-lg border-2 transition-all ${
-                                                    selectedSize === sizeOption.size
-                                                        ? "border-[#e67e22] bg-[#e67e22]/10 text-[#e67e22]"
-                                                        : "border-gray-200 hover:border-[#e67e22] text-[#3a1f1f]"
-                                                }`}
-                                            >
-                                                <div className="font-semibold">{sizeOption.size}</div>
-                                                <div className="text-sm">{formatCurrency(sizeOption.price)}</div>
-                                            </button>
-                                        ))}
-                                    </div>
                                 </div>
 
                                 {}
@@ -286,20 +265,33 @@ function ProductPage() {
                                     </div>
                                 </div>
 
-                                {}
                                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                                     <button
                                         onClick={handleAddToCart}
-                                        disabled={product.stock === 0}
+                                        disabled={product.stock === 0 || isAddingToCart(product.id)}
                                         className={`flex-1 py-4 px-6 rounded-xl font-semibold text-lg transition-all ${
                                             product.stock === 0
                                                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                                 : isInCart(product.id)
                                                 ? 'bg-green-100 border-2 border-green-500 text-green-700'
+                                                : isAddingToCart(product.id)
+                                                ? 'bg-gray-100 border-2 border-gray-300 text-gray-500 cursor-not-allowed'
                                                 : 'bg-white border-2 border-[#e67e22] text-[#e67e22] hover:bg-[#e67e22] hover:text-white hover:scale-105'
                                         }`}
                                     >
-                                        {product.stock === 0 ? 'Out of Stock' : isInCart(product.id) ? 'In Cart' : 'Add to Cart'}
+                                        {product.stock === 0 
+                                            ? 'Out of Stock' 
+                                            : isAddingToCart(product.id) 
+                                                ? (
+                                                    <span className="flex items-center justify-center">
+                                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></div>
+                                                        Adding...
+                                                    </span>
+                                                )
+                                                : isInCart(product.id) 
+                                                    ? 'In Cart' 
+                                                    : 'Add to Cart'
+                                        }
                                     </button>
                                     <button
                                         onClick={handleBuyNow}

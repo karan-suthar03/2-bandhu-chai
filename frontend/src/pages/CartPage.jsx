@@ -1,128 +1,73 @@
-import {useEffect, useState, useMemo} from "react";
+import {useEffect, useState} from "react";
 import { useNavigate } from "react-router-dom";
 import {useCart} from "../context/CartContext.jsx";
-import {getCartItems} from "../api/products.js";
 import CartItemsSection from "../components/cart/CartItemsSection.jsx";
 import OrderSummary from "../components/cart/OrderSummary.jsx";
 
 function CartPage() {
-    const { cartItems: cartIds, removeFromCart, clearCart } = useCart();
+    const { cartItems, orderSummary, loading, orderSummaryLoading, removeFromCart, clearCart, updateQuantity } = useCart();
     const navigate = useNavigate();
-    const [cartItems, setCartItems] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [lastFetchedIds, setLastFetchedIds] = useState('');
+    const [error, setError] = useState(null);
 
-    const cartIdsString = useMemo(() => {
-        return cartIds.map(item => item.id).sort().join(',');
-    }, [cartIds]);
-
-    useEffect(() => {
-        const fetchCartItems = async () => {
-
-            if (cartIdsString === lastFetchedIds) {
-                return;
+    const handleRemoveFromCart = async (productId) => {
+        try {
+            const success = await removeFromCart(productId);
+            if (!success) {
+                setError('Failed to remove item from cart');
             }
-
-            if (cartIds.length === 0) {
-                setCartItems([]);
-                setLoading(false);
-                setLastFetchedIds('');
-                return;
-            }
-
-            try {
-                setLoading(true);
-                const productIds = cartIds.map(item => item.id);
-                const products = await getCartItems(productIds);
-                
-                if (products && products.length > 0) {
-
-                    const savedQuantities = localStorage.getItem('cart-quantities');
-                    const quantities = savedQuantities ? JSON.parse(savedQuantities) : {};
-                    
-                    const cartItemsWithQuantity = products.map(product => ({
-                        ...product,
-                        quantity: quantities[product.id] || 1,
-                    }));
-                    setCartItems(cartItemsWithQuantity);
-                } else {
-                    console.error("No products found in the cart");
-                    setCartItems([]);
-                }
-                setLastFetchedIds(cartIdsString);
-            } catch (error) {
-                console.error("Error fetching cart items:", error);
-                setCartItems([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchCartItems();
-    }, [cartIdsString, lastFetchedIds, cartIds]);
-
-
-    const handleRemoveFromCart = (productId) => {
-
-        removeFromCart(productId);
-
-        setCartItems(prev => prev.filter(item => item.id !== productId));
-
-        const newIds = cartIds.filter(item => item.id !== productId).map(item => item.id).sort().join(',');
-        setLastFetchedIds(newIds);
-
-
-        const savedQuantities = localStorage.getItem('cart-quantities');
-        if (savedQuantities) {
-            const quantities = JSON.parse(savedQuantities);
-            delete quantities[productId];
-            localStorage.setItem('cart-quantities', JSON.stringify(quantities));
+        } catch (error) {
+            console.error('Remove from cart error:', error);
+            setError('Failed to remove item from cart');
         }
     };
 
-
-    const handleClearCart = () => {
-        clearCart();
-        setCartItems([]);
-        setLastFetchedIds('');
-        // Clear quantities from localStorage
-        localStorage.removeItem('cart-quantities');
+    const handleClearCart = async () => {
+        try {
+            const success = await clearCart();
+            if (!success) {
+                setError('Failed to clear cart');
+            }
+        } catch (error) {
+            console.error('Clear cart error:', error);
+            setError('Failed to clear cart');
+        }
     };
 
-    const handleQuantityUpdate = (productId, newQuantity) => {
-        if (newQuantity < 1) return;
+    const handleQuantityUpdate = async (productId, newQuantity) => {
+        if (newQuantity < 1) {
+            return handleRemoveFromCart(productId);
+        }
         
-        setCartItems(prev => {
-            const updatedItems = prev.map(item => 
-                item.id === productId 
-                    ? { ...item, quantity: newQuantity }
-                    : item
-            );
-            
-            // Store quantities in localStorage
-            const quantities = {};
-            updatedItems.forEach(item => {
-                quantities[item.id] = item.quantity;
-            });
-            localStorage.setItem('cart-quantities', JSON.stringify(quantities));
-            
-            return updatedItems;
-        });
+        try {
+            const success = await updateQuantity(productId, newQuantity);
+            if (!success) {
+                setError('Failed to update quantity');
+            }
+        } catch (error) {
+            console.error('Update quantity error:', error);
+            setError('Failed to update quantity');
+        }
     };
     const handleProductClick = (productId) => {
         navigate(`/product/${productId}`);
     };
 
-    const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-    const totalDiscount = cartItems.reduce((total, item) => total + ((item.oldPrice - item.price) * item.quantity), 0);
-    const shippingCost = subtotal > 999 ? 0 : 99;
-    const tax = Math.round(subtotal * 0.18);
-    const finalTotal = subtotal + shippingCost + tax;
-
     return (
         <>
             <main className="min-h-screen pt-20 bg-gray-50">
-                {}
+                {error && (
+                    <div className="max-w-7xl mx-auto px-4 py-2">
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                            {error}
+                            <button 
+                                className="ml-2 text-sm underline"
+                                onClick={() => setError(null)}
+                            >
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                )}
                 <section className="bg-white py-8 px-4 border-b">
                     <div className="max-w-7xl mx-auto">
                         <div className="flex items-center justify-between">
@@ -174,12 +119,8 @@ function CartPage() {
 
                             {!loading && cartItems.length > 0 && (
                                 <OrderSummary
-                                    cartItems={cartItems}
-                                    subtotal={subtotal}
-                                    totalDiscount={totalDiscount}
-                                    shippingCost={shippingCost}
-                                    tax={tax}
-                                    finalTotal={finalTotal}
+                                    orderSummary={orderSummary}
+                                    loading={orderSummaryLoading}
                                 />
                             )}
                         </div>

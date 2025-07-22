@@ -9,5 +9,5 @@ export const formatCurrency = (price) => {
 
 
 export const formatDiscount = (discount) => {
-    return `${Number(discount).toFixed(2)}% Off`;
+    return `${Number(discount*100).toFixed(2)}% Off`;
 };

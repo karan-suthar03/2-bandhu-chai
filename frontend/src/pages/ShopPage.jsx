@@ -7,7 +7,7 @@ import {formatCurrency, formatDiscount} from "../utils/priceUtils.js";
 function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
     const [isInWishlist, setIsInWishlist] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
-    const { isInCart } = useCart();
+    const { isInCart, isAddingToCart } = useCart();
     const navigate = useNavigate();
 
     const handleProductClick = () => {
@@ -16,7 +16,7 @@ function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
 
     return (
         <div className="bg-white rounded-xl shadow-md overflow-hidden transform hover:-translate-y-2 hover:shadow-xl transition-all duration-300 group cursor-pointer">
-            <div className="relative h-56 sm:h-64 overflow-hidden" onClick={handleProductClick}>
+            <div className="relative h-56 sm:h-64 overflow-hidden cursor-pointer" onClick={handleProductClick}>
                 <img
                     src={product.image}
                     alt={product.name}
@@ -135,16 +135,30 @@ function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
                             e.stopPropagation();
                             onAddToCart(product);
                         }}
-                        disabled={product.stock === 0}
+                        disabled={product.stock === 0 || isAddingToCart(product.id)}
                         className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
                             product.stock === 0 
                                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                : isAddingToCart(product.id)
+                                ? 'bg-gray-100 border-2 border-gray-300 text-gray-500 cursor-not-allowed'
                                 : isInCart(product.id)
                                 ? 'bg-green-100 border-2 border-green-500 text-green-700'
                                 : 'bg-white border-2 border-[#e67e22] text-[#e67e22] hover:bg-[#e67e22] hover:text-white hover:scale-105'
                         }`}
                     >
-                        {product.stock === 0 ? 'Out of Stock' : isInCart(product.id) ? 'In Cart' : 'Add to Cart'}
+                        {product.stock === 0 
+                            ? 'Out of Stock' 
+                            : isAddingToCart(product.id) 
+                                ? (
+                                    <span className="flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-1"></div>
+                                        Adding...
+                                    </span>
+                                )
+                                : isInCart(product.id) 
+                                    ? 'In Cart' 
+                                    : 'Add to Cart'
+                        }
                     </button>
                     <button 
                         onClick={(e) => {
@@ -167,7 +181,7 @@ function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
 }
 
 function QuickViewModal({ product, onClose, onAddToCart, onBuyNow }) {
-    const { isInCart } = useCart();
+    const { isInCart, isAddingToCart } = useCart();
     if (!product) return null;
 
     return (
@@ -240,15 +254,28 @@ function QuickViewModal({ product, onClose, onAddToCart, onBuyNow }) {
                                 <button 
                                     onClick={() => {
                                         onAddToCart(product);
-                                        onClose();
+                                        if (!isAddingToCart(product.id)) onClose();
                                     }}
+                                    disabled={isAddingToCart(product.id)}
                                     className={`flex-1 py-3 rounded-lg font-medium transition ${
-                                        isInCart(product.id)
+                                        isAddingToCart(product.id)
+                                            ? 'bg-gray-100 border-2 border-gray-300 text-gray-500 cursor-not-allowed'
+                                            : isInCart(product.id)
                                             ? 'bg-green-100 border-2 border-green-500 text-green-700'
                                             : 'bg-white border-2 border-[#e67e22] text-[#e67e22] hover:bg-[#e67e22] hover:text-white'
                                     }`}
                                 >
-                                    {isInCart(product.id) ? 'In Cart' : 'Add to Cart'}
+                                    {isAddingToCart(product.id) 
+                                        ? (
+                                            <span className="flex items-center justify-center">
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                                                Adding...
+                                            </span>
+                                        )
+                                        : isInCart(product.id) 
+                                            ? 'In Cart' 
+                                            : 'Add to Cart'
+                                    }
                                 </button>
                                 <button 
                                     onClick={() => {
@@ -273,21 +300,51 @@ function ShopPage() {
     const [priceRange, setPriceRange] = useState("all");
     const [sortBy, setSortBy] = useState("name");
     const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
     const [quickViewProduct, setQuickViewProduct] = useState(null);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchLoading, setSearchLoading] = useState(false);
     const { addToCart } = useCart();
 
+    // Debounce search term - delay API calls by 500ms after user stops typing
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
     useEffect(()=>{
-        getProducts({
-            sortBy,
-            priceRange,
-            searchTerm,
-            selectedCategory
-        }).then((data)=>{
-            setProducts(data)
-        }).catch()
-    },[priceRange, searchTerm, selectedCategory, sortBy])
+        const fetchProducts = async () => {
+            try {
+                // Show search loading only if it's not the initial load
+                if (products.length > 0) {
+                    setSearchLoading(true);
+                } else {
+                    setLoading(true);
+                }
+
+                const data = await getProducts({
+                    sortBy,
+                    priceRange,
+                    searchTerm: debouncedSearchTerm,
+                    selectedCategory
+                });
+                
+                setProducts(data);
+            } catch (error) {
+                console.error('Failed to fetch products:', error);
+            } finally {
+                setLoading(false);
+                setSearchLoading(false);
+            }
+        };
+
+        fetchProducts();
+    },[priceRange, debouncedSearchTerm, selectedCategory, sortBy])
 
     useEffect(() => {
         if (showSuccessMessage) {
@@ -326,9 +383,11 @@ function ShopPage() {
 
 
 
-    const handleAddToCart = (product) => {
-        addToCart(product.id);
-        setShowSuccessMessage(true);
+    const handleAddToCart = async (product) => {
+        const success = await addToCart(product.id);
+        if (success) {
+            setShowSuccessMessage(true);
+        }
         console.log("Added to cart:", product);
     };
 
@@ -407,7 +466,10 @@ function ShopPage() {
                                     <select
                                         value={selectedCategory}
                                         onChange={(e) => setSelectedCategory(e.target.value)}
-                                        className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#e67e22] bg-white appearance-none pr-10 font-medium"
+                                        disabled={loading || searchLoading}
+                                        className={`px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#e67e22] bg-white appearance-none pr-10 font-medium cursor-pointer ${
+                                            loading || searchLoading ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
                                     >
                                         {categories.map(category => (
                                             <option key={category.id} value={category.id}>{category.name}</option>
@@ -422,7 +484,10 @@ function ShopPage() {
                                     <select
                                         value={priceRange}
                                         onChange={(e) => setPriceRange(e.target.value)}
-                                        className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#e67e22] bg-white appearance-none pr-10 font-medium"
+                                        disabled={loading || searchLoading}
+                                        className={`px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#e67e22] bg-white appearance-none pr-10 font-medium cursor-pointer ${
+                                            loading || searchLoading ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
                                     >
                                         {priceRanges.map(range => (
                                             <option key={range.id} value={range.id}>{range.name}</option>
@@ -437,7 +502,10 @@ function ShopPage() {
                                     <select
                                         value={sortBy}
                                         onChange={(e) => setSortBy(e.target.value)}
-                                        className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#e67e22] bg-white appearance-none pr-10 font-medium"
+                                        disabled={loading || searchLoading}
+                                        className={`px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#e67e22] bg-white appearance-none pr-10 font-medium cursor-pointer ${
+                                            loading || searchLoading ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
                                     >
                                         {sortOptions.map(option => (
                                             <option key={option.id} value={option.id}>{option.name}</option>
@@ -454,6 +522,7 @@ function ShopPage() {
                                             setSelectedCategory("all");
                                             setPriceRange("all");
                                             setSearchTerm("");
+                                            setDebouncedSearchTerm("");
                                         }}
                                         className="px-4 py-3 text-[#e67e22] border border-[#e67e22] rounded-lg hover:bg-[#e67e22] hover:text-white transition-colors font-medium"
                                     >
@@ -495,7 +564,10 @@ function ShopPage() {
                                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#e67e22] text-white">
                                         Search: "{searchTerm}"
                                         <button
-                                            onClick={() => setSearchTerm("")}
+                                            onClick={() => {
+                                                setSearchTerm("");
+                                                setDebouncedSearchTerm("");
+                                            }}
                                             className="ml-2 hover:text-gray-200"
                                         >
                                             ×
@@ -509,7 +581,47 @@ function ShopPage() {
 
                 <section className="py-12 px-4">
                     <div className="max-w-7xl mx-auto">
-                        {products.length === 0 ? (
+                        {loading ? (
+                            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {[...Array(8)].map((_, index) => (
+                                    <div key={index} className="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
+                                        <div className="h-56 bg-gray-200"></div>
+                                        <div className="p-5">
+                                            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                                            <div className="h-3 bg-gray-200 rounded w-3/4 mb-4"></div>
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+                                                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <div className="flex-1 h-10 bg-gray-200 rounded"></div>
+                                                <div className="flex-1 h-10 bg-gray-200 rounded"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : searchLoading ? (
+                            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {[...Array(4)].map((_, index) => (
+                                    <div key={index} className="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
+                                        <div className="h-56 bg-gray-200"></div>
+                                        <div className="p-5">
+                                            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                                            <div className="h-3 bg-gray-200 rounded w-3/4 mb-4"></div>
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+                                                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <div className="flex-1 h-10 bg-gray-200 rounded"></div>
+                                                <div className="flex-1 h-10 bg-gray-200 rounded"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : products.length === 0 ? (
                             <div className="text-center py-12">
                                 <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

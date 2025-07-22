@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import session from "express-session";
+import errorHandler from "./middlewares/errors/errorHandler.js";
 
 const app = express();
 import productsRouter from "./routes/productsRoute.js";
@@ -52,5 +53,8 @@ app.get("/", (req, res) => {
 app.use('/products', productsRouter);
 app.use('/cart', cartRouter);
 app.use('/orders', orderRouter);
+
+// Global error handler (must be last)
+app.use(errorHandler);
 
 export default app;

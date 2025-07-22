@@ -1,20 +1,23 @@
 import express from 'express';
-import cartController from '../controllers/cartController.js';
+import { 
+    getCart, 
+    addToCart, 
+    updateCartItem, 
+    removeFromCart, 
+    clearCart, 
+    syncCart, 
+    getCheckoutPreview 
+} from '../controllers/cartController.js';
+import asyncHandler from '../middlewares/asyncHandler.js';
 
 const router = express.Router();
 
-router.get('/', cartController.getCart);
-
-router.post('/add', cartController.addToCart);
-
-router.put('/item/:productId', cartController.updateCartItem);
-
-router.delete('/item/:productId', cartController.removeFromCart);
-
-router.delete('/clear', cartController.clearCart);
-
-router.post('/sync', cartController.syncCart);
-
-router.get('/checkout-preview', cartController.getCheckoutPreview);
+router.get('/', asyncHandler(getCart));
+router.post('/add', asyncHandler(addToCart));
+router.put('/item/:productId', asyncHandler(updateCartItem));
+router.delete('/item/:productId', asyncHandler(removeFromCart));
+router.delete('/clear', asyncHandler(clearCart));
+router.post('/sync', asyncHandler(syncCart));
+router.get('/checkout-preview', asyncHandler(getCheckoutPreview));
 
 export default router;

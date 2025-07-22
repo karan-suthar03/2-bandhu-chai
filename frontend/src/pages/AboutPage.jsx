@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 function AboutPage() {
     return (
         <>
-            <main className="min-h-screen pt-20 py-20 px-4">
+            <main className="min-h-screen pt-32 py-20 px-4">
                 <div className="max-w-4xl mx-auto">
                     {}
                     <div className="text-center mb-12">

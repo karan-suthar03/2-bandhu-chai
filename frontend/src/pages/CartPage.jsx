@@ -54,7 +54,7 @@ function CartPage() {
 
     return (
         <>
-            <main className="min-h-screen pt-20 bg-gray-50">
+            <main className="min-h-screen pt-32 bg-gray-50">
                 {error && (
                     <div className="max-w-7xl mx-auto px-4 py-2">
                         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">

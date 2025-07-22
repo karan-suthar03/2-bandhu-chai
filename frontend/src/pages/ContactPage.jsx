@@ -24,7 +24,7 @@ function ContactPage() {
 
     return (
         <>
-            <main className="min-h-screen pt-20 py-20 px-4">
+            <main className="min-h-screen pt-32 py-20 px-4">
                 <div className="max-w-6xl mx-auto">
                     {}
                     <div className="text-center mb-16">

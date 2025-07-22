@@ -13,6 +13,7 @@ function Navbar() {
   const navLinks = [
     { name: "Home", href: "/", icon: "🏠" },
     { name: "Shop", href: "/shop", icon: "🛍️" },
+    { name: "Track Order", href: "/track-order", icon: "📦" },
     { name: "About", href: "/about", icon: "ℹ️" },
     { name: "Contact", href: "/contact", icon: "📞" },
   ];

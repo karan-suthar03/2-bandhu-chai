@@ -335,6 +335,106 @@ class CartController {
             });
         }
     }
+
+    async getCheckoutPreview(req, res) {
+        try {
+            if (!req.session.cart || !req.session.cart.items || req.session.cart.items.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cart is empty'
+                });
+            }
+
+            const cartItems = req.session.cart.items;
+            const productIds = cartItems.map(item => item.productId);
+
+            const products = await prisma.product.findMany({
+                where: { id: { in: productIds } }
+            });
+
+            if (products.length !== productIds.length) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Some products are no longer available'
+                });
+            }
+
+            let subtotal = 0;
+            let totalDiscount = 0;
+            const checkoutItems = [];
+            const stockIssues = [];
+
+            for (const cartItem of cartItems) {
+                const product = products.find(p => p.id === cartItem.productId);
+                if (!product) continue;
+
+                // Check stock availability
+                if (product.stock < cartItem.quantity) {
+                    stockIssues.push({
+                        productId: product.id,
+                        productName: product.name,
+                        requested: cartItem.quantity,
+                        available: product.stock
+                    });
+                }
+
+                const itemTotal = product.price * cartItem.quantity;
+                const itemDiscount = product.oldPrice ? (product.oldPrice - product.price) * cartItem.quantity : 0;
+
+                subtotal += itemTotal;
+                totalDiscount += itemDiscount;
+
+                checkoutItems.push({
+                    ...product,
+                    quantity: cartItem.quantity,
+                    itemTotal,
+                    itemDiscount
+                });
+            }
+
+            if (stockIssues.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Stock issues found',
+                    stockIssues
+                });
+            }
+
+            const shippingCost = subtotal > 999 ? 0 : 99;
+            const tax = Math.round(subtotal * 0.18); // 18% GST
+            const finalTotal = subtotal + shippingCost + tax;
+
+            const checkoutPreview = {
+                items: checkoutItems,
+                summary: {
+                    subtotal,
+                    totalDiscount,
+                    shippingCost,
+                    tax,
+                    finalTotal,
+                    itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0)
+                },
+                policies: {
+                    freeShippingThreshold: 999,
+                    taxRate: 18, // GST percentage
+                    returnPolicy: '7 days return policy',
+                    exchangePolicy: 'Exchange within 7 days'
+                }
+            };
+
+            res.json({
+                success: true,
+                checkoutPreview
+            });
+
+        } catch (error) {
+            console.error('Get checkout preview error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to get checkout preview'
+            });
+        }
+    }
 }
 
 export default new CartController();

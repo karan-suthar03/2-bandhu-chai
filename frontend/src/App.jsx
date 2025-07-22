@@ -8,6 +8,9 @@ import LandingPage from "./pages/LandingPage";
 import ShopPage from "./pages/ShopPage";
 import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderSuccessPage from "./pages/OrderSuccessPage";
+import OrderTrackingPage from "./pages/OrderTrackingPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import FAQPage from "./pages/FAQPage";
@@ -24,6 +27,10 @@ function App() {
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/product/:productId" element={<ProductPage />} />
           <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/order-success/:orderNumber" element={<OrderSuccessPage />} />
+          <Route path="/track-order" element={<OrderTrackingPage />} />
+          <Route path="/track-order/:orderNumber" element={<OrderTrackingPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/faq" element={<FAQPage />} />

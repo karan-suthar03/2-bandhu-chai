@@ -141,7 +141,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const getCartCount = () => {
-    return orderSummary.itemCount;
+    return orderSummary?.itemCount || 0;
   };
 
   const isAddingToCart = (productId) => {

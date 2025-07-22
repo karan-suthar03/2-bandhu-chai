@@ -15,4 +15,6 @@ router.delete('/clear', cartController.clearCart);
 
 router.post('/sync', cartController.syncCart);
 
+router.get('/checkout-preview', cartController.getCheckoutPreview);
+
 export default router;

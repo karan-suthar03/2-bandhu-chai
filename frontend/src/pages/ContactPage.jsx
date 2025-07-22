@@ -251,14 +251,19 @@ function ContactPage() {
                     <div className="mt-20">
                         <div className="text-center mb-8">
                             <h2 className="text-3xl font-bold text-[#3a1f1f] mb-4">Visit Our Location</h2>
-                            <p className="text-gray-600">Come visit us at our tea gardens in Assam</p>
+                            <p className="text-gray-600">Come visit us at our store near Shrimant Dagdusheth Halwai Ganpati Mandir</p>
                         </div>
-                        <div className="bg-gray-200 rounded-xl h-80 flex items-center justify-center">
-                            <div className="text-center text-gray-500">
-                                <div className="text-4xl mb-4">🗺️</div>
-                                <p className="font-medium">Interactive Map</p>
-                                <p className="text-sm">Google Maps integration would go here</p>
-                            </div>
+                        <div className="rounded-xl overflow-hidden shadow-lg">
+                            <iframe 
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3783.2761097809484!2d73.85354157603679!3d18.516420782576304!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2c06fa5b442ff%3A0x9df365f5b648bce1!2sShrimant%20Dagdusheth%20Halwai%20Ganpati%20Mandir!5e0!3m2!1sen!2sin!4v1753176508034!5m2!1sen!2sin" 
+                                width="100%" 
+                                height="400" 
+                                style={{border: 0}} 
+                                allowFullScreen="" 
+                                loading="lazy" 
+                                referrerPolicy="no-referrer-when-downgrade"
+                                title="Bandhu Chai Location - Near Shrimant Dagdusheth Halwai Ganpati Mandir, Pune"
+                            />
                         </div>
                     </div>
                 </div>

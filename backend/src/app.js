@@ -7,6 +7,7 @@ import session from "express-session";
 const app = express();
 import productsRouter from "./routes/productsRoute.js";
 import cartRouter from "./routes/cartRoute.js";
+import orderRouter from "./routes/orderRoute.js";
 
 app.use(express.json());
 app.use(cors({
@@ -50,5 +51,6 @@ app.get("/", (req, res) => {
 
 app.use('/products', productsRouter);
 app.use('/cart', cartRouter);
+app.use('/orders', orderRouter);
 
 export default app;

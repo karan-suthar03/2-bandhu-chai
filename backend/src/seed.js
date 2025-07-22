@@ -82,6 +82,8 @@ async function seed() {
         })
 
         console.log(`Seeded ${result.count} products successfully`);
+
+        await createSampleOrders();
         
     } catch (error) {
         console.error("Error seeding database:");
@@ -93,6 +95,163 @@ async function seed() {
     } finally {
         await prisma.$disconnect();
         console.log("Database disconnected");
+    }
+}
+
+async function createSampleOrders() {
+    try {
+        console.log("Creating sample orders...");
+
+        const products = await prisma.product.findMany({
+            take: 5
+        });
+
+        if (products.length === 0) {
+            console.log("No products found to create orders");
+            return;
+        }
+
+        const sampleOrders = [
+            {
+                customerName: "John Doe",
+                customerEmail: "john@example.com",
+                customerPhone: "+91 9876543210",
+                shippingAddress: {
+                    street: "123 Main Street",
+                    city: "Mumbai",
+                    state: "Maharashtra",
+                    pincode: "400001",
+                    landmark: "Near City Mall"
+                },
+                status: "DELIVERED",
+                paymentStatus: "COMPLETED",
+                paymentMethod: "UPI",
+                subtotal: 450.00,
+                shippingCost: 0,
+                tax: 81.00,
+                finalTotal: 531.00,
+                confirmedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+                shippedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),   // 5 days ago
+                deliveredAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+                orderItems: [
+                    {
+                        productId: products[0].id,
+                        productName: products[0].name,
+                        price: products[0].price,
+                        oldPrice: products[0].oldPrice,
+                        quantity: 2
+                    }
+                ],
+                statusHistory: [
+                    { status: "PENDING", notes: "Order created" },
+                    { status: "CONFIRMED", notes: "Order confirmed by admin" },
+                    { status: "PROCESSING", notes: "Order is being prepared" },
+                    { status: "SHIPPED", notes: "Order shipped via courier" },
+                    { status: "OUT_FOR_DELIVERY", notes: "Out for delivery" },
+                    { status: "DELIVERED", notes: "Order delivered successfully" }
+                ]
+            },
+            {
+                customerName: "Jane Smith",
+                customerEmail: "jane@example.com",
+                customerPhone: "+91 8765432109",
+                shippingAddress: {
+                    street: "456 Oak Avenue",
+                    city: "Delhi",
+                    state: "Delhi",
+                    pincode: "110001",
+                    landmark: "Opposite Metro Station"
+                },
+                status: "SHIPPED",
+                paymentStatus: "COMPLETED",
+                paymentMethod: "CREDIT_CARD",
+                subtotal: 1200.00,
+                shippingCost: 0,
+                tax: 216.00,
+                finalTotal: 1416.00,
+                confirmedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+                shippedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),   // 1 day ago
+                orderItems: [
+                    {
+                        productId: products[1].id,
+                        productName: products[1].name,
+                        price: products[1].price,
+                        oldPrice: products[1].oldPrice,
+                        quantity: 1
+                    },
+                    {
+                        productId: products[2].id,
+                        productName: products[2].name,
+                        price: products[2].price,
+                        oldPrice: products[2].oldPrice,
+                        quantity: 3
+                    }
+                ],
+                statusHistory: [
+                    { status: "PENDING", notes: "Order created" },
+                    { status: "CONFIRMED", notes: "Order confirmed and payment received" },
+                    { status: "PROCESSING", notes: "Order is being packed" },
+                    { status: "SHIPPED", notes: "Order shipped with tracking ID: TR123456" }
+                ]
+            },
+            {
+                customerName: "Mike Johnson",
+                customerEmail: "mike@example.com",
+                customerPhone: "+91 7654321098",
+                shippingAddress: {
+                    street: "789 Pine Street",
+                    city: "Bangalore",
+                    state: "Karnataka",
+                    pincode: "560001",
+                    landmark: "Near Tech Park"
+                },
+                status: "PENDING",
+                paymentStatus: "PENDING",
+                paymentMethod: "CASH_ON_DELIVERY",
+                subtotal: 300.00,
+                shippingCost: 99.00,
+                tax: 54.00,
+                finalTotal: 453.00,
+                orderItems: [
+                    {
+                        productId: products[3].id,
+                        productName: products[3].name,
+                        price: products[3].price,
+                        oldPrice: products[3].oldPrice,
+                        quantity: 1
+                    }
+                ],
+                statusHistory: [
+                    { status: "PENDING", notes: "Order created, awaiting confirmation" }
+                ]
+            }
+        ];
+
+        for (const orderData of sampleOrders) {
+            const { orderItems, statusHistory, ...orderFields } = orderData;
+            
+            const order = await prisma.order.create({
+                data: {
+                    ...orderFields,
+                    orderItems: {
+                        create: orderItems
+                    },
+                    statusHistory: {
+                        create: statusHistory.map((history, index) => ({
+                            ...history,
+                            createdAt: new Date(Date.now() - (statusHistory.length - index - 1) * 24 * 60 * 60 * 1000)
+                        }))
+                    }
+                }
+            });
+
+            console.log(`Created order: ${order.orderNumber}`);
+        }
+
+        console.log("Sample orders created successfully");
+        
+    } catch (error) {
+        console.error("Error creating sample orders:", error);
     }
 }
 

@@ -40,18 +40,33 @@ function ProductPage() {
     const [reviews, setReviews] = useState([]);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [isInWishlist, setIsInWishlist] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    
     useEffect(() => {
-        getProduct(productId).then((product) => {
-            if (!product) {
-                console.error("Product not found");
-                return;
+        const loadProduct = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const productData = await getProduct(productId);
+                
+                if (!productData) {
+                    setError("Product not found or server unavailable");
+                    setProduct(null);
+                } else {
+                    setProduct(productData);
+                    setReviews(reviewsData);
+                }
+            } catch (err) {
+                console.error("Error fetching product:", err);
+                setError("Unable to load product. Please check your connection.");
+                setProduct(null);
+            } finally {
+                setLoading(false);
             }
-            setProduct(product);
-            setReviews(reviewsData);
-        }).catch((error) => {
-            console.error("Error fetching product:", error);
-            setProduct(null);
-        })
+        };
+
+        loadProduct();
         window.scrollTo(0, 0);
     }, [productId]);
 
@@ -80,7 +95,7 @@ function ProductPage() {
         setIsInWishlist(!isInWishlist);
     };
 
-    if (!product) {
+    if (loading) {
         return (
             <>
                 <div className="min-h-screen pt-20 flex items-center justify-center">
@@ -88,6 +103,38 @@ function ProductPage() {
                         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#e67e22] mx-auto mb-4"></div>
                         <h2 className="text-2xl font-bold text-[#3a1f1f] mb-2">Loading Product...</h2>
                         <p className="text-[#5b4636]">Please wait while we fetch the product details.</p>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
+    if (error || !product) {
+        return (
+            <>
+                <div className="min-h-screen pt-20 flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="bg-red-100 border border-red-400 text-red-800 px-8 py-6 rounded-lg max-w-md mx-auto">
+                            <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <h2 className="text-xl font-bold mb-2">Unable to Load Product</h2>
+                            <p className="mb-4">{error || "Product not found or server unavailable"}</p>
+                            <div className="space-x-4">
+                                <button 
+                                    onClick={() => window.location.reload()}
+                                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+                                >
+                                    Retry
+                                </button>
+                                <button 
+                                    onClick={() => navigate('/')}
+                                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition"
+                                >
+                                    Go Home
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </>

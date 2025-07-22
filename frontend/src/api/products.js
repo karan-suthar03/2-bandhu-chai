@@ -6,6 +6,11 @@ const getProducts = async (params) => {
         return response.data.data;
     } catch (error) {
         console.error('Error fetching products:', error);
+
+        if (error.isNetworkError || error.isServerDown || error.isTimeout) {
+            return [];
+        }
+
         throw error;
     }
 };
@@ -16,6 +21,11 @@ const getFeaturedProducts = async () => {
         return response.data.data;
     } catch (error) {
         console.error('Error fetching featured products:', error);
+
+        if (error.isNetworkError || error.isServerDown || error.isTimeout) {
+            return [];
+        }
+
         throw error;
     }
 };
@@ -26,6 +36,11 @@ const getProduct = async (productId) => {
         return response.data.data;
     } catch (error) {
         console.error('Error fetching product:', error);
+
+        if (error.isNetworkError || error.isServerDown || error.isTimeout) {
+            return null;
+        }
+        
         throw error;
     }
 }
@@ -36,6 +51,11 @@ const getCartItems = async (cartItems) => {
         return response.data.data;
     } catch (error) {
         console.error('Error fetching cart items:', error);
+
+        if (error.isNetworkError || error.isServerDown || error.isTimeout) {
+            return [];
+        }
+        
         throw error;
     }
 };

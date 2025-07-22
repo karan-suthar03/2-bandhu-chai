@@ -306,6 +306,7 @@ function ShopPage() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchLoading, setSearchLoading] = useState(false);
+    const [error, setError] = useState(null);
     const { addToCart } = useCart();
 
     // Debounce search term - delay API calls by 500ms after user stops typing
@@ -320,6 +321,7 @@ function ShopPage() {
     useEffect(()=>{
         const fetchProducts = async () => {
             try {
+                setError(null);
                 // Show search loading only if it's not the initial load
                 if (products.length > 0) {
                     setSearchLoading(true);
@@ -334,9 +336,11 @@ function ShopPage() {
                     selectedCategory
                 });
                 
-                setProducts(data);
+                setProducts(data || []);
             } catch (error) {
                 console.error('Failed to fetch products:', error);
+                setError('Unable to load products. Please check your connection.');
+                setProducts([]);
             } finally {
                 setLoading(false);
                 setSearchLoading(false);
@@ -620,6 +624,24 @@ function ShopPage() {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        ) : error ? (
+                            <div className="text-center py-12">
+                                <div className="bg-red-100 border border-red-400 text-red-800 px-6 py-4 rounded-lg inline-block max-w-md">
+                                    <div className="flex items-center mb-2">
+                                        <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <h3 className="font-semibold">Connection Error</h3>
+                                    </div>
+                                    <p className="mb-4">{error}</p>
+                                    <button 
+                                        onClick={() => window.location.reload()}
+                                        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+                                    >
+                                        Retry
+                                    </button>
+                                </div>
                             </div>
                         ) : products.length === 0 ? (
                             <div className="text-center py-12">

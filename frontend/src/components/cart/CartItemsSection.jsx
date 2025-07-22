@@ -1,5 +1,6 @@
 import CartItem from "./CartItem.jsx";
 import productImage from "../../assets/product.jpg";
+import { useNavigate } from "react-router-dom";
 
 function CartItemsSection({ 
     cartItems, 
@@ -9,19 +10,20 @@ function CartItemsSection({
     onProductClick, 
     onClearCart 
 }) {
+    const navigate = useNavigate();
     if (loading) {
         return (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="bg-gradient-to-r from-[#f7ebc9] to-[#e8d5a3] px-6 py-4 border-b">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-[#3a1f1f]">
-                            Cart Items (0)
+                            Selected Items (0)
                         </h2>
                     </div>
                 </div>
                 <div className="p-12 text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#e67e22] mx-auto mb-4"></div>
-                    <p className="text-[#5b4636]">Loading your cart...</p>
+                    <p className="text-[#5b4636]">Loading your selection...</p>
                 </div>
             </div>
         );
@@ -33,7 +35,7 @@ function CartItemsSection({
                 <div className="bg-gradient-to-r from-[#f7ebc9] to-[#e8d5a3] px-6 py-4 border-b">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-[#3a1f1f]">
-                            Cart Items (0)
+                            Selected Items (0)
                         </h2>
                     </div>
                 </div>
@@ -43,10 +45,10 @@ function CartItemsSection({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                     </div>
-                    <h3 className="text-xl font-semibold text-[#3a1f1f] mb-2">Your cart is empty</h3>
-                    <p className="text-[#5b4636] mb-4">Add some delicious tea to get started!</p>
+                    <h3 className="text-xl font-semibold text-[#3a1f1f] mb-2">No tea selected yet</h3>
+                    <p className="text-[#5b4636] mb-4">Browse our collection and add your favorite teas!</p>
                     <a href="/shop" className="inline-block bg-[#e67e22] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#d35400] transition cursor-pointer">
-                        Continue Shopping
+                        Browse Teas
                     </a>
                 </div>
             </div>
@@ -60,7 +62,7 @@ function CartItemsSection({
                 <div className="bg-gradient-to-r from-[#f7ebc9] to-[#e8d5a3] px-6 py-4 border-b">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-[#3a1f1f]">
-                            Cart Items ({cartItems.length})
+                            Selected Items ({cartItems.length})
                         </h2>
                         <button 
                             onClick={(e) => {
@@ -88,7 +90,10 @@ function CartItemsSection({
                 </div>
 
                 <div className="p-6 bg-gray-50 border-t">
-                    <button className="flex items-center space-x-2 text-[#e67e22] hover:text-[#d35400] font-medium transition cursor-pointer">
+                    <button 
+                        onClick={() => navigate('/shop')}
+                        className="flex items-center space-x-2 text-[#e67e22] hover:text-[#d35400] font-medium transition cursor-pointer"
+                    >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>

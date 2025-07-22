@@ -150,9 +150,14 @@ function CheckoutPage() {
     return (
         <div className="min-h-screen bg-gray-50 pt-32 py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold text-[#3a1f1f] mb-2">Complete Your Order</h1>
+                    <p className="text-[#5b4636]">Just a few details and we'll get your tea ready for delivery</p>
+                </div>
+                
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div className="bg-white rounded-lg shadow-md p-6">
-                        <h2 className="text-2xl font-bold mb-6">Checkout Details</h2>
+                        <h2 className="text-2xl font-bold mb-6">Your Details</h2>
                         
                         {error && (
                             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
@@ -162,7 +167,7 @@ function CheckoutPage() {
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div>
-                                <h3 className="text-lg font-semibold mb-4">Customer Information</h3>
+                                <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
                                 
                                 <div className="space-y-4">
                                     <div>
@@ -296,10 +301,24 @@ function CheckoutPage() {
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-semibold mb-4">Payment Method</h3>
+                                <h3 className="text-lg font-semibold mb-4">Payment & Delivery</h3>
+                                
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                                    <div className="flex items-start space-x-3">
+                                        <svg className="w-5 h-5 text-amber-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                        </svg>
+                                        <div>
+                                            <h4 className="font-semibold text-amber-800 mb-1">How it works</h4>
+                                            <p className="text-sm text-amber-700">
+                                                After placing your order, we'll call you to confirm details and arrange payment & delivery at your convenience.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                                 
                                 <div className="space-y-3">
-                                    <label className="flex items-center">
+                                    <label className="flex items-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
                                         <input
                                             type="radio"
                                             name="paymentMethod"
@@ -308,10 +327,13 @@ function CheckoutPage() {
                                             onChange={handleChange}
                                             className="mr-3"
                                         />
-                                        <span>Cash on Delivery (COD)</span>
+                                        <div className="flex-grow">
+                                            <span className="font-medium">Cash on Delivery</span>
+                                            <p className="text-sm text-gray-600">Pay when you receive your tea</p>
+                                        </div>
                                     </label>
                                     
-                                    <label className="flex items-center">
+                                    <label className="flex items-center p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer">
                                         <input
                                             type="radio"
                                             name="paymentMethod"
@@ -320,7 +342,10 @@ function CheckoutPage() {
                                             onChange={handleChange}
                                             className="mr-3"
                                         />
-                                        <span>UPI Payment</span>
+                                        <div className="flex-grow">
+                                            <span className="font-medium">UPI/Online Payment</span>
+                                            <p className="text-sm text-gray-600">Pay via UPI, cards, or net banking</p>
+                                        </div>
                                     </label>
                                 </div>
                             </div>
@@ -342,33 +367,40 @@ function CheckoutPage() {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full bg-gradient-to-r from-[#e67e22] to-[#d35400] text-white py-4 px-6 rounded-xl font-bold hover:from-[#d35400] hover:to-[#c0392b] transform hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                             >
-                                {isSubmitting ? 'Placing Order...' : 'Place Order'}
+                                {isSubmitting ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                                        Placing Your Order...
+                                    </div>
+                                ) : (
+                                    'Confirm Order'
+                                )}
                             </button>
                         </form>
                     </div>
 
                     <div className="bg-white rounded-lg shadow-md p-6">
-                        <h2 className="text-2xl font-bold mb-6">Order Summary</h2>
+                        <h2 className="text-2xl font-bold mb-6 text-[#3a1f1f]">Order Summary</h2>
 
                         <div className="space-y-4 mb-6">
                             {checkoutPreview.items.map((item) => (
-                                <div key={item.id} className="flex items-center space-x-4 py-3 border-b">
+                                <div key={item.id} className="flex items-center space-x-4 py-3 border-b border-gray-100">
                                     <img 
                                         src={item.image} 
                                         alt={item.name}
-                                        className="w-16 h-16 object-cover rounded"
+                                        className="w-16 h-16 object-cover rounded-lg shadow-sm"
                                     />
                                     <div className="flex-grow">
-                                        <h4 className="font-medium">{item.name}</h4>
-                                        <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                                        <h4 className="font-medium text-[#3a1f1f]">{item.name}</h4>
+                                        <p className="text-sm text-[#5b4636]">Quantity: {item.quantity}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-medium">{formatPrice(item.itemTotal)}</p>
+                                        <p className="font-medium text-[#3a1f1f]">₹{formatPrice(item.itemTotal)}</p>
                                         {item.itemDiscount > 0 && (
                                             <p className="text-sm text-green-600">
-                                                Save {formatPrice(item.itemDiscount)}
+                                                Save ₹{formatPrice(item.itemDiscount)}
                                             </p>
                                         )}
                                     </div>
@@ -376,41 +408,52 @@ function CheckoutPage() {
                             ))}
                         </div>
 
-                        <div className="space-y-2 pt-4 border-t">
-                            <div className="flex justify-between">
+                        <div className="space-y-3 pt-4 border-t border-gray-200">
+                            <div className="flex justify-between text-[#5b4636]">
                                 <span>Subtotal</span>
-                                <span>{formatPrice(checkoutPreview.summary.subtotal)}</span>
+                                <span>₹{formatPrice(checkoutPreview.summary.subtotal)}</span>
                             </div>
                             
                             {checkoutPreview.summary.totalDiscount > 0 && (
                                 <div className="flex justify-between text-green-600">
                                     <span>Total Discount</span>
-                                    <span>-{formatPrice(checkoutPreview.summary.totalDiscount)}</span>
+                                    <span>-₹{formatPrice(checkoutPreview.summary.totalDiscount)}</span>
                                 </div>
                             )}
                             
-                            <div className="flex justify-between">
+                            <div className="flex justify-between text-[#5b4636]">
                                 <span>Shipping</span>
-                                <span>
-                                    {checkoutPreview.summary.shippingCost === 0 ? 'FREE' : formatPrice(checkoutPreview.summary.shippingCost)}
+                                <span className={checkoutPreview.summary.shippingCost === 0 ? 'text-green-600 font-medium' : ''}>
+                                    {checkoutPreview.summary.shippingCost === 0 ? 'FREE' : `₹${formatPrice(checkoutPreview.summary.shippingCost)}`}
                                 </span>
                             </div>
                             
-                            <div className="flex justify-between">
-                                <span>Tax (GST)</span>
-                                <span>{formatPrice(checkoutPreview.summary.tax)}</span>
+                            <div className="flex justify-between text-[#5b4636]">
+                                <span>Tax (GST 18%)</span>
+                                <span>₹{formatPrice(checkoutPreview.summary.tax)}</span>
                             </div>
                             
-                            <div className="flex justify-between text-xl font-bold pt-2 border-t">
-                                <span>Total</span>
-                                <span>{formatPrice(checkoutPreview.summary.finalTotal)}</span>
+                            <div className="flex justify-between text-xl font-bold pt-3 border-t border-gray-200 text-[#e67e22]">
+                                <span>Total Amount</span>
+                                <span>₹{formatPrice(checkoutPreview.summary.finalTotal)}</span>
                             </div>
                         </div>
 
-                        <div className="mt-6 pt-4 border-t text-sm text-gray-600">
-                            <p className="mb-2">• {checkoutPreview.policies.returnPolicy}</p>
-                            <p className="mb-2">• {checkoutPreview.policies.exchangePolicy}</p>
-                            <p>• Free shipping on orders above {formatPrice(checkoutPreview.policies.freeShippingThreshold)}</p>
+                        <div className="mt-6 pt-4 border-t border-gray-200">
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <h3 className="font-semibold text-green-800 mb-2 flex items-center">
+                                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    What happens next?
+                                </h3>
+                                <ul className="text-sm text-green-700 space-y-1">
+                                    <li>• We'll call you within 24 hours</li>
+                                    <li>• Confirm your order details</li>
+                                    <li>• Arrange convenient payment & delivery</li>
+                                    <li>• Fresh tea delivered to your door</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>

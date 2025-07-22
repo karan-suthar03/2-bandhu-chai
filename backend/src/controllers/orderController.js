@@ -291,20 +291,19 @@ async function getOrderByNumber(req, res) {
             customerPhone: order.customerPhone,
             shippingAddress: order.shippingAddress,
             paymentMethod: order.paymentMethod,
-            items: order.orderItems.map(item => ({
-                name: item.productName,
+            paymentStatus: order.paymentStatus || 'PENDING',
+            orderItems: order.orderItems.map(item => ({
+                id: item.id,
+                productName: item.productName,
                 quantity: item.quantity,
                 price: item.price,
-                total: item.price * item.quantity,
-                image: item.product?.image || '/placeholder-product.jpg'
+                product: item.product
             })),
-            summary: {
-                subtotal: order.subtotal,
-                totalDiscount: order.totalDiscount,
-                shippingCost: order.shippingCost,
-                tax: order.tax,
-                finalTotal: order.finalTotal
-            },
+            subtotal: order.subtotal,
+            totalDiscount: order.totalDiscount,
+            shippingCost: order.shippingCost,
+            tax: order.tax,
+            finalTotal: order.finalTotal,
             createdAt: order.createdAt,
             updatedAt: order.updatedAt,
             statusHistory: order.statusHistory,

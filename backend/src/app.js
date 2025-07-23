@@ -9,6 +9,8 @@ const app = express();
 import productsRouter from "./routes/productsRoute.js";
 import cartRouter from "./routes/cartRoute.js";
 import orderRouter from "./routes/orderRoute.js";
+import authRouter from "./routes/authRoute.js";
+import adminRouter from "./routes/adminRoute.js";
 
 app.use(express.json());
 app.use(cors({
@@ -31,11 +33,11 @@ app.use(session({
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-app.use((req,res,next)=>{
-    setTimeout(()=>{
-        next()
-    }, 2000)
-})
+// app.use((req,res,next)=>{
+//     setTimeout(()=>{
+//         next()
+//     }, 2000)
+// })
 
 app.use((req,res,next)=>{
     console.log("Request:", req.method, req.path, req.body);
@@ -53,6 +55,8 @@ app.get("/", (req, res) => {
 app.use('/products', productsRouter);
 app.use('/cart', cartRouter);
 app.use('/orders', orderRouter);
+app.use('/auth', authRouter);
+app.use('/admin', adminRouter);
 
 // Global error handler (must be last)
 app.use(errorHandler);

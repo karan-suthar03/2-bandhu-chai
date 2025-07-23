@@ -70,6 +70,19 @@ enum PaymentMethod {
   WALLET
 }
 
+model Admin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      String   @default("admin")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
+}
+
 model Order {
   id          String  @id @default(cuid())
   orderNumber String  @unique @default(cuid())

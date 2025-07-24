@@ -6,14 +6,26 @@ const prisma = new PrismaClient();
 
 export const authenticateToken = async (req, res, next) => {
     try {
-        const authHeader = req.headers['authorization'];
-        const token = authHeader && authHeader.split(' ')[1];
+        let token = req.cookies.accessToken;
+        
+        if (!token) {
+            const authHeader = req.headers['authorization'];
+            token = authHeader && authHeader.split(' ')[1];
+        }
 
         if (!token) {
             return next(new AppError('Access token required', 401));
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        if (!process.env.JWT_SECRET) {
+            return next(new AppError('Server configuration error', 500));
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        if (decoded.type && decoded.type !== 'access') {
+            return next(new AppError('Invalid token type', 401));
+        }
 
         const admin = await prisma.admin.findUnique({
             where: { id: decoded.id },
@@ -25,6 +37,14 @@ export const authenticateToken = async (req, res, next) => {
         }
 
         req.admin = admin;
+        
+        req.tokenInfo = {
+            id: decoded.id,
+            type: decoded.type || 'legacy',
+            iat: decoded.iat,
+            exp: decoded.exp
+        };
+        
         next();
     } catch (error) {
         if (error.name === 'JsonWebTokenError') {

@@ -10,18 +10,17 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import {formatCurrency, formatDiscount} from "../Utils/Utils.js";
 
-const formatCurrency = (amount) =>
-    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount || 0);
-
-const formatDiscount = (discount) =>
-    discount === 0 ? 'No Discount' : `${parseFloat((discount * 100).toFixed(2))}%`;
-
-const ProductRow = ({ product }) => {
+const ProductRow = ({ product, selected, onSelectRow }) => {
     return (
-        <TableRow hover>
-            <TableCell padding="checkbox">
-                <Checkbox color="primary" />
+        <TableRow hover selected={!!selected} onClick={() => onSelectRow(product.id)} style={{ cursor: 'pointer' }}>
+            <TableCell padding="checkbox" onClick={e => e.stopPropagation()}>
+                <Checkbox
+                    color="primary"
+                    checked={!!selected}
+                    onChange={() => onSelectRow(product.id)}
+                />
             </TableCell>
             <TableCell>{product.id}</TableCell>
             <TableCell>

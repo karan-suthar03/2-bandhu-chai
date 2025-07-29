@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Box, Typography, Button, CircularProgress } from '@mui/material';
-import { useSearchParams } from 'react-router-dom';
 import { getAdminProducts } from '../api';
-import PaginationControl from './productPage/PaginationControl.jsx';
-import ProductTable from './productPage/ProductTable.jsx';
-import ProductFilters from './productPage/ProductFilters.jsx';
+import PaginationControl from './SectionComponents/PaginationControl.jsx';
+import Filters from "./SectionComponents/Filters.jsx";
+import MyTable from "./SectionComponents/MyTable.jsx";
+import ProductRow from "./productPage/ProductRow.jsx";
+import useDataList from "./hooks/useDataList.js";
 
 const defaultFilters = {
   page: 1,
@@ -15,87 +16,71 @@ const defaultFilters = {
   _order: 'asc',
 };
 
+const columns = [
+  { label: 'Id', key: 'id' },
+  { label: 'Image' },
+  { label: 'Name', key: 'name' },
+  { label: 'Category', key: 'category' },
+  { label: 'Price', key: 'price' },
+  { label: 'Old Price', key: 'oldPrice' },
+  { label: 'Discount', key: 'discount' },
+  { label: 'Featured', key: 'featured' },
+  { label: 'Stock', key: 'stock' },
+  { label: 'Badge', key: 'badge' },
+  { label: 'Rating', key: 'rating' },
+  { label: 'Is New', key: 'isNew' },
+  { label: 'Is Organic', key: 'organic' },
+  { label: 'Fast Delivery', key: 'fastDelivery' },
+  { label: 'Actions' },
+];
+const allExtraFilters = [
+  { label: 'Id', key: 'id', isBoolean: false},
+  { label: 'Description', key: 'description', isBoolean: false },
+  { label: 'Badge', key: 'badge', isBoolean: false },
+  { label: 'Min Price', key: 'minPrice', isBoolean: false },
+  { label: 'Max Price', key: 'maxPrice', isBoolean: false },
+  { label: 'Category', key: 'category', isBoolean: false },
+  { label: 'Min Stock', key: 'minStock', isBoolean: false },
+  { label: 'Max Stock', key: 'maxStock', isBoolean: false },
+  { label: 'Featured', key: 'featured', isBoolean: true },
+  { label: 'Organic', key: 'organic', isBoolean: true },
+  { label: 'Is New', key: 'isNew', isBoolean: true },
+  { label: 'Fast Delivery', key: 'fastDelivery', isBoolean: true }
+]
+
 const ProductsView = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    filters, setFilters,
+    sort, handleSortChange,
+    data: products,
+    pagination,
+    loading,
+    searchDebounce,
+    setSearchDebounce
+  } = useDataList(defaultFilters, getAdminProducts);
 
-  const [filters, setFilters] = useState(defaultFilters);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({});
-  const [searchDebounce, setSearchDebounce] = useState('');
-  const [sort, setSort] = useState({ field: '', _order: 'asc' });
+  const [selectedIds, setSelectedIds] = useState([]);
 
-  // Sync filters from URL on load
   useEffect(() => {
-    const params = {};
-    for (const [key, value] of searchParams.entries()) {
-      params[key] = isNaN(value) ? value : Number(value);
-    }
-    const updatedFilters = { ...defaultFilters, ...params };
-    setFilters(updatedFilters);
-    setSearchDebounce(updatedFilters.search);
-    setSort({ field: updatedFilters._sort, _order: updatedFilters._order });
-  }, [searchParams]);
+    setSelectedIds([]);
+  }, [filters, sort, products]);
 
-  // Update URL when filters change
-  useEffect(() => {
-    const newParams = {};
-    Object.keys(filters).forEach((key) => {
-      if (filters[key] !== '' && filters[key] != null) {
-        newParams[key] = filters[key];
-      }
-    });
-    setSearchParams(newParams);
-  }, [filters]);
-
-  // Fetch products
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const response = await getAdminProducts(filters);
-        setProducts(response.data.data);
-        setPagination(response.data.pagination);
-      } catch (error) {
-        console.error('Failed to fetch products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
-  }, [filters]);
-
-  // Handle sorting
-  const handleSortChange = (field) => {
-    setSort((prev) => {
-      const order = prev.field === field && prev.order === 'asc' ? 'desc' : 'asc';
-      setFilters((prevFilters) => ({
-        ...prevFilters,
-        _sort: field,
-        _order: order,
-        page: 1,
-      }));
-      return { field, order };
-    });
+  const handleSelectRow = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
   };
 
-  const columns = [
-    { label: 'ID', key: 'id' },
-    { label: 'Image' },
-    { label: 'Name', key: 'name' },
-    { label: 'Category', key: 'category' },
-    { label: 'Price', key: 'price' },
-    { label: 'Old Price', key: 'oldPrice' },
-    { label: 'Discount', key: 'discount' },
-    { label: 'Featured', key: 'featured' },
-    { label: 'Stock', key: 'stock' },
-    { label: 'Badge', key: 'badge' },
-    { label: 'Rating', key: 'rating' },
-    { label: 'Is New', key: 'isNew' },
-    { label: 'Is Organic', key: 'organic' },
-    { label: 'Fast Delivery', key: 'fastDelivery' },
-    { label: 'Actions' },
-  ];
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedIds(products.map((p) => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const allSelected = useMemo(() => products.length > 0 && selectedIds.length === products.length, [selectedIds, products]);
+  const someSelected = useMemo(() => selectedIds.length > 0 && selectedIds.length < products.length, [selectedIds, products]);
 
   return (
       <Box p={3}>
@@ -103,23 +88,38 @@ const ProductsView = () => {
           <Typography variant="h5">Products Dashboard</Typography>
           <Button variant="contained">+ Add Product</Button>
         </Box>
-
         <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" mb={2} gap={2}>
-          <ProductFilters
+          <Filters
               filters={filters}
               setFilters={setFilters}
               searchDebounce={searchDebounce}
               setSearchDebounce={setSearchDebounce}
+              allExtraFilters={allExtraFilters}
           />
           {loading && <CircularProgress size={24} />}
         </Box>
-
-        <ProductTable
-            products={products}
+        <Box mb={1}>
+          <Typography variant="subtitle1">
+            Selected Rows: {selectedIds.length}
+          </Typography>
+        </Box>
+        <MyTable
             sort={sort}
             handleSortChange={handleSortChange}
             columns={columns}
-        />
+            onSelectAll={handleSelectAll}
+            allSelected={allSelected}
+            someSelected={someSelected}
+        >
+            {products.map((product) => (
+                <ProductRow
+                  key={product.id}
+                  product={product}
+                  selected={selectedIds.includes(product.id)}
+                  onSelectRow={handleSelectRow}
+                />
+            ))}
+        </MyTable>
 
         <PaginationControl
             pagination={pagination}

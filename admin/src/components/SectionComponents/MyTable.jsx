@@ -8,20 +8,23 @@ import {
     TableBody,
     TableSortLabel,
     Checkbox,
-    CircularProgress,
     Typography,
 } from '@mui/material';
-import ProductRow from './ProductRow';
 
-const ProductTable = ({ products, sort, handleSortChange, columns }) => {
+const MyTable = ({ children, sort, handleSortChange, columns, onSelectAll, allSelected, someSelected }) => {
     return (
-        <Paper>
-            <TableContainer>
-                <Table size="small">
+        <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+            <TableContainer sx={{ overflow: 'auto' }}>
+                <Table stickyHeader size="small">
                     <TableHead>
                         <TableRow>
                             <TableCell padding="checkbox">
-                                <Checkbox color="primary" />
+                                <Checkbox
+                                    color="primary"
+                                    indeterminate={someSelected}
+                                    checked={allSelected}
+                                    onChange={e => onSelectAll && onSelectAll(e.target.checked)}
+                                />
                             </TableCell>
                             {columns.map((col) => (
                                 <TableCell key={col.label}>
@@ -40,10 +43,8 @@ const ProductTable = ({ products, sort, handleSortChange, columns }) => {
                             ))}
                         </TableRow>
                     </TableHead>
-                    <TableBody>{
-                        products.map((product) => (
-                            <ProductRow key={product.id} product={product}/>
-                        ))}
+                    <TableBody>
+                        {children}
                     </TableBody>
                 </Table>
             </TableContainer>
@@ -51,4 +52,4 @@ const ProductTable = ({ products, sort, handleSortChange, columns }) => {
     );
 };
 
-export default ProductTable;
+export default MyTable;

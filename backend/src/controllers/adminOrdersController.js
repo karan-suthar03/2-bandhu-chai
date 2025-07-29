@@ -3,65 +3,153 @@ import { NotFoundError, ValidationError } from "../middlewares/errors/AppError.j
 
 export const getAdminOrders = async (req, res) => {
     try {
-        const { page = 1, limit = 10, status = '', search = '' } = req.query;
-        const offset = (page - 1) * limit;
+        const {
+            page = 1,
+            limit = 10,
+            search = '',
+            _sort = 'createdAt',
+            _order = 'desc',
+            orderNumber,
+            customerName,
+            customerEmail,
+            customerPhone,
+            status,
+            paymentStatus,
+            paymentMethod,
+            minTotal,
+            maxTotal,
+            createdAt,
+            confirmedAt,
+            shippedAt,
+            deliveredAt
+        } = req.query;
+
+        const pageNum = parseInt(page, 10);
+        const perPage = parseInt(limit, 10);
+        const offset = (pageNum - 1) * perPage;
 
         let where = {};
-        
-        if (status) {
-            where.status = status;
+        const conditions = [];
+
+        if (search && search.trim()) {
+            conditions.push({
+                OR: [
+                    { customerName: { contains: search.trim(), mode: 'insensitive' } },
+                    { customerEmail: { contains: search.trim(), mode: 'insensitive' } },
+                    { customerPhone: { contains: search.trim(), mode: 'insensitive' } },
+                    { orderNumber: { contains: search.trim(), mode: 'insensitive' } }
+                ]
+            });
         }
 
-        if (search) {
-            where.OR = [
-                { orderNumber: { contains: search, mode: 'insensitive' } },
-                { customerName: { contains: search, mode: 'insensitive' } },
-                { customerEmail: { contains: search, mode: 'insensitive' } },
-                { customerPhone: { contains: search, mode: 'insensitive' } }
-            ];
+        if (orderNumber && orderNumber.trim()) {
+            conditions.push({ orderNumber: { contains: orderNumber.trim(), mode: 'insensitive' } });
         }
+        if (customerName && customerName.trim()) {
+            conditions.push({ customerName: { contains: customerName.trim(), mode: 'insensitive' } });
+        }
+        if (customerEmail && customerEmail.trim()) {
+            conditions.push({ customerEmail: { contains: customerEmail.trim(), mode: 'insensitive' } });
+        }
+        if (customerPhone && customerPhone.trim()) {
+            conditions.push({ customerPhone: { contains: customerPhone.trim(), mode: 'insensitive' } });
+        }
+        if (status && status.trim()) {
+            conditions.push({ status: status.trim() });
+        }
+        if (paymentStatus && paymentStatus.trim()) {
+            conditions.push({ paymentStatus: paymentStatus.trim() });
+        }
+        if (paymentMethod && paymentMethod.trim()) {
+            conditions.push({ paymentMethod: paymentMethod.trim() });
+        }
+
+        if (minTotal) {
+            conditions.push({ finalTotal: { gte: parseFloat(minTotal) } });
+        }
+        if (maxTotal) {
+            conditions.push({ finalTotal: { lte: parseFloat(maxTotal) } });
+        }
+
+        const applyDateFilter = (field, value) => {
+            const date = new Date(value);
+            if (!isNaN(date.getTime())) {
+                const startOfDay = new Date(date);
+                startOfDay.setUTCHours(0, 0, 0, 0);
+                const endOfDay = new Date(date);
+                endOfDay.setUTCHours(23, 59, 59, 999);
+                conditions.push({ [field]: { gte: startOfDay, lte: endOfDay } });
+            }
+        };
+
+        if (createdAt) applyDateFilter('createdAt', createdAt);
+        if (confirmedAt) applyDateFilter('confirmedAt', confirmedAt);
+        if (shippedAt) applyDateFilter('shippedAt', shippedAt);
+        if (deliveredAt) applyDateFilter('deliveredAt', deliveredAt);
+
+        if (conditions.length > 0) {
+            where = { AND: conditions };
+        }
+
+        const sortFieldMap = {
+            id: 'id',
+            customerName: 'customerName',
+            customerEmail: 'customerEmail',
+            customerPhone: 'customerPhone',
+            status: 'status',
+            paymentStatus: 'paymentStatus',
+            paymentMethod: 'paymentMethod',
+            subtotal: 'subtotal',
+            totalDiscount: 'totalDiscount',
+            shippingCost: 'shippingCost',
+            tax: 'tax',
+            finalTotal: 'finalTotal',
+            createdAt: 'createdAt',
+            updatedAt: 'updatedAt',
+            confirmedAt: 'confirmedAt',
+            shippedAt: 'shippedAt',
+            deliveredAt: 'deliveredAt',
+            cancelledAt: 'cancelledAt'
+        };
+        const sortField = sortFieldMap[_sort] || 'createdAt';
+        const sortOrder = _order.toLowerCase() === 'asc' ? 'asc' : 'desc';
+        const orderBy = { [sortField]: sortOrder };
 
         const [orders, total] = await Promise.all([
             prisma.order.findMany({
                 where,
                 skip: offset,
-                take: parseInt(limit),
-                orderBy: { createdAt: 'desc' },
+                take: perPage,
+                orderBy,
                 include: {
-                    orderItems: {
-                        include: {
-                            product: {
-                                select: {
-                                    name: true,
-                                    price: true,
-                                    imageUrl: true
-                                }
-                            }
-                        }
-                    }
+                    orderItems: { include: { product: true } }
                 }
             }),
             prisma.order.count({ where })
         ]);
+
+        const totalPages = Math.ceil(total / perPage) || 1;
 
         res.json({
             success: true,
             data: orders,
             total,
             pagination: {
-                current: parseInt(page),
-                pages: Math.ceil(total / limit),
-                total
+                current: pageNum,
+                pages: totalPages,
+                limit: perPage
             }
         });
     } catch (error) {
         console.error('Admin orders fetch error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch orders'
+            message: 'Failed to fetch orders',
+            error: error.message
         });
     }
 };
+
 
 export const getAdminOrder = async (req, res) => {
     try {

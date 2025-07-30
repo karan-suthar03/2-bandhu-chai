@@ -6,6 +6,7 @@ import Filters from "./SectionComponents/Filters.jsx";
 import MyTable from "./SectionComponents/MyTable.jsx";
 import ProductRow from "./productPage/ProductRow.jsx";
 import useDataList from "./hooks/useDataList.js";
+import { useNavigate } from 'react-router-dom';
 
 const defaultFilters = {
   page: 1,
@@ -49,6 +50,7 @@ const allExtraFilters = [
 ]
 
 const ProductsView = () => {
+  const navigate = useNavigate();
   const {
     filters, setFilters,
     sort, handleSortChange,
@@ -86,7 +88,7 @@ const ProductsView = () => {
       <Box p={3}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h5">Products Dashboard</Typography>
-          <Button variant="contained">+ Add Product</Button>
+          <Button variant="contained" onClick={() => navigate('/dashboard/products/add')}>+ Add Product</Button>
         </Box>
         <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" mb={2} gap={2}>
           <Filters

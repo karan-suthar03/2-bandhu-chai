@@ -112,4 +112,12 @@ export const getAdminProducts = async (params = {}) => {
   return api.get('/admin/products', { params });
 };
 
+export const postProduct = async (formData) => {
+  return api.post('/admin/product', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
 export default api;

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: 'http://localhost:3000/',
   withCredentials: true, // Important: allows cookies to be sent with requests
 });
 
@@ -39,9 +39,6 @@ api.interceptors.response.use(
 
 export const loginAdmin = async (username, password) => {
   const response = await api.post('/auth/login', { username, password });
-  
-  // We only need to store the admin user data now
-  // The tokens are stored in HttpOnly cookies by the server
   if (response.data.success) {
     localStorage.setItem('adminUser', JSON.stringify(response.data.admin));
   }

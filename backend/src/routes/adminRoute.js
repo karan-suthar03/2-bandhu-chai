@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticateToken, requireAdmin } from '../middlewares/auth.js';
+import multer from 'multer';
 import { 
     getAdminProducts, 
     getAdminProduct, 
@@ -21,8 +22,11 @@ import {
     getSystemAnalytics, 
     getLowStockProducts 
 } from '../controllers/adminController.js';
+import {validateCreateProduct} from "../middlewares/productMiddleware.js";
 
 const router = Router();
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 router.use(authenticateToken);
 router.use(requireAdmin);
@@ -36,10 +40,18 @@ router.put('/profile', updateAdminProfile);
 router.put('/password', changeAdminPassword);
 
 router.get('/products', getAdminProducts);
-router.get('/products/:id', getAdminProduct);
-router.post('/products', createProduct);
-router.put('/products/:id', updateProduct);
-router.delete('/products/:id', deleteProduct);
+router.get('/product/:id', getAdminProduct);
+router.post(
+  '/product',
+  upload.fields([
+    { name: 'mainImage', maxCount: 1 },
+    { name: 'gallery', maxCount: 10 },
+  ]),
+    validateCreateProduct,
+  createProduct
+);
+router.put('/product/:id', updateProduct);
+router.delete('/product/:id', deleteProduct);
 
 router.get('/orders', getAdminOrders);
 router.get('/orders/:id', getAdminOrder);

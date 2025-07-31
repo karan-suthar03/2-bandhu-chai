@@ -1,5 +1,6 @@
 import prisma from "../config/prisma.js";
 import { NotFoundError, ValidationError } from "../middlewares/errors/AppError.js";
+import {uploadFile} from "../services/s3Service.js";
 
 export const getAdminProducts = async (req, res) => {
     try {
@@ -193,89 +194,60 @@ export const getAdminProduct = async (req, res) => {
 
 export const createProduct = async (req, res) => {
     try {
-        const { 
-            name, 
-            description, 
-            longDescription,
-            price, 
-            oldPrice,
-            discount,
-            category, 
-            badge,
-            rating,
-            stock,
-            image, 
-            images,
-            features,
-            sizes,
-            specifications,
-            isNew,
-            organic,
-            fastDelivery,
-            featured
-        } = req.body;
-
-        if (!name || !description || !price || !category) {
-            throw new ValidationError('Name, description, price, and category are required');
+        let mainImage = req.files?.mainImage[0];
+        let params = {
+            fileName: mainImage.originalname,
+            buffer: mainImage.buffer,
+            mimetype: mainImage.mimetype,
+            encoding: mainImage.encoding
         }
-
-        if (price < 0) {
-            throw new ValidationError('Price cannot be negative');
-        }
-
-        if (stock !== undefined && stock < 0) {
-            throw new ValidationError('Stock cannot be negative');
-        }
-
-        if (oldPrice && oldPrice < price) {
-            throw new ValidationError('Old price cannot be less than current price');
-        }
-
-        if (discount && (discount < 0 || discount > 100)) {
-            throw new ValidationError('Discount must be between 0 and 100');
-        }
-
-        const product = await prisma.product.create({
-            data: {
-                name: name.trim(),
-                description: description.trim(),
-                longDescription: longDescription?.trim() || null,
-                price: parseFloat(price),
-                oldPrice: oldPrice ? parseFloat(oldPrice) : null,
-                discount: discount ? parseFloat(discount) : null,
-                category: category.trim(),
-                badge: badge?.trim() || '',
-                rating: rating ? parseFloat(rating) : 0.0,
-                stock: parseInt(stock) || 0,
-                image: image?.trim() || '',
-                images: images || [],
-                features: features || [],
-                sizes: sizes || null,
-                specifications: specifications || null,
-                isNew: Boolean(isNew),
-                organic: Boolean(organic),
-                fastDelivery: Boolean(fastDelivery),
-                featured: Boolean(featured)
+        let mainImageUrl = await uploadFile(params);
+        console.log('Main image upload URL:', mainImageUrl);
+        let additionalImageUrls = [];
+        if(req.areFilesPresent){
+            for (let img of req.files.gallery) {
+                let params = {
+                    fileName: img.originalname,
+                    buffer: img.buffer,
+                    mimetype: img.mimetype,
+                    encoding: img.encoding
+                }
+                let imageUrl = await uploadFile(params);
+                console.log('Additional image upload URL:', imageUrl);
+                additionalImageUrls.push(imageUrl);
             }
-        });
+        }
+
+        let data = {
+            name: req.body.name,
+            price: req.body.price,
+            oldPrice: req.body.oldPrice ? parseFloat(req.body.oldPrice) : null,
+            discount: req.body.discount ? parseFloat(req.body.discount) : null,
+            stock: req.body.stock,
+            category: req.body.category,
+            description: req.body.description,
+            badge: req.body.badge || null,
+            image: mainImageUrl,
+            images: additionalImageUrls,
+            features: req.body.features ? JSON.parse(req.body.features) : [],
+            longDescription: req.body.fullDescription,
+            isNew: !!req.body.isNew,
+            organic: !!req.body.organic,
+            fastDelivery: !!req.body.fastDelivery,
+            featured: !!req.body.featured,
+        }
+
+        let createdProduct = await prisma.product.create({
+            data
+        })
 
         res.status(201).json({
-            success: true,
-            message: 'Product created successfully',
-            data: product
+            message: 'Product created',
+            createdProduct
         });
-    } catch (error) {
-        if (error instanceof ValidationError) {
-            return res.status(400).json({
-                success: false,
-                message: error.message
-            });
-        }
-        console.error('Product creation error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to create product'
-        });
+    } catch (err) {
+        console.error('Error in createProduct:', err);
+        res.status(500).json({ error: 'Failed to create product' });
     }
 };
 

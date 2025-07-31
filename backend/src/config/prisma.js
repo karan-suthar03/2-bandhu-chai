@@ -4,7 +4,7 @@ const prisma = new PrismaClient({
     log: ['info', 'warn', 'error'],
     datasources: {
         db: {
-            url: process.env.DATABASE_URL + '?connection_limit=5&pool_timeout=20'
+            url: process.env.DATABASE_URL + '?connection_limit=5&pool_timeout=1000'
         }
     }
 });

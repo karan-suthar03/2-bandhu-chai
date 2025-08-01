@@ -29,6 +29,7 @@ model Product {
   organic         Boolean @default(false)
   fastDelivery    Boolean @default(false)
   featured        Boolean @default(false)
+  deactivated     Boolean @default(false)
   image           Json?
   images          Json[]
 

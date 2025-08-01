@@ -9,6 +9,7 @@ async function getProducts(req, res) {
             stock: {
                 gt: 0
             },
+            deactivated: false,
             ...(searchTerm && {
                 OR: [
                     { name: { contains: searchTerm, mode: 'insensitive' } },
@@ -69,9 +70,7 @@ async function getFeaturedProducts(req, res) {
     const result = await prisma.product.findMany({
         where: {
             featured: true,
-            stock: {
-                gt: 0
-            }
+            deactivated: false
         }
     });
 
@@ -100,7 +99,7 @@ async function getProduct(req, res) {
         where: { id: parseInt(productId) }
     });
 
-    if (!product) {
+    if (!product || product.deactivated) {
         throw new NotFoundError('Product not found');
     }
 

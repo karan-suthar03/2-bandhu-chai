@@ -120,4 +120,32 @@ export const postProduct = async (formData) => {
   });
 };
 
+export const updateProduct = async (productId, data) => {
+  return api.put(`/admin/product/${productId}`, data);
+};
+
+export const deactivateProduct = async (productId) => {
+  return api.put(`/admin/product/${productId}`, { deactivated: true });
+};
+
+export const activateProduct = async (productId) => {
+  return api.put(`/admin/product/${productId}`, { deactivated: false });
+};
+
+export const bulkDeactivateProducts = async (productIds) => {
+  return api.post('/admin/products/bulk-deactivate', { productIds });
+};
+
+export const bulkActivateProducts = async (productIds) => {
+  return api.post('/admin/products/bulk-activate', { productIds });
+};
+
+export const deleteOrder = async (orderId) => {
+  return api.delete(`/admin/order/${orderId}`);
+};
+
+export const deleteOrders = async (orderIds) => {
+  return api.post('/admin/orders/bulk-delete', { orderIds });
+};
+
 export default api;

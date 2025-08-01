@@ -22,12 +22,13 @@ export const getAdminProducts = async (req, res) => {
             featured,
             organic,
             isNew,
-            fastDelivery
+            fastDelivery,
+            deactivated
         } = req.query;
         
         const offset = (page - 1) * limit;
 
-        console.log('Query params:', { page, limit, search, _sort, _order, id, name, category, description, badge, minPrice, maxPrice, minStock, maxStock, featured, organic, isNew, fastDelivery });
+        console.log('Query params:', { page, limit, search, _sort, _order, id, name, category, description, badge, minPrice, maxPrice, minStock, maxStock, featured, organic, isNew, fastDelivery, deactivated });
 
         let where = {};
         const conditions = [];
@@ -96,6 +97,10 @@ export const getAdminProducts = async (req, res) => {
 
         if (fastDelivery !== undefined && fastDelivery !== '') {
             conditions.push({ fastDelivery: fastDelivery === 'true' });
+        }
+
+        if (deactivated !== undefined && deactivated !== '') {
+            conditions.push({ deactivated: deactivated === 'true' });
         }
 
         if (conditions.length > 0) {
@@ -257,6 +262,7 @@ export const createProduct = async (req, res) => {
             organic: !!req.body.organic,
             fastDelivery: !!req.body.fastDelivery,
             featured: !!req.body.featured,
+            deactivated: !!req.body.deactivated,
         }
 
         let createdProduct = await prisma.product.create({
@@ -295,7 +301,8 @@ export const updateProduct = async (req, res) => {
             isNew,
             organic,
             fastDelivery,
-            featured
+            featured,
+            deactivated
         } = req.body;
 
         const existingProduct = await prisma.product.findUnique({
@@ -342,6 +349,7 @@ export const updateProduct = async (req, res) => {
         if (organic !== undefined) updateData.organic = Boolean(organic);
         if (fastDelivery !== undefined) updateData.fastDelivery = Boolean(fastDelivery);
         if (featured !== undefined) updateData.featured = Boolean(featured);
+        if (deactivated !== undefined) updateData.deactivated = Boolean(deactivated);
 
         const updatedProduct = await prisma.product.update({
             where: { id: parseInt(id) },
@@ -374,7 +382,7 @@ export const updateProduct = async (req, res) => {
     }
 };
 
-export const deleteProduct = async (req, res) => {
+export const deactivateProduct = async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -386,31 +394,15 @@ export const deleteProduct = async (req, res) => {
             throw new NotFoundError('Product not found');
         }
 
-        const orderItems = await prisma.orderItem.findFirst({
-            where: { productId: parseInt(id) }
-        });
-
-        if (orderItems) {
-            const updatedProduct = await prisma.product.update({
-                where: { id: parseInt(id) },
-                data: { featured: false, stock: 0 }
-            });
-
-            return res.json({
-                success: true,
-                message: 'Product marked as inactive (cannot delete product with existing orders)',
-                data: updatedProduct
-            });
-        }
-
-        await prisma.product.delete({
-            where: { id: parseInt(id) }
+        const updatedProduct = await prisma.product.update({
+            where: { id: parseInt(id) },
+            data: { deactivated: true, featured: false }
         });
 
         res.json({
             success: true,
-            message: 'Product deleted successfully',
-            data: { id: parseInt(id) }
+            message: 'Product deactivated successfully',
+            data: updatedProduct
         });
     } catch (error) {
         if (error instanceof NotFoundError) {
@@ -419,10 +411,147 @@ export const deleteProduct = async (req, res) => {
                 message: error.message
             });
         }
-        console.error('Product deletion error:', error);
+        console.error('Product deactivation error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to delete product'
+            message: 'Failed to deactivate product'
+        });
+    }
+};
+
+export const activateProduct = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const existingProduct = await prisma.product.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!existingProduct) {
+            throw new NotFoundError('Product not found');
+        }
+
+        const updatedProduct = await prisma.product.update({
+            where: { id: parseInt(id) },
+            data: { deactivated: false }
+        });
+
+        res.json({
+            success: true,
+            message: 'Product activated successfully',
+            data: updatedProduct
+        });
+    } catch (error) {
+        if (error instanceof NotFoundError) {
+            return res.status(404).json({
+                success: false,
+                message: error.message
+            });
+        }
+        console.error('Product activation error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to activate product'
+        });
+    }
+};
+
+export const bulkDeactivateProducts = async (req, res) => {
+    try {
+        const { productIds } = req.body;
+
+        if (!Array.isArray(productIds) || productIds.length === 0) {
+            throw new ValidationError('Product IDs are required');
+        }
+
+        const validProductIds = productIds.map(id => parseInt(id)).filter(id => !isNaN(id));
+        
+        if (validProductIds.length === 0) {
+            throw new ValidationError('No valid product IDs provided');
+        }
+
+        const existingProducts = await prisma.product.findMany({
+            where: { id: { in: validProductIds } }
+        });
+
+        if (existingProducts.length === 0) {
+            throw new NotFoundError('No products found');
+        }
+
+        const deactivateResult = await prisma.product.updateMany({
+            where: { id: { in: validProductIds } },
+            data: { deactivated: true }
+        });
+
+        res.json({
+            success: true,
+            message: `${deactivateResult.count} products deactivated successfully`,
+            data: {
+                deactivatedCount: deactivateResult.count,
+                deactivatedIds: validProductIds
+            }
+        });
+    } catch (error) {
+        if (error instanceof ValidationError || error instanceof NotFoundError) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+        console.error('Bulk product deactivation error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to deactivate products'
+        });
+    }
+};
+
+export const bulkActivateProducts = async (req, res) => {
+    try {
+        const { productIds } = req.body;
+
+        if (!Array.isArray(productIds) || productIds.length === 0) {
+            throw new ValidationError('Product IDs are required');
+        }
+
+        const validProductIds = productIds.map(id => parseInt(id)).filter(id => !isNaN(id));
+        
+        if (validProductIds.length === 0) {
+            throw new ValidationError('No valid product IDs provided');
+        }
+
+        const existingProducts = await prisma.product.findMany({
+            where: { id: { in: validProductIds } }
+        });
+
+        if (existingProducts.length === 0) {
+            throw new NotFoundError('No products found');
+        }
+
+        const activateResult = await prisma.product.updateMany({
+            where: { id: { in: validProductIds } },
+            data: { deactivated: false }
+        });
+
+        res.json({
+            success: true,
+            message: `${activateResult.count} products activated successfully`,
+            data: {
+                activatedCount: activateResult.count,
+                activatedIds: validProductIds
+            }
+        });
+    } catch (error) {
+        if (error instanceof ValidationError || error instanceof NotFoundError) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+        console.error('Bulk product activation error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to activate products'
         });
     }
 };

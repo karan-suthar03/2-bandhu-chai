@@ -9,12 +9,24 @@ import {
     Box,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import ToggleOnIcon from '@mui/icons-material/ToggleOn';
+import ToggleOffIcon from '@mui/icons-material/ToggleOff';
 import {formatCurrency, formatDiscount} from "../Utils/Utils.js";
 
-const ProductRow = ({ product, selected, onSelectRow }) => {
+const ProductRow = ({ product, selected, onSelectRow, onToggleActivation }) => {
+    const isDeactivated = product.deactivated;
+    
     return (
-        <TableRow hover selected={!!selected} onClick={() => onSelectRow(product.id)} style={{ cursor: 'pointer' }}>
+        <TableRow 
+            hover 
+            selected={!!selected} 
+            onClick={() => onSelectRow(product.id)} 
+            style={{ 
+                cursor: 'pointer',
+                opacity: isDeactivated ? 0.5 : 1,
+                backgroundColor: isDeactivated ? '#f5f5f5' : 'inherit'
+            }}
+        >
             <TableCell padding="checkbox" onClick={e => e.stopPropagation()}>
                 <Checkbox
                     color="primary"
@@ -26,7 +38,7 @@ const ProductRow = ({ product, selected, onSelectRow }) => {
             <TableCell>
                 {product.image ? (
                     <img
-                        src={product.image}
+                        src={product.image.smallUrl}
                         alt={product.name}
                         width={48}
                         height={48}
@@ -55,13 +67,13 @@ const ProductRow = ({ product, selected, onSelectRow }) => {
                 {formatCurrency(product.oldPrice)}
             </TableCell>
             <TableCell>{formatDiscount(product.discount)}</TableCell>
-            {[product.featured, product.stock, product.badge, product.rating, product.isNew, product.organic, product.fastDelivery]
+            {[product.featured, product.stock, product.badge, product.rating, product.isNew, product.organic, product.fastDelivery, product.deactivated]
                 .map((value, index) => (
                     <TableCell key={index}>
                         {typeof value === 'boolean' ? (
                             <Chip
                                 label={value ? 'Yes' : 'No'}
-                                color={value ? 'success' : 'default'}
+                                color={value ? (index === 7 ? 'error' : 'success') : 'default'}
                                 size="small"
                                 variant={value ? 'filled' : 'outlined'}
                             />
@@ -79,9 +91,16 @@ const ProductRow = ({ product, selected, onSelectRow }) => {
                             <EditIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
-                        <IconButton size="small" color="error">
-                            <DeleteIcon fontSize="small" />
+                    <Tooltip title={isDeactivated ? "Activate Product" : "Deactivate Product"}>
+                        <IconButton 
+                            size="small" 
+                            color={isDeactivated ? "success" : "warning"}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleActivation && onToggleActivation(product);
+                            }}
+                        >
+                            {isDeactivated ? <ToggleOnIcon fontSize="small" /> : <ToggleOffIcon fontSize="small" />}
                         </IconButton>
                     </Tooltip>
                 </Stack>

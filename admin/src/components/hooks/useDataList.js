@@ -54,6 +54,22 @@ export default function useDataList(defaultFilters, fetchFunction) {
         fetchData();
     }, [filters, fetchFunction]);
 
+    const refetch = async () => {
+        console.log('Refetching data...');
+        setLoading(true);
+        try {
+            const { data } = await fetchFunction(filters);
+            setData(data.data);
+            setPagination(data.pagination);
+            console.log('Data refetched successfully');
+        } catch (err) {
+            console.error('Error refetching data:', err);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSortChange = (field) => {
         setSort((prev) => {
             const nextOrder =
@@ -78,5 +94,6 @@ export default function useDataList(defaultFilters, fetchFunction) {
         loading,
         searchDebounce,
         setSearchDebounce,
+        refetch,
     };
 }

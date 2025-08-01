@@ -34,7 +34,8 @@ async function getCart(req, res) {
     const productIds = cartItems.map(item => item.productId);
     const products = await prisma.product.findMany({
         where: {
-            id: { in: productIds }
+            id: { in: productIds },
+            deactivated: false
         }
     });
 
@@ -91,8 +92,8 @@ async function addToCart(req, res) {
         where: { id: productId }
     });
 
-    if (!product) {
-        throw new NotFoundError('Product not found');
+    if (!product || product.deactivated) {
+        throw new NotFoundError('Product not found or is no longer available');
     }
 
     if (!req.session.cart) {

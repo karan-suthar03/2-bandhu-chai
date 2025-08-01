@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Box, Typography, Button, CircularProgress } from '@mui/material';
-import {getAdminOrders} from '../api';
+import { Box, Typography, Button, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Alert } from '@mui/material';
+import {getAdminOrders, deleteOrder, deleteOrders} from '../api';
 import PaginationControl from './SectionComponents/PaginationControl.jsx';
 import Filters from "./SectionComponents/Filters.jsx";
 import MyTable from "./SectionComponents/MyTable.jsx";
@@ -74,10 +74,17 @@ const OrdersView = () => {
     pagination,
     loading,
     searchDebounce,
-    setSearchDebounce
+    setSearchDebounce,
+    refetch
   } = useDataList(defaultFilters, getAdminOrders);
 
   const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [deleteType, setDeleteType] = useState(''); // 'single' or 'bulk'
+  const [orderToDelete, setOrderToDelete] = useState(null);
+  const [deleteResult, setDeleteResult] = useState(null);
+  const [refreshing, setRefreshing] = useState(false); // Track refresh state
 
   useEffect(() => {
     setSelectedIds([]);
@@ -97,6 +104,87 @@ const OrdersView = () => {
     }
   };
 
+  const handleDeleteSingle = (order) => {
+    setOrderToDelete(order);
+    setDeleteType('single');
+    setDeleteDialog(true);
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    setDeleteType('bulk');
+    setDeleteDialog(true);
+  };
+
+  const executeDelete = async () => {
+    setDeleteLoading(true);
+    setDeleteResult(null);
+    
+    try {
+      let response;
+      if (deleteType === 'single' && orderToDelete) {
+        response = await deleteOrder(orderToDelete.id);
+      } else if (deleteType === 'bulk') {
+        response = await deleteOrders(selectedIds);
+      }
+      
+      if (response?.data?.success) {
+        setDeleteResult({
+          type: 'success',
+          message: response.data.message
+        });
+        setSelectedIds([]);
+
+        try {
+          setRefreshing(true);
+          await new Promise(resolve => setTimeout(resolve, 500));
+          if (typeof refetch === 'function') {
+            await refetch();
+            console.log('Order list refreshed successfully');
+          } else {
+            console.error('refetch function is not available');
+            window.location.reload();
+          }
+        } catch (refreshError) {
+          console.error('Failed to refresh data:', refreshError);
+          setDeleteResult(prev => ({
+            ...prev,
+            message: prev.message + ' (Data refresh failed, please reload the page manually)'
+          }));
+        } finally {
+          setRefreshing(false);
+        }
+      } else {
+        throw new Error(response?.data?.message || 'Delete operation failed');
+      }
+    } catch (error) {
+      setDeleteResult({
+        type: 'error',
+        message: error.response?.data?.message || error.message || 'Failed to delete'
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const closeDeleteDialog = () => {
+    const wasSuccessful = deleteResult?.type === 'success';
+    
+    setDeleteDialog(false);
+    setDeleteType('');
+    setOrderToDelete(null);
+    setDeleteResult(null);
+    
+    if (wasSuccessful) {
+      console.log('Dialog closed after successful operation, ensuring data is up to date');
+      setTimeout(() => {
+        if (typeof refetch === 'function') {
+          refetch().catch(err => console.error('Final refetch failed:', err));
+        }
+      }, 100);
+    }
+  };
+
   const allSelected = useMemo(() => orders.length > 0 && selectedIds.length === orders.length, [selectedIds, orders]);
   const someSelected = useMemo(() => selectedIds.length > 0 && selectedIds.length < orders.length, [selectedIds, orders]);
 
@@ -104,7 +192,20 @@ const OrdersView = () => {
       <Box p={3}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h5">Order Dashboard</Typography>
-          <Button variant="contained">+ Add Order</Button>
+          <Box display="flex" gap={2}>
+            <Button 
+              variant="outlined" 
+              onClick={() => {
+                setRefreshing(true);
+                refetch().finally(() => setRefreshing(false));
+              }}
+              disabled={loading || refreshing}
+              size="small"
+            >
+              🔄 Refresh
+            </Button>
+            <Button variant="contained">+ Add Order</Button>
+          </Box>
         </Box>
 
         <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" mb={2} gap={2}>
@@ -115,7 +216,24 @@ const OrdersView = () => {
               setSearchDebounce={setSearchDebounce}
               allExtraFilters={allExtraFilters}
           />
-          {loading && <CircularProgress size={24} />}
+          <Box display="flex" gap={2} alignItems="center">
+            {selectedIds.length > 0 && (
+              <Button 
+                variant="contained" 
+                color="error" 
+                onClick={handleDeleteSelected}
+                disabled={deleteLoading}
+              >
+                Delete Selected ({selectedIds.length})
+              </Button>
+            )}
+            {(loading || refreshing) && <CircularProgress size={24} />}
+            {refreshing && !loading && (
+              <Typography variant="body2" color="primary">
+                Refreshing data...
+              </Typography>
+            )}
+          </Box>
         </Box>
         <Box mb={1}>
           <Typography variant="subtitle1">
@@ -137,6 +255,7 @@ const OrdersView = () => {
                   order={order}
                   selected={selectedIds.includes(order.id)}
                   onSelectRow={handleSelectRow}
+                  onDelete={handleDeleteSingle}
                 />
             ))
           }
@@ -147,6 +266,47 @@ const OrdersView = () => {
             filters={filters}
             setFilters={setFilters}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialog} onClose={closeDeleteDialog} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            {deleteType === 'single' 
+              ? `Delete Order #${orderToDelete?.orderNumber || orderToDelete?.id}` 
+              : `Delete ${selectedIds.length} Selected Orders`
+            }
+          </DialogTitle>
+          <DialogContent>
+            {deleteResult ? (
+              <Alert severity={deleteResult.type} sx={{ mb: 2 }}>
+                {deleteResult.message}
+              </Alert>
+            ) : (
+              <Typography>
+                {deleteType === 'single' 
+                  ? `Are you sure you want to delete order #${orderToDelete?.orderNumber || orderToDelete?.id}? This action cannot be undone.`
+                  : `Are you sure you want to delete ${selectedIds.length} selected orders? This action cannot be undone.`
+                }
+                <br /><br />
+                <strong>Note:</strong> Only PENDING or CANCELLED orders can be deleted.
+              </Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={closeDeleteDialog} disabled={deleteLoading}>
+              {deleteResult ? 'Close' : 'Cancel'}
+            </Button>
+            {!deleteResult && (
+              <Button 
+                onClick={executeDelete} 
+                color="error" 
+                variant="contained"
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? <CircularProgress size={20} /> : 'Delete'}
+              </Button>
+            )}
+          </DialogActions>
+        </Dialog>
       </Box>
   );
 };

@@ -13,7 +13,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import {PaymentMethodEnum, PaymentStatusEnum, StatusEnum} from "./enums.js";
 import dayjs from 'dayjs';
 
-const OrderRow = ({ order, selected, onSelectRow }) => {
+const OrderRow = ({ order, selected, onSelectRow, onDelete }) => {
     return (
         <TableRow hover selected={!!selected} onClick={() => onSelectRow(order.id)} style={{ cursor: 'pointer' }}>
             <TableCell padding="checkbox" onClick={e => e.stopPropagation()}>
@@ -132,7 +132,14 @@ const OrderRow = ({ order, selected, onSelectRow }) => {
                         </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                        <IconButton size="small" color="error">
+                        <IconButton 
+                            size="small" 
+                            color="error"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete && onDelete(order);
+                            }}
+                        >
                             <DeleteIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>

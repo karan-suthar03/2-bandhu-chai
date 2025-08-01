@@ -427,3 +427,120 @@ export const getDashboardStats = async (req, res) => {
         });
     }
 };
+
+export const deleteOrder = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const existingOrder = await prisma.order.findUnique({
+            where: { id }
+        });
+
+        if (!existingOrder) {
+            throw new NotFoundError('Order not found');
+        }
+
+        if (!['PENDING', 'CANCELLED'].includes(existingOrder.status)) {
+            throw new ValidationError('Only PENDING or CANCELLED orders can be deleted');
+        }
+
+        await prisma.$transaction([
+            prisma.orderItem.deleteMany({
+                where: { orderId: id }
+            }),
+            prisma.statusHistory.deleteMany({
+                where: { orderId: id }
+            }),
+            prisma.order.delete({
+                where: { id }
+            })
+        ]);
+
+        res.json({
+            success: true,
+            message: 'Order deleted successfully',
+            data: { id }
+        });
+    } catch (error) {
+        if (error instanceof NotFoundError || error instanceof ValidationError) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+        console.error('Order deletion error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete order'
+        });
+    }
+};
+
+export const bulkDeleteOrders = async (req, res) => {
+    try {
+        const { orderIds } = req.body;
+
+        if (!Array.isArray(orderIds) || orderIds.length === 0) {
+            throw new ValidationError('Order IDs are required');
+        }
+
+        const existingOrders = await prisma.order.findMany({
+            where: { id: { in: orderIds } },
+            select: { id: true, status: true }
+        });
+
+        if (existingOrders.length === 0) {
+            throw new NotFoundError('No orders found');
+        }
+
+        const deletableOrders = existingOrders.filter(order =>
+            ['PENDING', 'CANCELLED'].includes(order.status)
+        );
+        const nonDeletableOrders = existingOrders.filter(order =>
+            !['PENDING', 'CANCELLED'].includes(order.status)
+        );
+
+        let deletedCount = 0;
+
+        if (deletableOrders.length > 0) {
+            const deletableOrderIds = deletableOrders.map(order => order.id);
+
+            await prisma.$transaction([
+                prisma.orderItem.deleteMany({
+                    where: { orderId: { in: deletableOrderIds } }
+                }),
+                prisma.statusHistory.deleteMany({
+                    where: { orderId: { in: deletableOrderIds } }
+                }),
+                prisma.order.deleteMany({
+                    where: { id: { in: deletableOrderIds } }
+                })
+            ]);
+
+            deletedCount = deletableOrders.length;
+        }
+
+        res.json({
+            success: true,
+            message: `Bulk operation completed. ${deletedCount} orders deleted, ${nonDeletableOrders.length} orders skipped (only PENDING/CANCELLED orders can be deleted)`,
+            data: {
+                deletedCount,
+                skippedCount: nonDeletableOrders.length,
+                deletedIds: deletableOrders.map(order => order.id),
+                skippedIds: nonDeletableOrders.map(order => order.id)
+            }
+        });
+    } catch (error) {
+        if (error instanceof ValidationError || error instanceof NotFoundError) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
+        console.error('Bulk order deletion error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete orders'
+        });
+    }
+};

@@ -6,14 +6,19 @@ import {
     getAdminProduct, 
     createProduct, 
     updateProduct, 
-    deleteProduct 
+    deactivateProduct,
+    activateProduct,
+    bulkDeactivateProducts,
+    bulkActivateProducts 
 } from '../controllers/adminProductsController.js';
 import { 
     getAdminOrders, 
     getAdminOrder, 
     updateOrderStatus, 
     updateOrder, 
-    getDashboardStats 
+    getDashboardStats,
+    deleteOrder,
+    bulkDeleteOrders 
 } from '../controllers/adminOrdersController.js';
 import { 
     getAdminProfile, 
@@ -40,6 +45,8 @@ router.put('/profile', updateAdminProfile);
 router.put('/password', changeAdminPassword);
 
 router.get('/products', getAdminProducts);
+router.post('/products/bulk-deactivate', bulkDeactivateProducts);
+router.post('/products/bulk-activate', bulkActivateProducts);
 router.get('/product/:id', getAdminProduct);
 router.post(
   '/product',
@@ -51,11 +58,14 @@ router.post(
   createProduct
 );
 router.put('/product/:id', updateProduct);
-router.delete('/product/:id', deleteProduct);
+router.put('/product/:id/deactivate', deactivateProduct);
+router.put('/product/:id/activate', activateProduct);
 
 router.get('/orders', getAdminOrders);
+router.post('/orders/bulk-delete', bulkDeleteOrders);
 router.get('/orders/:id', getAdminOrder);
 router.put('/orders/:id', updateOrder);
 router.put('/orders/:orderId/status', updateOrderStatus);
+router.delete('/orders/:id', deleteOrder);
 
 export default router;

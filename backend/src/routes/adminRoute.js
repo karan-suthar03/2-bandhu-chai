@@ -6,6 +6,7 @@ import {
     getAdminProduct, 
     createProduct, 
     updateProduct, 
+    updateProductMedia,
     deactivateProduct,
     activateProduct,
     bulkDeactivateProducts,
@@ -27,7 +28,7 @@ import {
     getSystemAnalytics, 
     getLowStockProducts 
 } from '../controllers/adminController.js';
-import {validateCreateProduct} from "../middlewares/productMiddleware.js";
+import {validateCreateProduct, validateProductMediaUpdate} from "../middlewares/productMiddleware.js";
 
 const router = Router();
 const storage = multer.memoryStorage();
@@ -58,6 +59,15 @@ router.post(
   createProduct
 );
 router.put('/product/:id', updateProduct);
+router.put(
+  '/product/:id/media',
+  upload.fields([
+    { name: 'mainImage', maxCount: 1 },
+    { name: 'gallery', maxCount: 10 },
+  ]),
+  validateProductMediaUpdate,
+  updateProductMedia
+);
 router.put('/product/:id/deactivate', deactivateProduct);
 router.put('/product/:id/activate', activateProduct);
 

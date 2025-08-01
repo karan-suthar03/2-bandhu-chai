@@ -382,6 +382,160 @@ export const updateProduct = async (req, res) => {
     }
 };
 
+export const updateProductMedia = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const existingProduct = await prisma.product.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!existingProduct) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        const updateData = {};
+        const uploadResults = [];
+
+        if (req.files?.mainImage?.[0]) {
+            console.log('Processing main image update...');
+            const mainImage = req.files.mainImage[0];
+            
+            try {
+                const mainImageVariantsUrls = await uploadVariants(mainImage);
+                updateData.image = mainImageVariantsUrls;
+                uploadResults.push(`Main image updated: ${Object.keys(mainImageVariantsUrls).length} variants uploaded`);
+                console.log('Main image uploaded successfully:', mainImageVariantsUrls);
+            } catch (uploadError) {
+                console.error('Main image upload failed:', uploadError);
+                throw new Error(`Main image upload failed: ${uploadError.message}`);
+            }
+        }
+
+        if (req.mediaUpdate) {
+            const { galleryOrder, existingImages, hasNewGalleryImages } = req.mediaUpdate;
+            
+            console.log('Processing gallery update...');
+            console.log('Existing images:', existingImages.length);
+            console.log('New images:', req.files?.gallery?.length || 0);
+            console.log('Gallery order:', galleryOrder);
+
+            let finalGalleryImages = [];
+
+            let newUploadedImages = [];
+            if (hasNewGalleryImages && req.files?.gallery && req.files.gallery.length > 0) {
+                console.log(`Uploading ${req.files.gallery.length} new gallery images...`);
+                
+                try {
+                    const galleryPromises = req.files.gallery.map(async (img, index) => {
+                        console.log(`Uploading gallery image ${index + 1}/${req.files.gallery.length}`);
+                        const variants = await uploadVariants(img);
+                        return variants;
+                    });
+                    
+                    newUploadedImages = await Promise.all(galleryPromises);
+                    uploadResults.push(`Gallery images uploaded: ${newUploadedImages.length} new images`);
+                    console.log('New gallery images uploaded successfully:', newUploadedImages.length, 'images');
+                } catch (uploadError) {
+                    console.error('Gallery images upload failed:', uploadError);
+                    throw new Error(`Gallery images upload failed: ${uploadError.message}`);
+                }
+            }
+
+            if (galleryOrder && galleryOrder.length > 0) {
+                console.log('Applying custom gallery order...');
+                
+                const newImageMap = new Map();
+                newUploadedImages.forEach((img, index) => {
+                    newImageMap.set(`new_${index}`, img);
+                });
+
+                galleryOrder.forEach(item => {
+                    if (typeof item === 'string' && item.startsWith('new_')) {
+                        const newImg = newImageMap.get(item);
+                        if (newImg) {
+                            finalGalleryImages.push(newImg);
+                        }
+                    } else {
+                        finalGalleryImages.push(item);
+                    }
+                });
+                
+                uploadResults.push(`Gallery reordered: ${finalGalleryImages.length} images in custom order`);
+            } else if (existingImages.length > 0) {
+                finalGalleryImages = [...existingImages, ...newUploadedImages];
+                
+                uploadResults.push(`Gallery updated: kept ${existingImages.length} existing images`);
+                if (newUploadedImages.length > 0) {
+                    uploadResults.push(`Added ${newUploadedImages.length} new images`);
+                }
+            } else {
+                finalGalleryImages = newUploadedImages;
+            }
+
+            updateData.images = finalGalleryImages;
+            console.log(`Final gallery contains ${finalGalleryImages.length} images`);
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No valid media files or updates provided'
+            });
+        }
+
+        console.log('Updating product in database...');
+        const updatedProduct = await prisma.product.update({
+            where: { id: parseInt(id) },
+            data: updateData
+        });
+
+        const responseData = {
+            id: updatedProduct.id,
+            image: updatedProduct.image,
+            images: updatedProduct.images,
+            metadata: {
+                uploadResults,
+                mediaUpdate: req.mediaUpdate,
+                updatedAt: updatedProduct.updatedAt
+            }
+        };
+
+        console.log('Product media updated successfully');
+        res.json({
+            success: true,
+            message: 'Product media updated successfully',
+            data: responseData
+        });
+
+    } catch (error) {
+        console.error('Product media update error:', error);
+        
+        let errorMessage = 'Failed to update product media';
+        let statusCode = 500;
+        
+        if (error.message.includes('upload failed')) {
+            errorMessage = error.message;
+            statusCode = 422; // Unprocessable Entity
+        } else if (error.message.includes('validation')) {
+            errorMessage = error.message;
+            statusCode = 400; // Bad Request
+        } else if (error.message.includes('not found')) {
+            errorMessage = 'Product not found';
+            statusCode = 404;
+        }
+        
+        res.status(statusCode).json({
+            success: false,
+            message: errorMessage,
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
 export const deactivateProduct = async (req, res) => {
     try {
         const { id } = req.params;

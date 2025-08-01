@@ -1,72 +1,6 @@
-import sharp from 'sharp'
-import crypto from "node:crypto";
-
-function generateUniqueFilename(ext) {
-    return crypto.randomBytes(32).toString('hex') + ext;
-}
-
-
-function makeVariants(image) {
-    let variants = {
-        small: {
-            filename: generateUniqueFilename('.jpg'),
-            mimetype: 'image/jpeg',
-            encoding: '7bit',
-            size: 0
-        },
-        medium: {
-            filename: generateUniqueFilename('.jpg'),
-            mimetype: 'image/jpeg',
-            encoding: '7bit',
-            size: 0
-        },
-        large: {
-            filename: generateUniqueFilename('.jpg'),
-            mimetype: 'image/jpeg',
-            encoding: '7bit',
-            size: 0
-        },
-        extraLarge: {
-            filename: generateUniqueFilename('.jpg'),
-            mimetype: 'image/jpeg',
-            encoding: '7bit',
-            size: 0
-        }
-    }
-    return sharp(image.buffer)
-        .resize(100, 100)
-        .jpeg({ quality: 80 })
-        .toBuffer()
-        .then(data => {
-            variants.small.size = data.length;
-            variants.small.buffer = data;
-            return sharp(image.buffer)
-                .resize(400, 400)
-                .jpeg({ quality: 80 })
-                .toBuffer()
-                .then(data => {
-                    variants.medium.size = data.length;
-                    variants.medium.buffer = data;
-                    return sharp(image.buffer)
-                        .resize(800, 800)
-                        .jpeg({ quality: 80 })
-                        .toBuffer()
-                        .then(data => {
-                            variants.large.size = data.length;
-                            variants.large.buffer = data;
-                            return sharp(image.buffer)
-                                .resize(1200, 1200)
-                                .jpeg({ quality: 80 })
-                                .toBuffer()
-                                .then(data => {
-                                    variants.extraLarge.size = data.length;
-                                    variants.extraLarge.buffer = data;
-                                    return variants;
-                                });
-                        });
-                });
-        });
-}
+import { 
+    makeVariants
+} from '../utils/imageUtils.js';
 
 const validateCreateProduct = async (req, res, next) => {
 
@@ -185,4 +119,101 @@ const validateCreateProduct = async (req, res, next) => {
     next();
 };
 
-export { validateCreateProduct };
+const validateProductMediaUpdate = async (req, res, next) => {
+    const errorResponse = (message) =>
+        res.status(400).json({ success: false, error: message });
+
+    try {
+        let galleryOrder = [];
+        let existingImages = [];
+        
+        if (req.body.galleryOrder) {
+            try {
+                galleryOrder = JSON.parse(req.body.galleryOrder);
+            } catch (e) {
+                console.log('Invalid galleryOrder JSON, ignoring');
+            }
+        }
+        
+        if (req.body.existingImages) {
+            try {
+                existingImages = JSON.parse(req.body.existingImages);
+            } catch (e) {
+                console.log('Invalid existingImages JSON, ignoring');
+            }
+        }
+        const hasFiles = req.files && (req.files.mainImage || (req.files.gallery && req.files.gallery.length > 0));
+        const hasReordering = galleryOrder.length > 0 || existingImages.length > 0;
+        
+        if (!hasFiles && !hasReordering) {
+            return errorResponse('No media files or reordering data provided');
+        }
+
+        if (req.files?.mainImage?.[0]) {
+            let mainImage = req.files.mainImage[0];
+            if (!mainImage.mimetype.startsWith('image/')) {
+                return errorResponse('Main image must be an image file');
+            }
+
+            const MAX_MAIN_SIZE = 15 * 1024 * 1024;
+            if (mainImage.size > MAX_MAIN_SIZE) {
+                return errorResponse(`Main image size ${(mainImage.size / (1024 * 1024)).toFixed(2)}MB exceeds maximum 15MB`);
+            }
+            
+            mainImage.variants = await makeVariants(mainImage);
+        }
+
+        req.areGalleryFilesPresent = false;
+        if (req.files?.gallery && req.files.gallery.length > 0) {
+            const MAX_GALLERY_SIZE = 10 * 1024 * 1024; // 10MB per gallery image
+            const MAX_GALLERY_COUNT = 10;
+
+            const totalCount = existingImages.length + req.files.gallery.length;
+            if (totalCount > MAX_GALLERY_COUNT) {
+                return errorResponse(`Too many gallery images. Maximum ${MAX_GALLERY_COUNT} allowed, got ${totalCount} total (${existingImages.length} existing + ${req.files.gallery.length} new)`);
+            }
+
+            req.files.gallery = req.files.gallery.filter(img => {
+                if (!img.mimetype.startsWith('image/')) {
+                    console.log(`Skipping non-image file: ${img.originalname}`);
+                    return false;
+                }
+                if (img.size > MAX_GALLERY_SIZE) {
+                    console.log(`Skipping oversized file: ${img.originalname} (${(img.size / (1024 * 1024)).toFixed(2)}MB)`);
+                    return false;
+                }
+                return true;
+            });
+            
+            if (req.files.gallery.length > 0) {
+                req.files.gallery = await Promise.all(req.files.gallery.map(async (img) => {
+                    const variants = await makeVariants(img);
+                    return {
+                        ...img,
+                        variants: variants
+                    };
+                }));
+                req.areGalleryFilesPresent = true;
+            }
+        } else {
+            req.files.gallery = [];
+        }
+
+        req.mediaUpdate = {
+            galleryOrder,
+            existingImages,
+            hasNewMainImage: !!(req.files?.mainImage?.[0]),
+            hasNewGalleryImages: req.areGalleryFilesPresent,
+            newGalleryCount: req.files?.gallery?.length || 0,
+            existingGalleryCount: existingImages.length
+        };
+
+        console.log("Media update processed successfully:", req.mediaUpdate);
+        next();
+    } catch (error) {
+        console.error('Media update validation error:', error);
+        return errorResponse(`Media update validation failed: ${error.message}`);
+    }
+};
+
+export { validateCreateProduct, validateProductMediaUpdate };

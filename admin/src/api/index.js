@@ -128,6 +128,14 @@ export const updateProduct = async (productId, data) => {
   return api.put(`/admin/product/${productId}`, data);
 };
 
+export const updateProductMedia = async (productId, formData) => {
+  return api.put(`/admin/product/${productId}/media`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
 export const deactivateProduct = async (productId) => {
   return api.put(`/admin/product/${productId}`, { deactivated: true });
 };

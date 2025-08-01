@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Grid, Stack, Skeleton, Card, CardContent, Alert } from '@mui/material';
-import { getAdminProduct } from '../../../api';
+import { getAdminProduct, updateProductMedia } from '../../../api';
 
-// Import the new components
 import ProductHeader from './components/ProductHeader';
 import ProductCoreDetails from './components/ProductCoreDetails';
 import ProductPricing from './components/ProductPricing';
@@ -18,8 +17,6 @@ const EditProduct = () => {
     const [saving, setSaving] = useState(false);
     const [product, setProduct] = useState(null);
     const [error, setError] = useState(null);
-    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
     useEffect(() => {
         const loadProduct = async () => {
             setLoading(true);
@@ -95,18 +92,46 @@ const EditProduct = () => {
 
         setSaving(true);
         
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Update the main product state and "last updated" time
-        setProduct(prev => ({
-            ...prev,
-            ...saveData,
-            updatedAt: new Date().toISOString()
-        }));
-
-        setSaving(false);
-        return Promise.resolve();
+        try {
+            if (dataSection === 'media') {
+                const { formData } = saveData;
+                
+                if (formData) {
+                    const response = await updateProductMedia(product.id, formData);
+                    
+                    if (response.data.success) {
+                        setProduct(prev => ({
+                            ...prev,
+                            mainImageUrl: response.data.data.image?.largeUrl || response.data.data.image?.mediumUrl || prev.mainImageUrl,
+                            galleryImages: response.data.data.images?.map((img, index) => ({
+                                id: index + 1,
+                                url: img.largeUrl || img.mediumUrl || img.smallUrl || ''
+                            })) || prev.galleryImages,
+                            updatedAt: new Date().toISOString()
+                        }));
+                        
+                        console.log('Media updated successfully:', response.data.message);
+                    }
+                } else {
+                    console.log('No media data to process');
+                }
+            } else {
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                setProduct(prev => ({
+                    ...prev,
+                    ...saveData,
+                    updatedAt: new Date().toISOString()
+                }));
+            }
+            
+            return Promise.resolve();
+        } catch (error) {
+            console.error(`Error saving ${dataSection}:`, error);
+            throw error;
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleBackClick = () => {
@@ -161,37 +186,28 @@ const EditProduct = () => {
                 hasUnsavedChanges={false}
             />
 
-            <Grid container spacing={4}>
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={4}>
-                        <ProductCoreDetails
-                            product={product}
-                            onSave={(data) => handleSaveChanges('coreDetails', data)}
-                            loading={loading || saving}
-                        />
-                        <ProductPricing
-                            product={product}
-                            onSave={(data) => handleSaveChanges('pricing', data)}
-                            loading={loading || saving}
-                        />
-                        <ProductCategorization
-                            product={product}
-                            onSave={(data) => handleSaveChanges('categorization', data)}
-                            loading={loading || saving}
-                        />
-                    </Stack>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                    <Stack spacing={4}>
-                        <ProductMedia
-                            product={product}
-                            onSave={(data) => handleSaveChanges('media', data)}
-                            loading={loading || saving}
-                        />
-                    </Stack>
-                </Grid>
-            </Grid>
+            <Stack spacing={4}>
+                <ProductCoreDetails
+                    product={product}
+                    onSave={(data) => handleSaveChanges('coreDetails', data)}
+                    loading={loading || saving}
+                />
+                <ProductPricing
+                    product={product}
+                    onSave={(data) => handleSaveChanges('pricing', data)}
+                    loading={loading || saving}
+                />
+                <ProductCategorization
+                    product={product}
+                    onSave={(data) => handleSaveChanges('categorization', data)}
+                    loading={loading || saving}
+                />
+                <ProductMedia
+                    product={product}
+                    onSave={(data) => handleSaveChanges('media', data)}
+                    loading={loading || saving}
+                />
+            </Stack>
         </Box>
     );
 };

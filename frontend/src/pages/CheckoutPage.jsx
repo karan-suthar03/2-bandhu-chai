@@ -388,7 +388,7 @@ function CheckoutPage() {
                             {checkoutPreview.items.map((item) => (
                                 <div key={item.id} className="flex items-center space-x-4 py-3 border-b border-gray-100">
                                     <img 
-                                        src={item.image} 
+                                        src={item.image.smallUrl}
                                         alt={item.name}
                                         className="w-16 h-16 object-cover rounded-lg shadow-sm"
                                     />

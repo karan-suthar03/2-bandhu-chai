@@ -18,7 +18,7 @@ function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
         <div className="bg-white rounded-xl shadow-md overflow-hidden transform hover:-translate-y-2 hover:shadow-xl transition-all duration-300 group cursor-pointer">
             <div className="relative h-56 sm:h-64 overflow-hidden cursor-pointer" onClick={handleProductClick}>
                 <img
-                    src={product.image}
+                    src={product.image.mediumUrl}
                     alt={product.name}
                     className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ${
                         imageLoaded ? 'opacity-100' : 'opacity-0'
@@ -199,7 +199,7 @@ function QuickViewModal({ product, onClose, onAddToCart, onBuyNow }) {
                     
                     <div className="md:flex">
                         <div className="md:w-1/2">
-                            <img src={product.image} alt={product.name} className="w-full h-64 md:h-96 object-cover" />
+                            <img src={product.image.mediumUrl} alt={product.name} className="w-full h-64 md:h-96 object-cover" />
                         </div>
                         
                         <div className="md:w-1/2 p-6">
@@ -211,7 +211,7 @@ function QuickViewModal({ product, onClose, onAddToCart, onBuyNow }) {
                                 {product.oldPrice && (
                                     <>
                                         <span className="text-lg text-gray-500 line-through">{formatCurrency(product.oldPrice)}</span>
-                                        <span className="text-sm font-medium text-[#e67e22] bg-orange-100 px-2 py-1 rounded">
+                                        <span className="text-sm font-medium text-[#e67e22] bg-orange-100 px-2 py-1 rounded text-nowrap">
                                             {formatDiscount(product.discount)}
                                         </span>
                                     </>

@@ -21,7 +21,7 @@ function ProductCard({ product }) {
         <div className="bg-white rounded-xl shadow-md overflow-hidden transform hover:-translate-y-1 transition-all duration-300 cursor-pointer" onClick={handleProductClick}>
             <div className="relative h-56 sm:h-64">
                 <img
-                    src={product.image}
+                    src={product.image.mediumUrl}
                     alt={product.name}
                     className="w-full h-full object-cover"
                 />

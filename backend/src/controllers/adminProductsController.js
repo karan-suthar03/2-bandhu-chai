@@ -1,5 +1,5 @@
 import prisma from "../config/prisma.js";
-import { NotFoundError, ValidationError } from "../middlewares/errors/AppError.js";
+import {NotFoundError, ValidationError} from "../middlewares/errors/AppError.js";
 import {uploadFile} from "../services/s3Service.js";
 
 export const getAdminProducts = async (req, res) => {
@@ -192,30 +192,52 @@ export const getAdminProduct = async (req, res) => {
     }
 };
 
+async function uploadVariants(mainImage) {
+    const variants = mainImage.variants;
+
+    const variantEntries = Object.entries(variants);
+
+    const uploadPromises = variantEntries.map(([key, variantObject]) => {
+        const params = {
+            fileName: variantObject.filename,
+            buffer: variantObject.buffer,
+            mimetype: variantObject.mimetype,
+            encoding: variantObject.encoding
+        };
+        return uploadFile(params).then(imageUrl => {
+            console.log(`Uploaded ${key} variant. URL:`, imageUrl);
+            return { key, imageUrl };
+        });
+    });
+
+    const settledResults = await Promise.all(uploadPromises);
+
+    return settledResults.reduce((acc, {key, imageUrl}) => {
+        acc[`${key}Url`] = imageUrl;
+        return acc;
+    }, {});
+}
+
 export const createProduct = async (req, res) => {
     try {
         let mainImage = req.files?.mainImage[0];
-        let params = {
-            fileName: mainImage.originalname,
-            buffer: mainImage.buffer,
-            mimetype: mainImage.mimetype,
-            encoding: mainImage.encoding
-        }
-        let mainImageUrl = await uploadFile(params);
-        console.log('Main image upload URL:', mainImageUrl);
-        let additionalImageUrls = [];
-        if(req.areFilesPresent){
-            for (let img of req.files.gallery) {
-                let params = {
-                    fileName: img.originalname,
-                    buffer: img.buffer,
-                    mimetype: img.mimetype,
-                    encoding: img.encoding
-                }
-                let imageUrl = await uploadFile(params);
-                console.log('Additional image upload URL:', imageUrl);
-                additionalImageUrls.push(imageUrl);
-            }
+
+        let mainImageVariantsUrls = await uploadVariants(mainImage);
+
+        console.log('Main image upload URL:', mainImageVariantsUrls);
+        let additionalImagesVariantsUrls = [];
+
+        if (req.areFilesPresent && req.files.gallery && req.files.gallery.length > 0) {
+            const allUploadsPromise = req.files.gallery.map(img => {
+                return uploadVariants(img).then(variantsUrls => {
+                    console.log('Additional image variants uploaded:', variantsUrls);
+                    return variantsUrls;
+                });
+            });
+
+            additionalImagesVariantsUrls = await Promise.all(allUploadsPromise);
+        } else {
+            console.log('No gallery images to upload.');
         }
 
         let data = {
@@ -227,8 +249,8 @@ export const createProduct = async (req, res) => {
             category: req.body.category,
             description: req.body.description,
             badge: req.body.badge || null,
-            image: mainImageUrl,
-            images: additionalImageUrls,
+            image: mainImageVariantsUrls,
+            images: additionalImagesVariantsUrls,
             features: req.body.features ? JSON.parse(req.body.features) : [],
             longDescription: req.body.fullDescription,
             isNew: !!req.body.isNew,

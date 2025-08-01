@@ -180,7 +180,7 @@ function ProductPage() {
                                 {}
                                 <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden group">
                                     <img
-                                        src={product.images[selectedImage]}
+                                        src={product.images[selectedImage].largeUrl}
                                         alt={product.name}
                                         className="w-full h-96 md:h-[500px] object-cover group-hover:scale-105 transition-transform duration-500"
                                     />
@@ -209,7 +209,7 @@ function ProductPage() {
                                             }`}
                                         >
                                             <img
-                                                src={image}
+                                                src={image.smallUrl}
                                                 alt={`${product.name} ${index + 1}`}
                                                 className="w-full h-full object-cover"
                                             />

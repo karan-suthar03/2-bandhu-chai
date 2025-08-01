@@ -5,6 +5,69 @@ function generateUniqueFilename(ext) {
     return crypto.randomBytes(32).toString('hex') + ext;
 }
 
+
+function makeVariants(image) {
+    let variants = {
+        small: {
+            filename: generateUniqueFilename('.jpg'),
+            mimetype: 'image/jpeg',
+            encoding: '7bit',
+            size: 0
+        },
+        medium: {
+            filename: generateUniqueFilename('.jpg'),
+            mimetype: 'image/jpeg',
+            encoding: '7bit',
+            size: 0
+        },
+        large: {
+            filename: generateUniqueFilename('.jpg'),
+            mimetype: 'image/jpeg',
+            encoding: '7bit',
+            size: 0
+        },
+        extraLarge: {
+            filename: generateUniqueFilename('.jpg'),
+            mimetype: 'image/jpeg',
+            encoding: '7bit',
+            size: 0
+        }
+    }
+    return sharp(image.buffer)
+        .resize(100, 100)
+        .jpeg({ quality: 80 })
+        .toBuffer()
+        .then(data => {
+            variants.small.size = data.length;
+            variants.small.buffer = data;
+            return sharp(image.buffer)
+                .resize(400, 400)
+                .jpeg({ quality: 80 })
+                .toBuffer()
+                .then(data => {
+                    variants.medium.size = data.length;
+                    variants.medium.buffer = data;
+                    return sharp(image.buffer)
+                        .resize(800, 800)
+                        .jpeg({ quality: 80 })
+                        .toBuffer()
+                        .then(data => {
+                            variants.large.size = data.length;
+                            variants.large.buffer = data;
+                            return sharp(image.buffer)
+                                .resize(1200, 1200)
+                                .jpeg({ quality: 80 })
+                                .toBuffer()
+                                .then(data => {
+                                    variants.extraLarge.size = data.length;
+                                    variants.extraLarge.buffer = data;
+                                    return variants;
+                                });
+                        });
+                });
+        });
+}
+
 const validateCreateProduct = async (req, res, next) => {
 
     const errorResponse = (message) =>
@@ -18,10 +81,7 @@ const validateCreateProduct = async (req, res, next) => {
     if (!mainImage || !mainImage.mimetype.startsWith('image/')) {
         return errorResponse('Main image is required and must be an image file');
     }
-    mainImage.buffer = await sharp(mainImage.buffer).resize(400, 400).jpeg({ quality: 80 }).toBuffer();
-    mainImage.originalname = generateUniqueFilename(".jpg");
-    mainImage.mimetype = 'image/jpeg';
-    mainImage.encoding = '7bit';
+    mainImage.variants = await makeVariants(mainImage);
 
     req.areFilesPresent = false;
     if (req.files.gallery instanceof Array && req.files.gallery.length > 0) {
@@ -30,11 +90,11 @@ const validateCreateProduct = async (req, res, next) => {
             console.log('No valid additional images found');
         }else{
             req.files.gallery = await Promise.all(req.files.gallery.map(async (img) => {
-                img.originalname = generateUniqueFilename(".jpg");
-                img.buffer = await sharp(img.buffer).resize(400, 400).jpeg({ quality: 80 }).toBuffer();
-                img.mimetype = 'image/jpeg';
-                img.encoding = '7bit';
-                return img;
+                const variants = await makeVariants(img);
+                return {
+                    ...img,
+                    variants: variants
+                };
             }));
             req.areFilesPresent = true;
         }

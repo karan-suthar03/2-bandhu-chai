@@ -223,9 +223,9 @@ function OrderTrackingPage() {
                                 <div className="space-y-4">
                                     {order.orderItems.map((item) => (
                                         <div key={item.id} className="flex items-center space-x-4 py-3 border-b border-gray-100 last:border-b-0">
-                                            {item.product?.image && (
+                                            {item.product?.image.smallUrl && (
                                                 <img 
-                                                    src={item.product.image} 
+                                                    src={item.product.image.smallUrl}
                                                     alt={item.productName}
                                                     className="w-16 h-16 object-cover rounded"
                                                 />

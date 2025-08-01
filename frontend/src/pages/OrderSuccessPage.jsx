@@ -155,9 +155,9 @@ function OrderSuccessPage() {
                                 {confirmation.order.items.map((item, index) => (
                                     <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
                                         <div className="flex items-center space-x-3">
-                                            {item.image && (
+                                            {item.image.smallUrl && (
                                                 <img 
-                                                    src={item.image} 
+                                                    src={item.image.smallUrl}
                                                     alt={item.name}
                                                     className="w-12 h-12 object-cover rounded"
                                                 />

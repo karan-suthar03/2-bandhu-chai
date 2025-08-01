@@ -6,7 +6,7 @@ function CartItem({ item, onQuantityUpdate, onRemove, onProductClick }) {
             <div className="flex items-center space-x-4">
                 <div className="relative cursor-pointer" onClick={() => onProductClick(item.id)}>
                     <img
-                        src={item.image}
+                        src={item.image.smallUrl}
                         alt={item.name}
                         className="w-20 h-20 object-cover rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
                     />

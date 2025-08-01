@@ -12,8 +12,10 @@ import EditIcon from '@mui/icons-material/Edit';
 import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import ToggleOffIcon from '@mui/icons-material/ToggleOff';
 import {formatCurrency, formatDiscount} from "../Utils/Utils.js";
+import { useNavigate } from 'react-router-dom';
 
 const ProductRow = ({ product, selected, onSelectRow, onToggleActivation }) => {
+    const navigate = useNavigate();
     const isDeactivated = product.deactivated;
     
     return (
@@ -86,8 +88,15 @@ const ProductRow = ({ product, selected, onSelectRow, onToggleActivation }) => {
                 ))}
             <TableCell align="center">
                 <Stack direction="row" spacing={0.5} justifyContent="center">
-                    <Tooltip title="Edit">
-                        <IconButton size="small" color="primary">
+                    <Tooltip title="Edit Product">
+                        <IconButton 
+                            size="small" 
+                            color="primary"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/dashboard/products/edit/${product.id}`);
+                            }}
+                        >
                             <EditIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>

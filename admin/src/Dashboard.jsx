@@ -6,6 +6,7 @@ import ProductsView from './components/ProductsView';
 import AnalyticsView from './components/AnalyticsView';
 import DashboardContent from './components/DashboardContent';
 import AddProduct from "./components/productPage/addProduct/AddProduct.jsx";
+import EditProduct from "./components/productPage/editProduct/EditProduct.jsx";
 
 const Dashboard = ({ onLogout, currentAdmin }) => {
     return (
@@ -25,6 +26,7 @@ const Dashboard = ({ onLogout, currentAdmin }) => {
                     <Route path="orders" element={<OrdersView />} />
                     <Route path="products" element={<ProductsView />} />
                     <Route path="products/add" element={<AddProduct />} />
+                    <Route path="products/edit/:productId" element={<EditProduct />} />
                     <Route path="analytics" element={<AnalyticsView />} />
                 </Routes>
             </Box>

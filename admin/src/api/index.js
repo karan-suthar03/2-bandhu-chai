@@ -112,6 +112,10 @@ export const getAdminProducts = async (params = {}) => {
   return api.get('/admin/products', { params });
 };
 
+export const getAdminProduct = async (productId) => {
+  return api.get(`/admin/product/${productId}`);
+};
+
 export const postProduct = async (formData) => {
   return api.post('/admin/product', formData, {
     headers: {

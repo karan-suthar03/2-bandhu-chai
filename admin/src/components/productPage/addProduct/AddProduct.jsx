@@ -124,16 +124,19 @@ const AddProduct = () => {
                                         label="Product Name" name="name" value={product.name}
                                         onChange={handleChange} fullWidth required
                                         error={!!errors.name} helperText={errors.name} sx={{ mb: 2 }}
+                                        disabled={loading}
                                     />
                                     <TextField
                                         label="Short Description" name="description" value={product.description}
                                         onChange={handleChange} fullWidth multiline rows={3} required
                                         error={!!errors.description} helperText={errors.description} sx={{ mb: 2 }}
+                                        disabled={loading}
                                     />
                                     <TextField
                                         label="Full Description" name="fullDescription" value={product.fullDescription}
                                         onChange={handleChange} fullWidth multiline rows={6}
                                         error={!!errors.fullDescription} helperText={errors.fullDescription}
+                                        disabled={loading}
                                     />
                                 </CardContent>
                             </Card>
@@ -149,12 +152,14 @@ const AddProduct = () => {
                                                 label="Price" name="price" type="number" value={product.price}
                                                 onChange={handleChange} fullWidth required
                                                 error={!!errors.price} helperText={errors.price}
+                                                disabled={loading}
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
                                             <TextField
                                                 label="Old Price (Optional)" name="oldPrice" type="number"
                                                 value={product.oldPrice} onChange={handleChange} fullWidth
+                                                disabled={loading}
                                             />
                                         </Grid>
                                     </Grid>
@@ -164,12 +169,14 @@ const AddProduct = () => {
                                                 label="Stock Quantity" name="stock" type="number"
                                                 value={product.stock} onChange={handleChange} fullWidth required
                                                 error={!!errors.stock} helperText={errors.stock}
+                                                disabled={loading}
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
                                             <TextField
                                                 label="Discount (%)" name="discount" type="number"
                                                 value={product.discount} onChange={handleChange} fullWidth
+                                                disabled={loading}
                                             />
                                         </Grid>
                                     </Grid>
@@ -187,18 +194,21 @@ const AddProduct = () => {
                                                 label="Category" name="category" value={product.category}
                                                 onChange={handleChange} fullWidth required
                                                 error={!!errors.category} helperText={errors.category}
+                                                disabled={loading}
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
                                             <TextField
                                                 label="Badge (e.g., 'Sale')" name="badge" value={product.badge}
                                                 onChange={handleChange} fullWidth
+                                                disabled={loading}
                                             />
                                         </Grid>
                                     </Grid>
                                     <Autocomplete
                                         multiple freeSolo options={[]} value={product.features}
                                         onChange={(e, val) => setProduct(p => ({ ...p, features: val }))}
+                                        disabled={loading}
                                         renderTags={(val, getTagProps) => val.map((opt, idx) => (
                                             <Chip key={opt} label={opt} {...getTagProps({ index: idx })} />
                                         ))}
@@ -222,13 +232,13 @@ const AddProduct = () => {
                                             {!mainImage ? (
                                                 <Button component="label" startIcon={<PhotoCamera />}>
                                                     Upload
-                                                    <input hidden type="file" accept="image/*" onChange={handleMainImageSelect} />
+                                                    <input hidden type="file" accept="image/*" onChange={handleMainImageSelect} disabled={loading} />
                                                 </Button>
                                             ) : (
                                                 <Box sx={{ position: 'relative' }}>
                                                     <Avatar src={mainImageUrl} variant="rounded" sx={{ width: 100, height: 100 }} />
                                                     <Tooltip title="Remove Image">
-                                                        <IconButton size="small" onClick={handleRemoveMainImage} sx={{ position: 'absolute', top: -10, right: -10, backgroundColor: 'white' }}>
+                                                        <IconButton size="small" onClick={handleRemoveMainImage} sx={{ position: 'absolute', top: -10, right: -10, backgroundColor: 'white' }} disabled={loading}>
                                                             <Close fontSize="small" />
                                                         </IconButton>
                                                     </Tooltip>
@@ -244,16 +254,16 @@ const AddProduct = () => {
                                                 <Box key={i} sx={{ position: 'relative' }}>
                                                     <Avatar src={URL.createObjectURL(file)} variant="rounded" sx={{ width: 70, height: 70 }} />
                                                     <Tooltip title="Remove Image">
-                                                        <IconButton size="small" onClick={() => handleRemoveGalleryImage(i)} sx={{ position: 'absolute', top: -10, right: -10, backgroundColor: 'white' }}>
+                                                        <IconButton size="small" onClick={() => handleRemoveGalleryImage(i)} sx={{ position: 'absolute', top: -10, right: -10, backgroundColor: 'white' }} disabled={loading}>
                                                             <Close fontSize="small" />
                                                         </IconButton>
                                                     </Tooltip>
                                                 </Box>
                                             ))}
                                             <Tooltip title="Add Image">
-                                                <IconButton component="label" sx={{ width: 70, height: 70, border: '2px dashed grey', borderRadius: 2 }}>
+                                                <IconButton component="label" sx={{ width: 70, height: 70, border: '2px dashed grey', borderRadius: 2 }} disabled={loading}>
                                                     <CloudUpload />
-                                                    <input hidden multiple type="file" accept="image/*" onChange={handleGalleryAdd} />
+                                                    <input hidden multiple type="file" accept="image/*" onChange={handleGalleryAdd} disabled={loading} />
                                                 </IconButton>
                                             </Tooltip>
                                         </Box>
@@ -266,16 +276,16 @@ const AddProduct = () => {
                                     <Typography variant="h6" gutterBottom>Attributes</Typography>
                                     <Grid container>
                                         <Grid item xs={12} sm={6}>
-                                            <FormControlLabel control={<Switch checked={product.isNew} onChange={handleChange} name="isNew" />} label="New Arrival" />
+                                            <FormControlLabel control={<Switch checked={product.isNew} onChange={handleChange} name="isNew" disabled={loading} />} label="New Arrival" />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
-                                            <FormControlLabel control={<Switch checked={product.featured} onChange={handleChange} name="featured" />} label="Featured Product" />
+                                            <FormControlLabel control={<Switch checked={product.featured} onChange={handleChange} name="featured" disabled={loading} />} label="Featured Product" />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
-                                            <FormControlLabel control={<Switch checked={product.organic} onChange={handleChange} name="organic" />} label={<Box display="flex" alignItems="center"><EnergySavingsLeaf fontSize="small" sx={{ mr: 0.5 }}/> Organic</Box>} />
+                                            <FormControlLabel control={<Switch checked={product.organic} onChange={handleChange} name="organic" disabled={loading} />} label={<Box display="flex" alignItems="center"><EnergySavingsLeaf fontSize="small" sx={{ mr: 0.5 }}/> Organic</Box>} />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
-                                            <FormControlLabel control={<Switch checked={product.fastDelivery} onChange={handleChange} name="fastDelivery" />} label={<Box display="flex" alignItems="center"><LocalShipping fontSize="small" sx={{ mr: 0.5 }}/> Fast Delivery</Box>} />
+                                            <FormControlLabel control={<Switch checked={product.fastDelivery} onChange={handleChange} name="fastDelivery" disabled={loading} />} label={<Box display="flex" alignItems="center"><LocalShipping fontSize="small" sx={{ mr: 0.5 }}/> Fast Delivery</Box>} />
                                         </Grid>
                                     </Grid>
 

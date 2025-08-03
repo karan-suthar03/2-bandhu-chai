@@ -382,6 +382,61 @@ export const updateProduct = async (req, res) => {
     }
 };
 
+export const updateProductCategorization = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { 
+            category,
+            badge,
+            features,
+            isNew,
+            featured,
+            organic,
+            fastDelivery,
+            deactivated
+        } = req.body;
+
+        const product = await prisma.product.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        const updateData = {};
+        if (category !== undefined) updateData.category = category;
+        if (badge !== undefined) updateData.badge = badge;
+        if (features !== undefined) updateData.features = features;
+        if (isNew !== undefined) updateData.isNew = isNew;
+        if (featured !== undefined) updateData.featured = featured;
+        if (organic !== undefined) updateData.organic = organic;
+        if (fastDelivery !== undefined) updateData.fastDelivery = fastDelivery;
+        if (deactivated !== undefined) updateData.deactivated = deactivated;
+
+        const updatedProduct = await prisma.product.update({
+            where: { id: parseInt(id) },
+            data: updateData
+        });
+
+        res.json({
+            success: true,
+            message: 'Product categorization updated successfully',
+            data: updatedProduct
+        });
+    } catch (error) {
+        console.error('Product categorization update error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update product categorization',
+            error: error.message
+        });
+    }
+};
+
 export const updateProductMedia = async (req, res) => {
     try {
         const { id } = req.params;

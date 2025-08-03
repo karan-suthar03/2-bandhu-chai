@@ -1,6 +1,4 @@
-import { 
-    makeVariants
-} from '../utils/imageUtils.js';
+import {makeVariants} from '../utils/imageUtils.js';
 
 const validateCreateProduct = async (req, res, next) => {
 
@@ -216,4 +214,75 @@ const validateProductMediaUpdate = async (req, res, next) => {
     }
 };
 
-export { validateCreateProduct, validateProductMediaUpdate };
+const validateProductCategorization = async (req, res, next) => {
+    const errorResponse = (message) =>
+        res.status(400).json({ success: false, error: message });
+
+    try {
+        const { 
+            category,
+            badge,
+            features
+        } = req.body;
+
+        if (category !== undefined) {
+            if (typeof category !== 'string') {
+                return errorResponse('Category must be a string');
+            }
+            if (category.trim().length === 0) {
+                return errorResponse('Category cannot be empty');
+            }
+            req.body.category = category.trim();
+        }
+
+        if (badge !== undefined) {
+            if (typeof badge !== 'string') {
+                return errorResponse('Badge must be a string');
+            }
+            req.body.badge = badge.trim();
+        }
+
+        if (features !== undefined) {
+            if (!Array.isArray(features)) {
+                return errorResponse('Features must be an array');
+            }
+
+            const invalidFeatures = features.filter(feature => typeof feature !== 'string' || feature.trim().length === 0);
+            if (invalidFeatures.length > 0) {
+                return errorResponse('All features must be non-empty strings');
+            }
+
+            req.body.features = [...new Set(features.map(f => f.trim()))];
+        }
+
+        const booleanFields = {
+            isNew: 'isNew',
+            featured: 'featured', 
+            organic: 'organic',
+            fastDelivery: 'fastDelivery',
+            deactivated: 'deactivated'
+        };
+
+        for (const [field, fieldName] of Object.entries(booleanFields)) {
+            const value = req.body[field];
+            if (value !== undefined) {
+                if (typeof value === 'string') {
+                    if (value !== 'true' && value !== 'false') {
+                        return errorResponse(`${fieldName} must be a boolean value`);
+                    }
+                    req.body[field] = value === 'true';
+                } else if (typeof value !== 'boolean') {
+                    return errorResponse(`${fieldName} must be a boolean value`);
+                }
+            }
+        }
+
+        console.log('Categorization validation successful:', req.body);
+        next();
+    } catch (error) {
+        console.error('Categorization validation error:', error);
+        return errorResponse(`Categorization validation failed: ${error.message}`);
+    }
+};
+
+export { validateCreateProduct, validateProductMediaUpdate, validateProductCategorization };

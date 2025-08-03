@@ -136,6 +136,10 @@ export const updateProductMedia = async (productId, formData) => {
   });
 };
 
+export const updateProductCategorization = async (productId, data) => {
+  return api.put(`/admin/product/${productId}/categorization`, data);
+};
+
 export const deactivateProduct = async (productId) => {
   return api.put(`/admin/product/${productId}`, { deactivated: true });
 };

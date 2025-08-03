@@ -7,6 +7,7 @@ import {
     createProduct, 
     updateProduct, 
     updateProductMedia,
+    updateProductCategorization,
     deactivateProduct,
     activateProduct,
     bulkDeactivateProducts,
@@ -28,7 +29,7 @@ import {
     getSystemAnalytics, 
     getLowStockProducts 
 } from '../controllers/adminController.js';
-import {validateCreateProduct, validateProductMediaUpdate} from "../middlewares/productMiddleware.js";
+import {validateCreateProduct, validateProductMediaUpdate, validateProductCategorization} from "../middlewares/productMiddleware.js";
 
 const router = Router();
 const storage = multer.memoryStorage();
@@ -59,6 +60,7 @@ router.post(
   createProduct
 );
 router.put('/product/:id', updateProduct);
+router.put('/product/:id/categorization', validateProductCategorization, updateProductCategorization);
 router.put(
   '/product/:id/media',
   upload.fields([

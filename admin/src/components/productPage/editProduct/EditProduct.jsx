@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Grid, Stack, Skeleton, Card, CardContent, Alert } from '@mui/material';
-import { getAdminProduct, updateProductMedia } from '../../../api';
+import { getAdminProduct, updateProductMedia, updateProductCategorization } from '../../../api';
 
 import ProductHeader from './components/ProductHeader';
 import ProductCoreDetails from './components/ProductCoreDetails';
@@ -114,6 +114,25 @@ const EditProduct = () => {
                     }
                 } else {
                     console.log('No media data to process');
+                }
+            } else if (dataSection === 'categorization') {
+                const response = await updateProductCategorization(product.id, saveData);
+                
+                if (response.data.success) {
+                    setProduct(prev => ({
+                        ...prev,
+                        category: saveData.category,
+                        badge: saveData.badge,
+                        features: saveData.features,
+                        isNew: saveData.isNew,
+                        featured: saveData.featured,
+                        organic: saveData.organic,
+                        fastDelivery: saveData.fastDelivery,
+                        deactivated: saveData.deactivated,
+                        updatedAt: new Date().toISOString()
+                    }));
+                    
+                    console.log('Categorization updated successfully:', response.data.message);
                 }
             } else {
                 await new Promise(resolve => setTimeout(resolve, 1500));

@@ -113,7 +113,7 @@ async function getProduct(req, res) {
             discount: product.discount,
             rating: product.rating,
             badge: product.badge,
-            images: product.images,
+            images: [product.image,...product.images],
             category: product.category,
             description: product.description,
             longDescription: product.longDescription,

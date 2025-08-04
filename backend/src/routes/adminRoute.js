@@ -8,6 +8,8 @@ import {
     updateProduct, 
     updateProductMedia,
     updateProductCategorization,
+    updateProductCoreDetails,
+    updateProductPricing,
     deactivateProduct,
     activateProduct,
     bulkDeactivateProducts,
@@ -29,7 +31,7 @@ import {
     getSystemAnalytics, 
     getLowStockProducts 
 } from '../controllers/adminController.js';
-import {validateCreateProduct, validateProductMediaUpdate, validateProductCategorization} from "../middlewares/productMiddleware.js";
+import {validateCreateProduct, validateProductMediaUpdate, validateProductCategorization, validateProductCoreDetails, validateProductPricing} from "../middlewares/productMiddleware.js";
 
 const router = Router();
 const storage = multer.memoryStorage();
@@ -60,6 +62,8 @@ router.post(
   createProduct
 );
 router.put('/product/:id', updateProduct);
+router.put('/product/:id/core-details', validateProductCoreDetails, updateProductCoreDetails);
+router.put('/product/:id/pricing', validateProductPricing, updateProductPricing);
 router.put('/product/:id/categorization', validateProductCategorization, updateProductCategorization);
 router.put(
   '/product/:id/media',

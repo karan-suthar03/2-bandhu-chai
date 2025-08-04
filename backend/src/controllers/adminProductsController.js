@@ -144,11 +144,36 @@ export const getAdminProducts = async (req, res) => {
             prisma.product.count({ where })
         ]);
 
+        const processedProducts = products.map(product => {
+            if (product.images && Array.isArray(product.images)) {
+                product.images = product.images.map(img => {
+                    if (typeof img === 'string') {
+                        try {
+                            return JSON.parse(img);
+                        } catch (e) {
+                            console.warn('Failed to parse image JSON string:', img);
+                            return img;
+                        }
+                    }
+                    return img;
+                });
+            }
+            if (product.image && typeof product.image === 'string') {
+                try {
+                    product.image = JSON.parse(product.image);
+                } catch (e) {
+                    console.warn('Failed to parse image JSON string:', product.image);
+                }
+            }
+
+            return product;
+        });
+
         console.log(`Found ${products.length} products, total: ${total}`);
 
         res.json({
             success: true,
-            data: products,
+            data: processedProducts,
             total,
             pagination: {
                 current: parseInt(page),
@@ -176,6 +201,31 @@ export const getAdminProduct = async (req, res) => {
 
         if (!product) {
             throw new NotFoundError('Product not found');
+        }
+
+        if (product.images && Array.isArray(product.images)) {
+            product.images = product.images.map(img => {
+                if (typeof img === 'string') {
+                    try {
+                        const parsed = JSON.parse(img);
+                        console.warn('Had to parse images array item as string in getAdminProduct - this should not happen with Prisma JSON fields');
+                        return parsed;
+                    } catch (e) {
+                        console.error('Failed to parse image JSON string:', img);
+                        return img;
+                    }
+                }
+                return img;
+            });
+        }
+
+        if (product.image && typeof product.image === 'string') {
+            try {
+                product.image = JSON.parse(product.image);
+                console.warn('Had to parse image field as string in getAdminProduct - this should not happen with Prisma JSON fields');
+            } catch (e) {
+                console.error('Failed to parse image JSON string:', product.image);
+            }
         }
 
         res.json({
@@ -217,10 +267,11 @@ async function uploadVariants(mainImage) {
 
     const settledResults = await Promise.all(uploadPromises);
 
-    return settledResults.reduce((acc, {key, imageUrl}) => {
+    const variantUrls = settledResults.reduce((acc, {key, imageUrl}) => {
         acc[`${key}Url`] = imageUrl;
         return acc;
     }, {});
+    return variantUrls;
 }
 
 export const createProduct = async (req, res) => {
@@ -269,9 +320,37 @@ export const createProduct = async (req, res) => {
             data
         })
 
+        let processedImage = createdProduct.image;
+        let processedImages = createdProduct.images;
+
+        if (processedImage && typeof processedImage === 'string') {
+            try {
+                processedImage = JSON.parse(processedImage);
+            } catch (e) {
+                console.warn('Failed to parse image JSON string in response:', processedImage);
+            }
+        }
+        if (processedImages && Array.isArray(processedImages)) {
+            processedImages = processedImages.map(img => {
+                if (typeof img === 'string') {
+                    try {
+                        return JSON.parse(img);
+                    } catch (e) {
+                        console.warn('Failed to parse image JSON string in response:', img);
+                        return img;
+                    }
+                }
+                return img;
+            });
+        }
+
         res.status(201).json({
             message: 'Product created',
-            createdProduct
+            createdProduct: {
+                ...createdProduct,
+                image: processedImage,
+                images: processedImages
+            }
         });
     } catch (err) {
         console.error('Error in createProduct:', err);
@@ -356,10 +435,39 @@ export const updateProduct = async (req, res) => {
             data: updateData
         });
 
+        let processedImage = updatedProduct.image;
+        let processedImages = updatedProduct.images;
+
+        if (processedImage && typeof processedImage === 'string') {
+            try {
+                processedImage = JSON.parse(processedImage);
+            } catch (e) {
+                console.warn('Failed to parse image JSON string in response:', processedImage);
+            }
+        }
+
+        if (processedImages && Array.isArray(processedImages)) {
+            processedImages = processedImages.map(img => {
+                if (typeof img === 'string') {
+                    try {
+                        return JSON.parse(img);
+                    } catch (e) {
+                        console.warn('Failed to parse image JSON string in response:', img);
+                        return img;
+                    }
+                }
+                return img;
+            });
+        }
+
         res.json({
             success: true,
             message: 'Product updated successfully',
-            data: updatedProduct
+            data: {
+                ...updatedProduct,
+                image: processedImage,
+                images: processedImages
+            }
         });
     } catch (error) {
         if (error instanceof NotFoundError) {
@@ -437,6 +545,100 @@ export const updateProductCategorization = async (req, res) => {
     }
 };
 
+export const updateProductCoreDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { 
+            name,
+            description,
+            fullDescription,
+            stock
+        } = req.body;
+
+        const product = await prisma.product.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        const updateData = {};
+        if (name !== undefined) updateData.name = name;
+        if (description !== undefined) updateData.description = description;
+        if (fullDescription !== undefined) updateData.longDescription = fullDescription;
+        if (stock !== undefined) updateData.stock = stock;
+
+        const updatedProduct = await prisma.product.update({
+            where: { id: parseInt(id) },
+            data: updateData
+        });
+
+        res.json({
+            success: true,
+            message: 'Product core details updated successfully',
+            data: updatedProduct
+        });
+    } catch (error) {
+        console.error('Product core details update error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update product core details',
+            error: error.message
+        });
+    }
+};
+
+export const updateProductPricing = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { 
+            price,
+            oldPrice,
+            stock,
+            discount
+        } = req.body;
+
+        const product = await prisma.product.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        const updateData = {};
+        if (price !== undefined) updateData.price = price;
+        if (oldPrice !== undefined) updateData.oldPrice = oldPrice;
+        if (stock !== undefined) updateData.stock = stock;
+        if (discount !== undefined) updateData.discount = discount;
+
+        const updatedProduct = await prisma.product.update({
+            where: { id: parseInt(id) },
+            data: updateData
+        });
+
+        res.json({
+            success: true,
+            message: 'Product pricing updated successfully',
+            data: updatedProduct
+        });
+    } catch (error) {
+        console.error('Product pricing update error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update product pricing',
+            error: error.message
+        });
+    }
+};
+
 export const updateProductMedia = async (req, res) => {
     try {
         const { id } = req.params;
@@ -463,7 +665,7 @@ export const updateProductMedia = async (req, res) => {
                 const mainImageVariantsUrls = await uploadVariants(mainImage);
                 updateData.image = mainImageVariantsUrls;
                 uploadResults.push(`Main image updated: ${Object.keys(mainImageVariantsUrls).length} variants uploaded`);
-                console.log('Main image uploaded successfully:', mainImageVariantsUrls);
+                console.log('Main image uploaded successfully, storing in updateData.image:', JSON.stringify(mainImageVariantsUrls, null, 2));
             } catch (uploadError) {
                 console.error('Main image upload failed:', uploadError);
                 throw new Error(`Main image upload failed: ${uploadError.message}`);
@@ -479,6 +681,20 @@ export const updateProductMedia = async (req, res) => {
             console.log('Gallery order:', galleryOrder);
 
             let finalGalleryImages = [];
+
+           let currentProductImages = [];
+            if (existingProduct.images && Array.isArray(existingProduct.images)) {
+                currentProductImages = existingProduct.images.map(img => {
+                    if (typeof img === 'string') {
+                        try {
+                            return JSON.parse(img);
+                        } catch (e) {
+                            return img;
+                        }
+                    }
+                    return img;
+                });
+            }
 
             let newUploadedImages = [];
             if (hasNewGalleryImages && req.files?.gallery && req.files.gallery.length > 0) {
@@ -508,22 +724,43 @@ export const updateProductMedia = async (req, res) => {
                     newImageMap.set(`new_${index}`, img);
                 });
 
+                const currentImageMap = new Map();
+                currentProductImages.forEach((img) => {
+                    if (typeof img === 'string') {
+                        currentImageMap.set(img, img);
+                    } else if (img && typeof img === 'object') {
+                        // Map all URL variants to the full object
+                        if (img.largeUrl) currentImageMap.set(img.largeUrl, img);
+                        if (img.mediumUrl) currentImageMap.set(img.mediumUrl, img);
+                        if (img.smallUrl) currentImageMap.set(img.smallUrl, img);
+                        if (img.extraLargeUrl) currentImageMap.set(img.extraLargeUrl, img);
+                    }
+                });
+
                 galleryOrder.forEach(item => {
                     if (typeof item === 'string' && item.startsWith('new_')) {
                         const newImg = newImageMap.get(item);
                         if (newImg) {
                             finalGalleryImages.push(newImg);
                         }
+                    } else if (typeof item === 'string') {
+                        const existingImg = currentImageMap.get(item);
+                        if (existingImg) {
+                            finalGalleryImages.push(existingImg);
+                        } else {
+                            finalGalleryImages.push(item);
+                        }
                     } else {
+                        // Handle objects directly
                         finalGalleryImages.push(item);
                     }
                 });
                 
                 uploadResults.push(`Gallery reordered: ${finalGalleryImages.length} images in custom order`);
             } else if (existingImages.length > 0) {
-                finalGalleryImages = [...existingImages, ...newUploadedImages];
+                finalGalleryImages = [...currentProductImages, ...newUploadedImages];
                 
-                uploadResults.push(`Gallery updated: kept ${existingImages.length} existing images`);
+                uploadResults.push(`Gallery updated: kept ${currentProductImages.length} existing images`);
                 if (newUploadedImages.length > 0) {
                     uploadResults.push(`Added ${newUploadedImages.length} new images`);
                 }
@@ -548,10 +785,48 @@ export const updateProductMedia = async (req, res) => {
             data: updateData
         });
 
+        console.log('Raw response from database update:');
+        console.log('- image type:', typeof updatedProduct.image);
+        console.log('- image value:', updatedProduct.image);
+        console.log('- images type:', typeof updatedProduct.images);
+        console.log('- images length:', updatedProduct.images?.length);
+        if (updatedProduct.images?.length > 0) {
+            console.log('- first image in array type:', typeof updatedProduct.images[0]);
+            console.log('- first image in array value:', updatedProduct.images[0]);
+        }
+
+        let processedImage = updatedProduct.image;
+        let processedImages = updatedProduct.images;
+
+        if (processedImage && typeof processedImage === 'string') {
+            try {
+                processedImage = JSON.parse(processedImage);
+                console.warn('Had to parse image field as string - this should not happen with Prisma JSON fields');
+            } catch (e) {
+                console.error('Failed to parse image JSON string in response:', processedImage);
+            }
+        }
+
+        if (processedImages && Array.isArray(processedImages)) {
+            processedImages = processedImages.map(img => {
+                if (typeof img === 'string') {
+                    try {
+                        const parsed = JSON.parse(img);
+                        console.warn('Had to parse images array item as string - this should not happen with Prisma JSON fields');
+                        return parsed;
+                    } catch (e) {
+                        console.error('Failed to parse image JSON string in response:', img);
+                        return img;
+                    }
+                }
+                return img;
+            });
+        }
+
         const responseData = {
             id: updatedProduct.id,
-            image: updatedProduct.image,
-            images: updatedProduct.images,
+            image: processedImage,
+            images: processedImages,
             metadata: {
                 uploadResults,
                 mediaUpdate: req.mediaUpdate,

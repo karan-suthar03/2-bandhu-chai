@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Grid, Stack, Skeleton, Card, CardContent, Alert } from '@mui/material';
-import { getAdminProduct, updateProductMedia, updateProductCategorization } from '../../../api';
+import { getAdminProduct, updateProductMedia, updateProductCategorization, updateProductCoreDetails, updateProductPricing } from '../../../api';
 
 import ProductHeader from './components/ProductHeader';
 import ProductCoreDetails from './components/ProductCoreDetails';
@@ -17,6 +17,7 @@ const EditProduct = () => {
     const [saving, setSaving] = useState(false);
     const [product, setProduct] = useState(null);
     const [error, setError] = useState(null);
+    console.log(product)
     useEffect(() => {
         const loadProduct = async () => {
             setLoading(true);
@@ -48,6 +49,8 @@ const EditProduct = () => {
                         deactivated: productData.deactivated,
                         createdAt: productData.createdAt,
                         updatedAt: productData.updatedAt,
+                        image: productData.image,
+                        images: productData.images,
                         mainImageUrl: (() => {
                             if (!productData.image) return '';
                             if (typeof productData.image === 'string') return productData.image;
@@ -98,15 +101,31 @@ const EditProduct = () => {
                 
                 if (formData) {
                     const response = await updateProductMedia(product.id, formData);
-                    
+
                     if (response.data.success) {
+                        const updatedImage = response.data.data.image;
+                        const updatedImages = response.data.data.images;
                         setProduct(prev => ({
                             ...prev,
-                            mainImageUrl: response.data.data.image?.largeUrl || response.data.data.image?.mediumUrl || prev.mainImageUrl,
-                            galleryImages: response.data.data.images?.map((img, index) => ({
-                                id: index + 1,
-                                url: img.largeUrl || img.mediumUrl || img.smallUrl || ''
-                            })) || prev.galleryImages,
+                            image: updatedImage || prev.image,
+                            images: updatedImages || prev.images,
+                            mainImageUrl: (() => {
+                                if (!updatedImage) return prev.mainImageUrl;
+                                if (typeof updatedImage === 'string') return updatedImage;
+                                return updatedImage.largeUrl || updatedImage.mediumUrl || updatedImage.smallUrl || prev.mainImageUrl;
+                            })(),
+                            galleryImages: (() => {
+                                if (!updatedImages || updatedImages.length === 0) return prev.galleryImages;
+                                return updatedImages.map((img, index) => {
+                                    if (typeof img === 'string') {
+                                        return { id: index + 1, url: img };
+                                    }
+                                    return {
+                                        id: index + 1,
+                                        url: img.largeUrl || img.mediumUrl || img.smallUrl || ''
+                                    };
+                                });
+                            })(),
                             updatedAt: new Date().toISOString()
                         }));
                         
@@ -133,6 +152,32 @@ const EditProduct = () => {
                     }));
                     
                     console.log('Categorization updated successfully:', response.data.message);
+                }
+            } else if (dataSection === 'coreDetails') {
+                const response = await updateProductCoreDetails(product.id, saveData);
+                
+                if (response.data.success) {
+                    setProduct(prev => ({
+                        ...prev,
+                        name: saveData.name !== undefined ? saveData.name : prev.name,
+                        description: saveData.description !== undefined ? saveData.description : prev.description,
+                        fullDescription: saveData.fullDescription !== undefined ? saveData.fullDescription : prev.fullDescription,
+                        stock: saveData.stock !== undefined ? saveData.stock.toString() : prev.stock,
+                        updatedAt: new Date().toISOString()
+                    }));
+                }
+            } else if (dataSection === 'pricing') {
+                const response = await updateProductPricing(product.id, saveData);
+                
+                if (response.data.success) {
+                    setProduct(prev => ({
+                        ...prev,
+                        price: saveData.price !== undefined ? saveData.price.toString() : prev.price,
+                        oldPrice: saveData.oldPrice !== undefined ? saveData.oldPrice?.toString() || '' : prev.oldPrice,
+                        stock: saveData.stock !== undefined ? saveData.stock.toString() : prev.stock,
+                        discount: saveData.discount !== undefined ? saveData.discount.toString() : prev.discount,
+                        updatedAt: new Date().toISOString()
+                    }));
                 }
             } else {
                 await new Promise(resolve => setTimeout(resolve, 1500));

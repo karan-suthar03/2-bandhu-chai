@@ -285,4 +285,138 @@ const validateProductCategorization = async (req, res, next) => {
     }
 };
 
-export { validateCreateProduct, validateProductMediaUpdate, validateProductCategorization };
+const validateProductCoreDetails = async (req, res, next) => {
+    const errorResponse = (message) =>
+        res.status(400).json({ success: false, error: message });
+
+    try {
+        const { 
+            name,
+            description,
+            fullDescription,
+            stock
+        } = req.body;
+
+        if (name !== undefined) {
+            if (typeof name !== 'string') {
+                return errorResponse('Product name must be a string');
+            }
+            if (name.trim().length === 0) {
+                return errorResponse('Product name cannot be empty');
+            }
+            if (name.trim().length > 255) {
+                return errorResponse('Product name cannot exceed 255 characters');
+            }
+            req.body.name = name.trim();
+        }
+
+        if (description !== undefined) {
+            if (typeof description !== 'string') {
+                return errorResponse('Description must be a string');
+            }
+            if (description.trim().length === 0) {
+                return errorResponse('Description cannot be empty');
+            }
+            if (description.trim().length > 500) {
+                return errorResponse('Description cannot exceed 500 characters');
+            }
+            req.body.description = description.trim();
+        }
+
+        if (fullDescription !== undefined) {
+            if (typeof fullDescription !== 'string') {
+                return errorResponse('Full description must be a string');
+            }
+            if (fullDescription.trim().length === 0) {
+                return errorResponse('Full description cannot be empty');
+            }
+            if (fullDescription.trim().length > 2000) {
+                return errorResponse('Full description cannot exceed 2000 characters');
+            }
+            req.body.fullDescription = fullDescription.trim();
+        }
+
+        if (stock !== undefined) {
+            const stockValue = typeof stock === 'string' ? parseInt(stock) : stock;
+            if (isNaN(stockValue) || stockValue < 0) {
+                return errorResponse('Stock must be a non-negative number');
+            }
+            if (stockValue > 999999) {
+                return errorResponse('Stock cannot exceed 999,999');
+            }
+            req.body.stock = stockValue;
+        }
+        console.log('Core details validation successful:', req.body);
+        next();
+    } catch (error) {
+        console.error('Core details validation error:', error);
+        return errorResponse(`Core details validation failed: ${error.message}`);
+    }
+};
+
+const validateProductPricing = async (req, res, next) => {
+    const errorResponse = (message) =>
+        res.status(400).json({ success: false, error: message });
+
+    try {
+        const { 
+            price,
+            oldPrice,
+            stock,
+            discount
+        } = req.body;
+
+        if (price !== undefined) {
+            const priceValue = typeof price === 'string' ? parseFloat(price) : price;
+            if (isNaN(priceValue) || priceValue <= 0) {
+                return errorResponse('Price must be a valid positive number');
+            }
+            if (priceValue > 999999) {
+                return errorResponse('Price cannot exceed 999,999');
+            }
+            req.body.price = priceValue;
+        }
+
+        if (oldPrice !== undefined) {
+            if (oldPrice !== null && oldPrice !== '') {
+                const oldPriceValue = typeof oldPrice === 'string' ? parseFloat(oldPrice) : oldPrice;
+                if (isNaN(oldPriceValue) || oldPriceValue <= 0) {
+                    return errorResponse('Old price must be a valid positive number');
+                }
+                if (oldPriceValue > 999999) {
+                    return errorResponse('Old price cannot exceed 999,999');
+                }
+                req.body.oldPrice = oldPriceValue;
+            } else {
+                req.body.oldPrice = null;
+            }
+        }
+
+        if (stock !== undefined) {
+            const stockValue = typeof stock === 'string' ? parseInt(stock) : stock;
+            if (isNaN(stockValue) || stockValue < 0) {
+                return errorResponse('Stock must be a non-negative number');
+            }
+            if (stockValue > 999999) {
+                return errorResponse('Stock cannot exceed 999,999');
+            }
+            req.body.stock = stockValue;
+        }
+
+        if (discount !== undefined) {
+            const discountValue = typeof discount === 'string' ? parseFloat(discount) : discount;
+            if (isNaN(discountValue) || discountValue < 0 || discountValue > 1) {
+                return errorResponse('Discount must be a number between 0 and 1');
+            }
+            req.body.discount = discountValue;
+        }
+
+        console.log('Pricing validation successful:', req.body);
+        next();
+    } catch (error) {
+        console.error('Pricing validation error:', error);
+        return errorResponse(`Pricing validation failed: ${error.message}`);
+    }
+};
+
+export { validateCreateProduct, validateProductMediaUpdate, validateProductCategorization, validateProductCoreDetails, validateProductPricing };

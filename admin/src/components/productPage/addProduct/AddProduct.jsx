@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     Box, Button, TextField, Typography, Paper, Grid, Switch, FormControlLabel,
     Avatar, IconButton, Autocomplete, Chip, FormControl, CircularProgress,
@@ -8,6 +8,7 @@ import {
     PhotoCamera, CloudUpload, Close, CheckCircle, Store, Category, AttachMoney, EnergySavingsLeaf, LocalShipping, Percent
 } from '@mui/icons-material';
 import { postProduct } from '../../../api/index.js';
+import { calculateDiscountPercentage, formatDiscountDisplay } from '../../../utils/pricingUtils.js';
 
 const DropzoneBox = ({ children, error }) => (
     <Box sx={{
@@ -45,6 +46,18 @@ const AddProduct = () => {
     const [submissionStatus, setSubmissionStatus] = useState(null);
 
     const mainImageUrl = useMemo(() => mainImage ? URL.createObjectURL(mainImage) : null, [mainImage]);
+
+    useEffect(() => {
+        const calculatedDiscount = calculateDiscountPercentage(
+            parseFloat(product.price) || 0,
+            parseFloat(product.oldPrice) || 0
+        );
+        
+        setProduct(prev => ({
+            ...prev,
+            discount: formatDiscountDisplay(calculatedDiscount)
+        }));
+    }, [product.price, product.oldPrice]);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -86,8 +99,19 @@ const AddProduct = () => {
         setLoading(true);
         setSubmissionStatus(null);
         const formData = new FormData();
+        const finalDiscount = calculateDiscountPercentage(
+            parseFloat(product.price) || 0,
+            parseFloat(product.oldPrice) || 0
+        );
+        
         Object.entries(product).forEach(([key, value]) => {
-            formData.append(key, key === 'features' ? JSON.stringify(value) : value);
+            if (key === 'features') {
+                formData.append(key, JSON.stringify(value));
+            } else if (key === 'discount') {
+                formData.append(key, finalDiscount);
+            } else {
+                formData.append(key, value);
+            }
         });
         formData.append('mainImage', mainImage);
         gallery.forEach(file => formData.append('gallery', file));
@@ -160,6 +184,7 @@ const AddProduct = () => {
                                                 label="Old Price (Optional)" name="oldPrice" type="number"
                                                 value={product.oldPrice} onChange={handleChange} fullWidth
                                                 disabled={loading}
+                                                helperText="Enter old price to automatically calculate discount"
                                             />
                                         </Grid>
                                     </Grid>
@@ -175,8 +200,12 @@ const AddProduct = () => {
                                         <Grid item xs={12} sm={6}>
                                             <TextField
                                                 label="Discount (%)" name="discount" type="number"
-                                                value={product.discount} onChange={handleChange} fullWidth
-                                                disabled={loading}
+                                                value={product.discount} fullWidth
+                                                disabled={true}
+                                                helperText="Automatically calculated based on price and old price"
+                                                InputProps={{ 
+                                                    style: { backgroundColor: '#f5f5f5' }
+                                                }}
                                             />
                                         </Grid>
                                     </Grid>

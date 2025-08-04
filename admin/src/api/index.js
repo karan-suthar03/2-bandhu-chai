@@ -140,6 +140,14 @@ export const updateProductCategorization = async (productId, data) => {
   return api.put(`/admin/product/${productId}/categorization`, data);
 };
 
+export const updateProductCoreDetails = async (productId, data) => {
+  return api.put(`/admin/product/${productId}/core-details`, data);
+};
+
+export const updateProductPricing = async (productId, data) => {
+  return api.put(`/admin/product/${productId}/pricing`, data);
+};
+
 export const deactivateProduct = async (productId) => {
   return api.put(`/admin/product/${productId}`, { deactivated: true });
 };

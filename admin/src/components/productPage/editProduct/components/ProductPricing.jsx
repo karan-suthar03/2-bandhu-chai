@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Button, TextField, Typography, Card, CardContent, Divider, Grid, CircularProgress, Alert } from '@mui/material';
 import { AttachMoney, Percent, Save } from '@mui/icons-material';
+import { calculateDiscountPercentage, calculateDiscountDisplay, formatDiscountDisplay, validatePricing } from '../../../../utils/pricingUtils.js';
 
 const ProductPricing = ({ product, onSave, loading }) => {
     const [pricing, setPricing] = useState({
@@ -15,6 +16,18 @@ const ProductPricing = ({ product, onSave, loading }) => {
 
     const isDisabled = loading || saving;
 
+    useEffect(() => {
+        const calculatedDiscount = calculateDiscountPercentage(
+            parseFloat(pricing.price) || 0,
+            parseFloat(pricing.oldPrice) || 0
+        );
+        
+        setPricing(prev => ({
+            ...prev,
+            discount: formatDiscountDisplay(calculatedDiscount)
+        }));
+    }, [pricing.price, pricing.oldPrice]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setPricing(prev => ({ ...prev, [name]: value }));
@@ -23,9 +36,7 @@ const ProductPricing = ({ product, onSave, loading }) => {
     };
 
     const validate = () => {
-        const newErrors = {};
-        if (!pricing.price || pricing.price <= 0) newErrors.price = 'A valid price is required.';
-        if (!pricing.stock || pricing.stock < 0) newErrors.stock = 'A valid stock count is required.';
+        const newErrors = validatePricing(pricing);
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -35,7 +46,17 @@ const ProductPricing = ({ product, onSave, loading }) => {
         setSaving(true);
         setStatus(null);
         try {
-            await onSave(pricing);
+            const finalDiscount = calculateDiscountPercentage(
+                parseFloat(pricing.price) || 0,
+                parseFloat(pricing.oldPrice) || 0
+            );
+            
+            const pricingData = {
+                ...pricing,
+                discount: finalDiscount
+            };
+            
+            await onSave(pricingData);
             setStatus({ type: 'success', message: 'Pricing saved successfully!' });
         } catch (err) {
             setStatus({ type: 'error', message: 'Failed to save pricing.' });
@@ -64,7 +85,8 @@ const ProductPricing = ({ product, onSave, loading }) => {
                     <Grid item xs={12} sm={6}>
                         <TextField
                             label="Old Price (Optional)" name="oldPrice" type="number" value={pricing.oldPrice}
-                            onChange={handleChange} fullWidth disabled={isDisabled}
+                            onChange={handleChange} fullWidth disabled={isDisabled} error={!!errors.oldPrice}
+                            helperText={errors.oldPrice || "Enter old price to automatically calculate discount"}
                             InputProps={{ startAdornment: <Typography sx={{ mr: 1 }}>₹</Typography> }}
                         />
                     </Grid>
@@ -78,8 +100,12 @@ const ProductPricing = ({ product, onSave, loading }) => {
                     <Grid item xs={12} sm={6}>
                         <TextField
                             label="Discount (%)" name="discount" type="number" value={pricing.discount}
-                            onChange={handleChange} fullWidth disabled={isDisabled}
-                            InputProps={{ endAdornment: <Typography sx={{ ml: 1 }}>%</Typography> }}
+                            fullWidth disabled={true}
+                            helperText="Automatically calculated based on price and old price"
+                            InputProps={{ 
+                                endAdornment: <Typography sx={{ ml: 1 }}>%</Typography>,
+                                style: { backgroundColor: '#f5f5f5' }
+                            }}
                         />
                     </Grid>
                 </Grid>

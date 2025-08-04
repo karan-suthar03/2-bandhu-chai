@@ -56,6 +56,10 @@ function ProductPage() {
                 } else {
                     setProduct(productData);
                     setReviews(reviewsData);
+                    if (productData.images && productData.images.length > 0) {
+                        const mainImageIndex = productData.images.findIndex(img => img.isMain);
+                        setSelectedImage(mainImageIndex !== -1 ? mainImageIndex : 0);
+                    }
                 }
             } catch (err) {
                 console.error("Error fetching product:", err);
@@ -198,23 +202,32 @@ function ProductPage() {
 
                                 {}
                                 <div className="flex space-x-4">
-                                    {product.images.map((image, index) => (
-                                        <button
-                                            key={index}
-                                            onClick={() => setSelectedImage(index)}
-                                            className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                                                selectedImage === index
-                                                    ? "border-[#e67e22] shadow-lg"
-                                                    : "border-gray-200 hover:border-[#e67e22]"
-                                            }`}
-                                        >
-                                            <img
-                                                src={image.smallUrl}
-                                                alt={`${product.name} ${index + 1}`}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </button>
-                                    ))}
+                                    {product.images
+                                        .sort((a, b) => {
+                                            if (a.isMain && !b.isMain) return -1;
+                                            if (!a.isMain && b.isMain) return 1;
+                                            return 0;
+                                        })
+                                        .map((image, index) => {
+                                            const originalIndex = product.images.findIndex(img => img === image);
+                                            return (
+                                                <button
+                                                    key={originalIndex}
+                                                    onClick={() => setSelectedImage(originalIndex)}
+                                                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                                                        selectedImage === originalIndex
+                                                            ? "border-[#e67e22] shadow-lg"
+                                                            : "border-gray-200 hover:border-[#e67e22]"
+                                                    }`}
+                                                >
+                                                    <img
+                                                        src={image.smallUrl}
+                                                        alt={`${product.name} ${index + 1}`}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </button>
+                                            );
+                                        })}
                                 </div>
                             </div>
 

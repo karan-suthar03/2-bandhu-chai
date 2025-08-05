@@ -14,8 +14,8 @@ const router = Router();
 
 router.post('/', asyncHandler(createOrder));
 router.get('/:orderId', asyncHandler(getOrder));
-router.get('/confirmation/:orderNumber', asyncHandler(getOrderConfirmation));
-router.get('/track/:orderNumber', asyncHandler(getOrderByNumber));
+router.get('/confirmation/:orderId', asyncHandler(getOrderConfirmation));
+router.get('/track/:orderId', asyncHandler(getOrderByNumber));
 router.patch('/:orderId/cancel', asyncHandler(cancelOrder));
 router.patch('/:orderId/status', asyncHandler(updateOrderStatus));
 router.get('/', asyncHandler(getAllOrders));

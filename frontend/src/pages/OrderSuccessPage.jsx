@@ -4,7 +4,7 @@ import { formatPrice } from '../utils/priceUtils.js';
 import axios from '../api/axios.js';
 
 function OrderSuccessPage() {
-    const { orderNumber } = useParams();
+    const { orderId } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
     const [confirmation, setConfirmation] = useState(null);
@@ -26,18 +26,18 @@ function OrderSuccessPage() {
                 order: orderData.order
             });
             setLoading(false);
-        } else if (orderNumber) {
+        } else if (orderId) {
             fetchOrderConfirmation();
         } else {
-            setError('Order number not found');
+            setError('Order ID not found');
             setLoading(false);
         }
-    }, [orderNumber, location.state]);
+    }, [orderId, location.state]);
 
     const fetchOrderConfirmation = async () => {
         try {
             setLoading(true);
-            const response = await axios.get(`/orders/confirmation/${orderNumber}`);
+            const response = await axios.get(`/orders/confirmation/${orderId}`);
             setConfirmation(response.data.confirmation);
             setError(null);
         } catch (error) {
@@ -53,7 +53,7 @@ function OrderSuccessPage() {
     };
 
     const handleTrackOrder = () => {
-        navigate(`/track-order/${orderNumber}`);
+        navigate(`/track-order/${orderId}`);
     };
 
     if (loading) {
@@ -102,7 +102,7 @@ function OrderSuccessPage() {
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
                             <div>
                                 <h2 className="text-xl font-semibold text-gray-800">
-                                    Order #{confirmation?.order?.orderNumber || orderNumber}
+                                    Order #{confirmation?.order?.id || orderId}
                                 </h2>
                                 <p className="text-gray-600">
                                     {confirmation?.order?.statusMessage || 'Order received - Awaiting confirmation'}

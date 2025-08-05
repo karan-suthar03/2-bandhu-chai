@@ -4,20 +4,20 @@ import { formatPrice } from '../utils/priceUtils.js';
 import axios from '../api/axios.js';
 
 function OrderTrackingPage() {
-    const { orderNumber } = useParams();
+    const { orderId } = useParams();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [trackingForm, setTrackingForm] = useState({
-        orderNumber: orderNumber || '',
+        orderId: orderId || '',
         email: ''
     });
 
     useEffect(() => {
-        if (orderNumber) {
-            setTrackingForm(prev => ({ ...prev, orderNumber }));
+        if (orderId) {
+            setTrackingForm(prev => ({ ...prev, orderId }));
         }
-    }, [orderNumber]);
+    }, [orderId]);
 
     const handleInputChange = (e) => {
         setTrackingForm({
@@ -29,8 +29,8 @@ function OrderTrackingPage() {
     const trackOrder = async (e) => {
         if (e) e.preventDefault();
         
-        if (!trackingForm.orderNumber) {
-            setError('Please enter order number');
+        if (!trackingForm.orderId) {
+            setError('Please enter order ID');
             return;
         }
 
@@ -39,7 +39,7 @@ function OrderTrackingPage() {
             setError(null);
 
             const emailParam = trackingForm.email ? `?email=${trackingForm.email}` : '';
-            const response = await axios.get(`/orders/track/${trackingForm.orderNumber}${emailParam}`);
+            const response = await axios.get(`/orders/track/${trackingForm.orderId}${emailParam}`);
             setOrder(response.data.order);
         } catch (error) {
             console.error('Failed to track order:', error);
@@ -102,14 +102,14 @@ function OrderTrackingPage() {
                         <div className="grid md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Order Number
+                                    Order ID
                                 </label>
                                 <input
                                     type="text"
-                                    name="orderNumber"
-                                    value={trackingForm.orderNumber}
+                                    name="orderId"
+                                    value={trackingForm.orderId}
                                     onChange={handleInputChange}
-                                    placeholder="e.g., ORD001234"
+                                    placeholder="e.g., cky..."
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                                     required
                                 />
@@ -152,7 +152,7 @@ function OrderTrackingPage() {
                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4">
                                 <div>
                                     <h2 className="text-2xl font-bold text-gray-800">
-                                        Order #{order.orderNumber}
+                                        Order #{order.id}
                                     </h2>
                                     <p className="text-gray-600">
                                         Placed on {formatDateTime(order.createdAt)}

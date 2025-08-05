@@ -132,7 +132,6 @@ async function createOrder(req, res) {
         },
         order: {
             id: order.id,
-            orderNumber: order.orderNumber,
             status: order.status,
             statusMessage: 'Order received - Awaiting confirmation',
             customerName: order.customerName,
@@ -147,10 +146,10 @@ async function createOrder(req, res) {
 }
 
 async function getOrderConfirmation(req, res) {
-    const { orderNumber } = req.params;
+    const { orderId } = req.params;
 
     const order = await prisma.order.findUnique({
-        where: { orderNumber },
+        where: { id: orderId },
         include: {
             orderItems: {
                 include: {
@@ -174,7 +173,6 @@ async function getOrderConfirmation(req, res) {
         data: {
             order: {
                 id: order.id,
-                orderNumber: order.orderNumber,
                 customerName: order.customerName,
                 customerEmail: order.customerEmail,
                 customerPhone: order.customerPhone,
@@ -245,10 +243,11 @@ async function getOrder(req, res) {
 }
 
 async function getOrderByNumber(req, res) {
-    const { orderNumber } = req.params;
+    const { orderId } = req.params;
+    console.log(orderId);
 
     const order = await prisma.order.findUnique({
-        where: { orderNumber },
+        where: { id: orderId },
         include: {
             orderItems: {
                 include: {
@@ -283,7 +282,6 @@ async function getOrderByNumber(req, res) {
         success: true,
         order: {
             id: order.id,
-            orderNumber: order.orderNumber,
             status: order.status,
             statusMessage: statusMessages[order.status] || 'Processing',
             customerName: order.customerName,
@@ -320,7 +318,7 @@ async function updateOrderStatus(req, res) {
         throw new BadRequestError('Invalid order ID');
     }
 
-    const validStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+    const validStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'RETURNED', 'REFUNDED'];
     if (!validStatuses.includes(status)) {
         throw new BadRequestError('Invalid status');
     }

@@ -108,7 +108,7 @@ function CheckoutPage() {
             if (response.data.success) {
                 clearCart();
 
-                navigate(`/order-success/${response.data.order.orderNumber}`, {
+                navigate(`/order-success/${response.data.order.id}`, {
                     state: { orderData: response.data }
                 });
             }

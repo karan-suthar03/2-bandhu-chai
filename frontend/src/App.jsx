@@ -30,9 +30,9 @@ function App() {
             <Route path="/product/:productId" element={<ProductPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
-            <Route path="/order-success/:orderNumber" element={<OrderSuccessPage />} />
+            <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
             <Route path="/track-order" element={<OrderTrackingPage />} />
-            <Route path="/track-order/:orderNumber" element={<OrderTrackingPage />} />
+            <Route path="/track-order/:orderId" element={<OrderTrackingPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/faq" element={<FAQPage />} />

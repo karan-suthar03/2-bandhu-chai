@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Box, Typography, Button, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Alert } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import {getAdminOrders, deleteOrder, deleteOrders} from '../api';
 import PaginationControl from './SectionComponents/PaginationControl.jsx';
 import Filters from "./SectionComponents/Filters.jsx";
@@ -18,7 +19,7 @@ const defaultFilters = {
 };
 
 const columns = [
-  { label: 'Order Number', key: 'orderNumber' },
+  { label: 'Order ID', key: 'id' },
   { label: 'Customer Name', key: 'customerName' },
   { label: 'Customer Email', key: 'customerEmail' },
   { label: 'Customer Phone', key: 'customerPhone' },
@@ -51,7 +52,7 @@ const paymentMethodEnumList = Object.keys(PaymentMethodEnum).map(key => ({
 }));
 
 const allExtraFilters = [
-  {label: 'Order Number', key: 'orderNumber'},
+  {label: 'Order ID', key: 'id'},
   {label: 'Customer Name', key: 'customerName'},
   {label: 'Customer Email', key: 'customerEmail'},
   {label: 'Customer Phone', key: 'customerPhone'},
@@ -67,6 +68,7 @@ const allExtraFilters = [
 ]
 
 const OrdersView = () => {
+  const navigate = useNavigate();
   const {
     filters, setFilters,
     sort, handleSortChange,
@@ -108,6 +110,10 @@ const OrdersView = () => {
     setOrderToDelete(order);
     setDeleteType('single');
     setDeleteDialog(true);
+  };
+
+  const handleEdit = (order) => {
+    navigate(`/dashboard/orders/edit/${order.id}`);
   };
 
   const handleDeleteSelected = () => {
@@ -256,6 +262,7 @@ const OrdersView = () => {
                   selected={selectedIds.includes(order.id)}
                   onSelectRow={handleSelectRow}
                   onDelete={handleDeleteSingle}
+                  onEdit={handleEdit}
                 />
             ))
           }
@@ -271,7 +278,7 @@ const OrdersView = () => {
         <Dialog open={deleteDialog} onClose={closeDeleteDialog} maxWidth="sm" fullWidth>
           <DialogTitle>
             {deleteType === 'single' 
-              ? `Delete Order #${orderToDelete?.orderNumber || orderToDelete?.id}` 
+              ? `Delete Order #${orderToDelete?.id}` 
               : `Delete ${selectedIds.length} Selected Orders`
             }
           </DialogTitle>
@@ -283,7 +290,7 @@ const OrdersView = () => {
             ) : (
               <Typography>
                 {deleteType === 'single' 
-                  ? `Are you sure you want to delete order #${orderToDelete?.orderNumber || orderToDelete?.id}? This action cannot be undone.`
+                  ? `Are you sure you want to delete order #${orderToDelete?.id}? This action cannot be undone.`
                   : `Are you sure you want to delete ${selectedIds.length} selected orders? This action cannot be undone.`
                 }
                 <br /><br />

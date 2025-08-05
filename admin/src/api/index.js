@@ -172,4 +172,16 @@ export const deleteOrders = async (orderIds) => {
   return api.post('/admin/orders/bulk-delete', { orderIds });
 };
 
+export const getAdminOrder = async (orderId) => {
+  return api.get(`/admin/orders/${orderId}`);
+};
+
+export const updateOrder = async (orderId, data) => {
+  return api.put(`/admin/orders/${orderId}`, data);
+};
+
+export const updateOrderStatus = async (orderId, data) => {
+  return api.put(`/admin/orders/${orderId}/status`, data);
+};
+
 export default api;

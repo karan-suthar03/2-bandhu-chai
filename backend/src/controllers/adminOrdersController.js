@@ -9,7 +9,7 @@ export const getAdminOrders = async (req, res) => {
             search = '',
             _sort = 'createdAt',
             _order = 'desc',
-            orderNumber,
+            id,
             customerName,
             customerEmail,
             customerPhone,
@@ -37,13 +37,13 @@ export const getAdminOrders = async (req, res) => {
                     { customerName: { contains: search.trim(), mode: 'insensitive' } },
                     { customerEmail: { contains: search.trim(), mode: 'insensitive' } },
                     { customerPhone: { contains: search.trim(), mode: 'insensitive' } },
-                    { orderNumber: { contains: search.trim(), mode: 'insensitive' } }
+                    { id: { contains: search.trim(), mode: 'insensitive' } }
                 ]
             });
         }
 
-        if (orderNumber && orderNumber.trim()) {
-            conditions.push({ orderNumber: { contains: orderNumber.trim(), mode: 'insensitive' } });
+        if (id && id.trim()) {
+            conditions.push({ id: { contains: id.trim(), mode: 'insensitive' } });
         }
         if (customerName && customerName.trim()) {
             conditions.push({ customerName: { contains: customerName.trim(), mode: 'insensitive' } });
@@ -165,7 +165,8 @@ export const getAdminOrder = async (req, res) => {
                                 id: true,
                                 name: true,
                                 price: true,
-                                imageUrl: true,
+                                image: true,
+                                images: true,
                                 category: true
                             }
                         }
@@ -205,7 +206,8 @@ export const updateOrderStatus = async (req, res) => {
         const { orderId } = req.params;
         const { status, notes } = req.body;
 
-        const validStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+
+        const validStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'RETURNED', 'REFUNDED'];
         if (!validStatuses.includes(status)) {
             throw new ValidationError(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
         }
@@ -234,7 +236,8 @@ export const updateOrderStatus = async (req, res) => {
                             select: {
                                 name: true,
                                 price: true,
-                                imageUrl: true
+                                image: true,
+                                images: true
                             }
                         }
                     }
@@ -285,9 +288,43 @@ export const updateOrder = async (req, res) => {
             customerPhone, 
             shippingAddress, 
             finalTotal,
-            discountAmount,
-            shippingCharge 
+            totalDiscount,
+            shippingCost,
+            subtotal,
+            tax
         } = req.body;
+
+        if (customerName !== undefined && (!customerName || typeof customerName !== 'string' || customerName.trim().length === 0)) {
+            throw new ValidationError('Customer name must be a non-empty string');
+        }
+
+        if (customerEmail !== undefined && (!customerEmail || typeof customerEmail !== 'string' || customerEmail.trim().length === 0)) {
+            throw new ValidationError('Customer email must be a non-empty string');
+        }
+
+        if (customerEmail !== undefined) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(customerEmail.trim())) {
+                throw new ValidationError('Invalid email format');
+            }
+        }
+
+        if (customerPhone !== undefined && (!customerPhone || typeof customerPhone !== 'string' || customerPhone.trim().length === 0)) {
+            throw new ValidationError('Customer phone must be a non-empty string');
+        }
+
+        if (shippingAddress !== undefined) {
+            if (typeof shippingAddress !== 'object' || shippingAddress === null) {
+                throw new ValidationError('Shipping address must be an object');
+            }
+            
+            const requiredAddressFields = ['street', 'city', 'state', 'pincode'];
+            for (const field of requiredAddressFields) {
+                if (!shippingAddress[field] || typeof shippingAddress[field] !== 'string' || shippingAddress[field].trim().length === 0) {
+                    throw new ValidationError(`Shipping address ${field} is required and must be a non-empty string`);
+                }
+            }
+        }
 
         const existingOrder = await prisma.order.findUnique({
             where: { id }
@@ -297,18 +334,50 @@ export const updateOrder = async (req, res) => {
             throw new NotFoundError('Order not found');
         }
 
-        if (!['PENDING', 'CONFIRMED'].includes(existingOrder.status)) {
-            throw new ValidationError('Order can only be updated when status is PENDING or CONFIRMED');
-        }
-
         const updateData = {};
         if (customerName !== undefined) updateData.customerName = customerName.trim();
         if (customerEmail !== undefined) updateData.customerEmail = customerEmail.trim();
         if (customerPhone !== undefined) updateData.customerPhone = customerPhone.trim();
-        if (shippingAddress !== undefined) updateData.shippingAddress = shippingAddress.trim();
+        if (shippingAddress !== undefined) {
+            const cleanAddress = {
+                street: shippingAddress.street?.trim() || '',
+                city: shippingAddress.city?.trim() || '',
+                state: shippingAddress.state?.trim() || '',
+                pincode: shippingAddress.pincode?.trim() || '',
+                landmark: shippingAddress.landmark?.trim() || ''
+            };
+            updateData.shippingAddress = cleanAddress;
+        }
+        
+        // Handle pricing fields with correct field names
         if (finalTotal !== undefined) updateData.finalTotal = parseFloat(finalTotal);
-        if (discountAmount !== undefined) updateData.discountAmount = parseFloat(discountAmount);
-        if (shippingCharge !== undefined) updateData.shippingCharge = parseFloat(shippingCharge);
+        if (totalDiscount !== undefined) updateData.totalDiscount = parseFloat(totalDiscount);
+        if (shippingCost !== undefined) updateData.shippingCost = parseFloat(shippingCost);
+        if (subtotal !== undefined) updateData.subtotal = parseFloat(subtotal);
+        if (tax !== undefined) updateData.tax = parseFloat(tax);
+
+        // Validate pricing logic if multiple pricing fields are being updated
+        if (Object.keys(updateData).some(key => ['finalTotal', 'totalDiscount', 'shippingCost', 'subtotal', 'tax'].includes(key))) {
+            // Get current values for missing fields
+            const currentSubtotal = updateData.subtotal ?? existingOrder.subtotal;
+            const currentDiscount = updateData.totalDiscount ?? existingOrder.totalDiscount;
+            const currentShipping = updateData.shippingCost ?? existingOrder.shippingCost;
+            const currentTax = updateData.tax ?? existingOrder.tax;
+            const currentFinalTotal = updateData.finalTotal ?? existingOrder.finalTotal;
+
+            // Basic validation
+            if (currentDiscount > currentSubtotal) {
+                throw new ValidationError('Discount cannot be greater than subtotal');
+            }
+
+            // Allow some tolerance for rounding differences
+            const expectedTotal = currentSubtotal - currentDiscount + currentShipping + currentTax;
+            const difference = Math.abs(expectedTotal - currentFinalTotal);
+            if (difference > 0.01) {
+                console.warn(`Price calculation mismatch: Expected ${expectedTotal}, got ${currentFinalTotal}, difference: ${difference}`);
+                // Log warning but don't fail - admin might have intentional adjustments
+            }
+        }
 
         const updatedOrder = await prisma.order.update({
             where: { id },
@@ -320,7 +389,8 @@ export const updateOrder = async (req, res) => {
                             select: {
                                 name: true,
                                 price: true,
-                                imageUrl: true
+                                image: true,
+                                images: true
                             }
                         }
                     }
@@ -346,10 +416,19 @@ export const updateOrder = async (req, res) => {
                 message: error.message
             });
         }
-        console.error('Order update error:', error);
+        console.error('Order update error:', {
+            message: error.message,
+            stack: error.stack,
+            orderId: req.params.id,
+            requestBody: req.body
+        });
         res.status(500).json({
             success: false,
-            message: 'Failed to update order'
+            message: 'Failed to update order',
+            ...(process.env.NODE_ENV === 'development' && { 
+                error: error.message,
+                details: error.stack 
+            })
         });
     }
 };
@@ -378,7 +457,6 @@ export const getDashboardStats = async (req, res) => {
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
-                    orderNumber: true,
                     customerName: true,
                     finalTotal: true,
                     status: true,
@@ -394,7 +472,7 @@ export const getDashboardStats = async (req, res) => {
                 const productIds = items.map(item => item.productId);
                 const products = await prisma.product.findMany({
                     where: { id: { in: productIds } },
-                    select: { id: true, name: true, imageUrl: true }
+                    select: { id: true, name: true, image: true, images: true }
                 });
                 
                 return items.map(item => {

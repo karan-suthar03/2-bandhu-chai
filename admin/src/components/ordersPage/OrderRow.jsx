@@ -13,7 +13,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import {PaymentMethodEnum, PaymentStatusEnum, StatusEnum} from "./enums.js";
 import dayjs from 'dayjs';
 
-const OrderRow = ({ order, selected, onSelectRow, onDelete }) => {
+const OrderRow = ({ order, selected, onSelectRow, onDelete, onEdit }) => {
     return (
         <TableRow hover selected={!!selected} onClick={() => onSelectRow(order.id)} style={{ cursor: 'pointer' }}>
             <TableCell padding="checkbox" onClick={e => e.stopPropagation()}>
@@ -31,15 +31,15 @@ const OrderRow = ({ order, selected, onSelectRow, onDelete }) => {
                 {order.status ? (
                     <Chip
                         label={{
-                            PENDING: 'Pending',
-                            CONFIRMED: 'Confirmed',
-                            PROCESSING: 'Processing',
-                            SHIPPED: 'Shipped',
-                            OUT_FOR_DELIVERY: 'On the Way',
-                            DELIVERED: 'Delivered',
-                            CANCELLED: 'Cancelled',
-                            RETURNED: 'Returned',
-                            REFUNDED: 'Refunded'
+                            [StatusEnum.PENDING]: 'Pending',
+                            [StatusEnum.CONFIRMED]: 'Confirmed',
+                            [StatusEnum.PROCESSING]: 'Processing',
+                            [StatusEnum.SHIPPED]: 'Shipped',
+                            [StatusEnum.OUT_FOR_DELIVERY]: 'On the Way',
+                            [StatusEnum.DELIVERED]: 'Delivered',
+                            [StatusEnum.CANCELLED]: 'Cancelled',
+                            [StatusEnum.RETURNED]: 'Returned',
+                            [StatusEnum.REFUNDED]: 'Refunded'
                         }[order.status]}
                         color={
                             {
@@ -127,7 +127,14 @@ const OrderRow = ({ order, selected, onSelectRow, onDelete }) => {
             <TableCell align="center">
                 <Stack direction="row" spacing={0.5} justifyContent="center">
                     <Tooltip title="Edit">
-                        <IconButton size="small" color="primary">
+                        <IconButton 
+                            size="small" 
+                            color="primary"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit && onEdit(order);
+                            }}
+                        >
                             <EditIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>

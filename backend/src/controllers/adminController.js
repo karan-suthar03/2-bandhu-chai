@@ -259,18 +259,19 @@ export const getLowStockProducts = async (req, res) => {
         const lowStockProducts = await prisma.product.findMany({
             where: {
                 AND: [
-                    { stockQuantity: { lte: parseInt(threshold) } },
-                    { isActive: true }
+                    { stock: { lte: parseInt(threshold) } },
+                    { deactivated: false }
                 ]
             },
-            orderBy: { stockQuantity: 'asc' },
+            orderBy: { stock: 'asc' },
             select: {
                 id: true,
                 name: true,
                 category: true,
-                stockQuantity: true,
+                stock: true,
                 price: true,
-                imageUrl: true
+                image: true,
+                images: true
             }
         });
 

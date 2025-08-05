@@ -112,7 +112,7 @@ const DashboardContent = ({ onLogout, currentAdmin }) => {
             {stats?.recentOrders?.map((order) => (
               <div key={order.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="font-medium">#{order.orderNumber}</p>
+                  <p className="font-medium">#{order.id}</p>
                   <p className="text-sm text-gray-600">{order.customerName}</p>
                   <p className="text-xs text-gray-500">{formatDate(order.createdAt)}</p>
                 </div>

@@ -8,6 +8,7 @@ import DashboardContent from './components/DashboardContent';
 import AddProduct from "./components/productPage/addProduct/AddProduct.jsx";
 import EditProduct from "./components/productPage/editProduct/EditProduct.jsx";
 import EditOrder from "./components/ordersPage/editOrder/EditOrder.jsx";
+import OrderDetails from "./components/ordersPage/viewOrder/OrderDetails.jsx";
 
 const Dashboard = ({ onLogout, currentAdmin }) => {
     return (
@@ -25,6 +26,7 @@ const Dashboard = ({ onLogout, currentAdmin }) => {
                         }
                     />
                     <Route path="orders" element={<OrdersView />} />
+                    <Route path="orders/view/:orderId" element={<OrderDetails />} />
                     <Route path="orders/edit/:orderId" element={<EditOrder />} />
                     <Route path="products" element={<ProductsView />} />
                     <Route path="products/add" element={<AddProduct />} />

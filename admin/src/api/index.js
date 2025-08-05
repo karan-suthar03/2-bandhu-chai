@@ -165,7 +165,7 @@ export const bulkActivateProducts = async (productIds) => {
 };
 
 export const deleteOrder = async (orderId) => {
-  return api.delete(`/admin/order/${orderId}`);
+  return api.delete(`/admin/orders/${orderId}`);
 };
 
 export const deleteOrders = async (orderIds) => {

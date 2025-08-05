@@ -12,10 +12,17 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {PaymentMethodEnum, PaymentStatusEnum, StatusEnum} from "./enums.js";
 import dayjs from 'dayjs';
+import { useNavigate } from 'react-router-dom';
 
 const OrderRow = ({ order, selected, onSelectRow, onDelete, onEdit }) => {
+    const navigate = useNavigate();
+
+    const handleRowClick = () => {
+        navigate(`/dashboard/orders/view/${order.id}`);
+    };
+
     return (
-        <TableRow hover selected={!!selected} onClick={() => onSelectRow(order.id)} style={{ cursor: 'pointer' }}>
+        <TableRow hover selected={!!selected} onClick={handleRowClick} style={{ cursor: 'pointer' }}>
             <TableCell padding="checkbox" onClick={e => e.stopPropagation()}>
                 <Checkbox
                     color="primary"

@@ -526,7 +526,7 @@ export const deleteOrder = async (req, res) => {
             prisma.orderItem.deleteMany({
                 where: { orderId: id }
             }),
-            prisma.statusHistory.deleteMany({
+            prisma.orderStatusHistory.deleteMany({
                 where: { orderId: id }
             }),
             prisma.order.delete({
@@ -587,7 +587,7 @@ export const bulkDeleteOrders = async (req, res) => {
                 prisma.orderItem.deleteMany({
                     where: { orderId: { in: deletableOrderIds } }
                 }),
-                prisma.statusHistory.deleteMany({
+                prisma.orderStatusHistory.deleteMany({
                     where: { orderId: { in: deletableOrderIds } }
                 }),
                 prisma.order.deleteMany({

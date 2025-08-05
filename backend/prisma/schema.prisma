@@ -93,7 +93,6 @@ model Admin {
 
 model Order {
   id          String  @id @default(cuid())
-  orderNumber String  @unique @default(cuid())
   sessionId   String?
 
   customerName  String

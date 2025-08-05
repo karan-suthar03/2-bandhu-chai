@@ -210,7 +210,6 @@ const OrdersView = () => {
             >
               🔄 Refresh
             </Button>
-            <Button variant="contained">+ Add Order</Button>
           </Box>
         </Box>
 

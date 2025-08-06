@@ -1,42 +1,7 @@
 import React from 'react';
 import { Box, Typography, Button, Breadcrumbs, Link, Chip } from '@mui/material';
 import { Edit, ArrowBack, Visibility } from '@mui/icons-material';
-import { StatusEnum } from '../../enums';
-
-const getStatusColor = (status) => {
-    switch (status) {
-        case StatusEnum.DELIVERED:
-            return 'success';
-        case StatusEnum.CANCELLED:
-        case StatusEnum.REFUNDED:
-            return 'error';
-        case StatusEnum.RETURNED:
-            return 'warning';
-        case StatusEnum.SHIPPED:
-        case StatusEnum.OUT_FOR_DELIVERY:
-            return 'info';
-        case StatusEnum.PROCESSING:
-        case StatusEnum.CONFIRMED:
-            return 'primary';
-        default:
-            return 'default';
-    }
-};
-
-const getStatusLabel = (status) => {
-    const labels = {
-        [StatusEnum.PENDING]: 'Pending',
-        [StatusEnum.CONFIRMED]: 'Confirmed',
-        [StatusEnum.PROCESSING]: 'Processing',
-        [StatusEnum.SHIPPED]: 'Shipped',
-        [StatusEnum.OUT_FOR_DELIVERY]: 'On the Way',
-        [StatusEnum.DELIVERED]: 'Delivered',
-        [StatusEnum.CANCELLED]: 'Cancelled',
-        [StatusEnum.RETURNED]: 'Returned',
-        [StatusEnum.REFUNDED]: 'Refunded'
-    };
-    return labels[status] || status;
-};
+import {getStatusColor, getStatusLabel} from "../../Utils/orderUtils.jsx";
 
 const OrderDetailsHeader = ({ order, onBackClick, onEditClick }) => (
     <Box sx={{ mb: 4 }}>

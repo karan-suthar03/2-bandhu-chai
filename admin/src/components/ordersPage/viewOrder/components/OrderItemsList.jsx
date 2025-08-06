@@ -17,24 +17,10 @@ import {
     Tooltip
 } from '@mui/material';
 import { ShoppingCart, OpenInNew } from '@mui/icons-material';
+import {formatCurrency} from "../../../Utils/Utils.js";
 
 const OrderItemsList = ({ order }) => {
     const navigate = useNavigate();
-
-    console.log('Order data in OrderItemsList:', order);
-    console.log('Order items:', order.orderItems);
-    if (order.orderItems && order.orderItems.length > 0) {
-        console.log('First order item:', order.orderItems[0]);
-        console.log('First item variant:', order.orderItems[0].variant);
-        console.log('First item product:', order.orderItems[0].variant?.product);
-    }
-
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR'
-        }).format(amount);
-    };
 
     const handleProductClick = (productId) => {
         if (productId) {
@@ -80,10 +66,10 @@ const OrderItemsList = ({ order }) => {
                         <ShoppingCart />
                         Order Items
                     </Typography>
-                    <Chip 
-                        label={`${order.orderItems?.length || 0} items`} 
-                        color="primary" 
-                        size="small" 
+                    <Chip
+                        label={`${order.orderItems?.length || 0} items`}
+                        color="primary"
+                        size="small"
                     />
                 </Box>
 
@@ -109,9 +95,9 @@ const OrderItemsList = ({ order }) => {
                                 {order.orderItems.map((item, index) => (
                                     <TableRow key={index} hover>
                                         <TableCell>
-                                            <Box 
-                                                display="flex" 
-                                                alignItems="center" 
+                                            <Box
+                                                display="flex"
+                                                alignItems="center"
                                                 gap={2}
                                                 sx={{ cursor: 'pointer' }}
                                                 onClick={() => handleProductClick(item.variant?.product?.id || item.productId)}
@@ -119,8 +105,8 @@ const OrderItemsList = ({ order }) => {
                                                 <Avatar
                                                     src={getProductImage(item)}
                                                     alt={item.variant?.product?.name}
-                                                    sx={{ 
-                                                        width: 40, 
+                                                    sx={{
+                                                        width: 40,
                                                         height: 40,
                                                         cursor: 'pointer',
                                                         '&:hover': {
@@ -133,8 +119,8 @@ const OrderItemsList = ({ order }) => {
                                                     {item.variant?.product?.name?.charAt(0)}
                                                 </Avatar>
                                                 <Box>
-                                                    <Typography 
-                                                        variant="body2" 
+                                                    <Typography
+                                                        variant="body2"
                                                         fontWeight="medium"
                                                         sx={{
                                                             cursor: 'pointer',
@@ -158,10 +144,10 @@ const OrderItemsList = ({ order }) => {
                                             </Box>
                                         </TableCell>
                                         <TableCell align="center">
-                                            <Chip 
-                                                label={item.quantity} 
-                                                size="small" 
-                                                variant="outlined" 
+                                            <Chip
+                                                label={item.quantity}
+                                                size="small"
+                                                variant="outlined"
                                             />
                                         </TableCell>
                                         <TableCell align="right">
@@ -176,8 +162,8 @@ const OrderItemsList = ({ order }) => {
                                         </TableCell>
                                         <TableCell align="center">
                                             <Tooltip title="View Product Details">
-                                                <IconButton 
-                                                    size="small" 
+                                                <IconButton
+                                                    size="small"
                                                     color="primary"
                                                     onClick={() => handleProductClick(item.variant?.product?.id || item.productId)}
                                                 >

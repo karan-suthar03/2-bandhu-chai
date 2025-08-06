@@ -2,11 +2,11 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     Box, Button, Typography, Card, CardContent, Divider,
     IconButton, CircularProgress, Alert,
-    Dialog, DialogTitle, DialogContent, DialogActions, Chip
+    Dialog, DialogContent, DialogActions, Chip, Tooltip, Grid, Paper
 } from '@mui/material';
 import {
     Image, Save, CloudUpload, Delete, Visibility,
-    PhotoCamera, Collections, KeyboardArrowUp, KeyboardArrowDown
+    PhotoCamera, Collections, KeyboardArrowUp, KeyboardArrowDown, AddAPhoto
 } from '@mui/icons-material';
 
 const ProductMedia = ({ product, onSave, loading }) => {
@@ -35,9 +35,7 @@ const ProductMedia = ({ product, onSave, loading }) => {
     }, []);
 
     useEffect(() => {
-        return () => {
-            cleanupObjectUrls();
-        };
+        return () => cleanupObjectUrls();
     }, [cleanupObjectUrls]);
 
     const validateFile = (file) => {
@@ -69,102 +67,55 @@ const ProductMedia = ({ product, onSave, loading }) => {
 
         if (media.mainImageUrl && media.mainImageUrl.startsWith('blob:')) {
             URL.revokeObjectURL(media.mainImageUrl);
-            objectUrls.current.delete(media.mainImageUrl);
         }
 
         const imageUrl = URL.createObjectURL(file);
         objectUrls.current.add(imageUrl);
-        
-        setMedia(prev => ({ 
-            ...prev, 
-            mainImageUrl: imageUrl,
-            mainImageFile: file
-        }));
+        setMedia(prev => ({ ...prev, mainImageUrl: imageUrl, mainImageFile: file }));
         setStatus(null);
     };
 
     const handleGalleryImageAdd = (event) => {
         const files = Array.from(event.target.files);
-
         if (media.galleryImages.length + files.length > MAX_GALLERY_IMAGES) {
-            setStatus({ 
-                type: 'error', 
-                message: `Cannot add ${files.length} images. Maximum ${MAX_GALLERY_IMAGES} images allowed in gallery. Currently have ${media.galleryImages.length} images.` 
-            });
+            setStatus({ type: 'error', message: `Cannot exceed ${MAX_GALLERY_IMAGES} gallery images.` });
             return;
         }
 
-        const validFiles = [];
+        const newImages = [];
         const errors = [];
-
-        files.forEach((file, index) => {
-            const validationErrors = validateFile(file);
-            if (validationErrors.length > 0) {
-                errors.push(`${file.name}: ${validationErrors.join(', ')}`);
+        files.forEach((file, i) => {
+            const error = validateFile(file);
+            if (error) {
+                errors.push(`${file.name}: ${error}`);
             } else {
                 const imageUrl = URL.createObjectURL(file);
                 objectUrls.current.add(imageUrl);
-                
-                const newImage = {
-                    id: Date.now() + index,
-                    url: imageUrl,
-                    name: file.name,
-                    file: file,
-                    isNew: true
-                };
-                validFiles.push(newImage);
+                newImages.push({ id: `new_${Date.now() + i}`, url: imageUrl, name: file.name, file: file, isNew: true });
             }
         });
 
-        if (errors.length > 0) {
-            setStatus({ 
-                type: 'error', 
-                message: `Some files failed validation: ${errors.join('; ')}` 
-            });
-        }
-
-        if (validFiles.length > 0) {
-            setMedia(prev => ({
-                ...prev,
-                galleryImages: [...prev.galleryImages, ...validFiles]
-            }));
-            
-            if (errors.length === 0) {
-                setStatus(null);
-            }
+        if (errors.length > 0) setStatus({ type: 'error', message: `Validation errors: ${errors.join('; ')}` });
+        if (newImages.length > 0) {
+            setMedia(prev => ({ ...prev, galleryImages: [...prev.galleryImages, ...newImages] }));
+            if (errors.length === 0) setStatus(null);
         }
     };
 
     const handleGalleryImageDelete = (imageId) => {
-        const imageToDelete = media.galleryImages.find(img => img.id === imageId);
-
-        if (imageToDelete && imageToDelete.url && imageToDelete.url.startsWith('blob:')) {
-            URL.revokeObjectURL(imageToDelete.url);
-            objectUrls.current.delete(imageToDelete.url);
+        const image = media.galleryImages.find(img => img.id === imageId);
+        if (image?.url?.startsWith('blob:')) {
+            URL.revokeObjectURL(image.url);
         }
-        
-        setMedia(prev => ({
-            ...prev,
-            galleryImages: prev.galleryImages.filter(img => img.id !== imageId)
-        }));
+        setMedia(prev => ({ ...prev, galleryImages: prev.galleryImages.filter(img => img.id !== imageId) }));
     };
 
     const moveImage = (fromIndex, toIndex) => {
         if (toIndex < 0 || toIndex >= media.galleryImages.length) return;
-
         const newGalleryImages = [...media.galleryImages];
-        const imageToMove = newGalleryImages[fromIndex];
-
-        newGalleryImages.splice(fromIndex, 1);
+        const [imageToMove] = newGalleryImages.splice(fromIndex, 1);
         newGalleryImages.splice(toIndex, 0, imageToMove);
-
-        setMedia(prev => ({
-            ...prev,
-            galleryImages: newGalleryImages
-        }));
-    };
-    const handlePreviewClose = () => {
-        setPreviewImage(null);
+        setMedia(prev => ({ ...prev, galleryImages: newGalleryImages }));
     };
 
     const handleSave = async () => {
@@ -172,369 +123,154 @@ const ProductMedia = ({ product, onSave, loading }) => {
         setStatus(null);
         try {
             const formData = new FormData();
-            if (media.mainImageFile) {
-                formData.append('mainImage', media.mainImageFile);
-            }
-            const existingImages = media.galleryImages.filter(img => !img.isNew);
+            if (media.mainImageFile) formData.append('mainImage', media.mainImageFile);
+
             const newImages = media.galleryImages.filter(img => img.isNew && img.file);
-            newImages.forEach(img => {
-                formData.append('gallery', img.file);
-            });
-            const galleryOrder = media.galleryImages.map((img, index) => {
-                if (img.isNew) {
-                    const newImageIndex = newImages.findIndex(newImg => newImg.id === img.id);
-                    return `new_${newImageIndex}`;
-                } else {
-                    return img.url || img;
-                }
-            });
-            formData.append('existingImages', JSON.stringify(existingImages.map(img => img.url || img)));
+            newImages.forEach(img => formData.append('gallery', img.file));
+
+            const galleryOrder = media.galleryImages.map(img => (img.isNew ? `new_${img.file.name}` : img.url));
             formData.append('galleryOrder', JSON.stringify(galleryOrder));
 
-            if (!media.mainImageFile && newImages.length === 0 && media.galleryImages.length === (product.galleryImages || []).length) {
-                const originalOrder = (product.galleryImages || []).map(img => img.url || img);
-                const currentOrder = existingImages.map(img => img.url || img);
-                
-                if (JSON.stringify(originalOrder) === JSON.stringify(currentOrder)) {
-                    setStatus({ 
-                        type: 'error', 
-                        message: 'No changes detected. Please make changes before saving.' 
-                    });
-                    setSaving(false);
-                    return;
-                }
-            }
-            
             await onSave({ formData });
 
-            setMedia(prev => ({
-                ...prev,
-                mainImageFile: null,
-                galleryImages: prev.galleryImages.map(img => ({
-                    ...img,
-                    isNew: false
-                }))
-            }));
-            
+            setMedia(prev => ({ ...prev, mainImageFile: null, galleryImages: prev.galleryImages.map(img => ({ ...img, isNew: false })) }));
             setStatus({ type: 'success', message: 'Media saved successfully!' });
         } catch (err) {
-            console.error('Media save error:', err);
-            setStatus({ 
-                type: 'error', 
-                message: err.message || 'Failed to save media.' 
-            });
+            setStatus({ type: 'error', message: err.message || 'Failed to save media.' });
         } finally {
             setSaving(false);
         }
     };
 
     return (
-        <Card elevation={2}>
+        <Card elevation={3} sx={{ borderRadius: 2 }}>
             <CardContent>
-                <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
+                <Typography variant="h5" gutterBottom display="flex" alignItems="center" gap={1.5} sx={{ fontWeight: 'bold' }}>
                     <Image color="primary" /> Product Media
                 </Typography>
                 <Divider sx={{ mb: 3 }} />
-                <Box sx={{ mb: 4 }}>
-                    <Typography variant="subtitle2" gutterBottom display="flex" alignItems="center" gap={1}>
-                        <PhotoCamera fontSize="small" />
-                        Main Product Image
-                    </Typography>
-                    <Box
-                        sx={{
-                            border: '2px dashed #ccc',
-                            borderRadius: 2,
-                            p: 3,
-                            textAlign: 'center',
-                            position: 'relative',
-                            backgroundColor: '#fafafa'
-                        }}
-                    >
-                        {media.mainImageUrl ? (
-                            <Box>
-                                <Box
-                                    onClick={() => setPreviewImage(media.mainImageUrl)}
-                                    sx={{
-                                        width: 200,
-                                        height: 200,
-                                        mx: 'auto',
-                                        mb: 2,
-                                        cursor: 'pointer',
-                                        borderRadius: 2,
-                                        overflow: 'hidden',
-                                        border: '1px solid #e0e0e0'
-                                    }}
-                                >
-                                    <img
-                                        src={media.mainImageUrl}
-                                        alt="Main product"
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'cover'
-                                        }}
-                                    />
-                                </Box>
-                                <Box display="flex" justifyContent="center" gap={1}>
-                                    <IconButton
-                                        color="primary"
-                                        onClick={() => setPreviewImage(media.mainImageUrl)}
-                                        size="small"
-                                        disabled={isDisabled}
-                                    >
-                                        <Visibility />
-                                    </IconButton>
-                                </Box>
-                            </Box>
-                        ) : (
-                            <Box>
-                                <CloudUpload sx={{ fontSize: 48, color: '#ccc', mb: 2 }} />
-                                <Typography variant="body2" color="text.secondary">
-                                    No main image uploaded
-                                </Typography>
-                            </Box>
-                        )}
-                        <input
-                            type="file"
-                            accept="image/*"
-                            style={{ display: 'none' }}
-                            id="main-image-upload"
-                            onChange={handleMainImageChange}
-                            disabled={isDisabled}
-                        />
-                        <label htmlFor="main-image-upload">
-                            <Button
-                                component="span"
-                                variant="outlined"
-                                startIcon={<CloudUpload />}
-                                sx={{ mt: 2 }}
-                                disabled={isDisabled}
-                            >
-                                {media.mainImageUrl ? 'Change Image' : 'Upload Image'}
-                            </Button>
-                        </label>
-                    </Box>
-                </Box>
-                <Box>
-                    <Typography variant="subtitle2" gutterBottom display="flex" alignItems="center" gap={1}>
-                        <Collections fontSize="small" />
-                        Gallery Images
-                        {media.galleryImages.length > 0 && (
-                            <Chip
-                                label={`${media.galleryImages.length} images`}
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                            />
-                        )}
-                    </Typography>
 
-                    {media.galleryImages.length > 0 && (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-                            {media.galleryImages.map((image, index) => (
-                                <Box
-                                    key={image.id}
-                                    position="relative"
-                                >
-                                    <Box
-                                        sx={{
-                                            width: 200,
-                                            height: 200,
-                                            overflow: 'hidden',
-                                            borderRadius: 1,
-                                            cursor: 'pointer',
-                                            border: '1px solid #e0e0e0'
-                                        }}
-                                        onClick={() => setPreviewImage(image.url)}
-                                    >
-                                        <img
-                                            src={image.url}
-                                            alt={image.name || 'Gallery image'}
-                                            style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                objectFit: 'cover'
+                <Grid container spacing={4}>
+                    {/* Main Image Section */}
+                    <Grid item xs={12} md={5}>
+                        <Typography variant="h6" gutterBottom><PhotoCamera fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} /> Main Image</Typography>
+                        <Paper
+                            variant="outlined"
+                            sx={{
+                                p: 2,
+                                textAlign: 'center',
+                                bgcolor: '#fdfdfd',
+                                borderColor: '#e0e0e0',
+                                borderRadius: 2,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                height: '100%'
+                            }}
+                        >
+                            {media.mainImageUrl ? (
+                                <Box sx={{ mb: 2, position: 'relative' }}>
+                                    <img src={media.mainImageUrl} alt="Main product" style={{ width: '100%', maxHeight: 300, objectFit: 'contain', borderRadius: 8, cursor: 'pointer' }} onClick={() => setPreviewImage(media.mainImageUrl)} />
+                                    <Chip label={media.mainImageFile?.name || 'Current Image'} size="small" sx={{ mt: 1 }} />
+                                </Box>
+                            ) : (
+                                <Box sx={{ my: 4 }}>
+                                    <CloudUpload sx={{ fontSize: 60, color: '#bdbdbd' }} />
+                                    <Typography color="textSecondary">No main image</Typography>
+                                </Box>
+                            )}
+                            <input type="file" accept="image/*" id="main-image-upload" style={{ display: 'none' }} onChange={handleMainImageChange} disabled={isDisabled} />
+                            <label htmlFor="main-image-upload">
+                                <Button component="span" variant="contained" startIcon={<CloudUpload />} disabled={isDisabled}>
+                                    {media.mainImageUrl ? 'Change Image' : 'Upload Image'}
+                                </Button>
+                            </label>
+                        </Paper>
+                    </Grid>
+
+                    {/* Gallery Section */}
+                    <Grid item xs={12} md={7}>
+                        <Typography variant="h6" gutterBottom><Collections fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} /> Gallery</Typography>
+                        <Paper variant="outlined" sx={{ p: 2, bgcolor: '#fdfdfd', borderColor: '#e0e0e0', borderRadius: 2, minHeight: 300 }}>
+                            <Grid container spacing={2}>
+                                {media.galleryImages.map((image, index) => (
+                                    <Grid item key={image.id} xs={6} sm={4}>
+                                        <Card sx={{ position: 'relative', height: 120, borderRadius: 2, overflow: 'hidden' }}>
+                                            <img src={image.url} alt={image.name || 'Gallery'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <Box
+                                                sx={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    width: '100%',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    p: 0.5,
+                                                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)'
+                                                }}
+                                            >
+                                                <Tooltip title="Preview"><IconButton size="small" onClick={() => setPreviewImage(image.url)} disabled={isDisabled} sx={{ color: 'white' }}><Visibility fontSize="small" /></IconButton></Tooltip>
+                                                <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleGalleryImageDelete(image.id)} disabled={isDisabled}><Delete fontSize="small" /></IconButton></Tooltip>
+                                            </Box>
+                                            <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0.5)' }}>
+                                                <Tooltip title="Move Up"><IconButton size="small" onClick={() => moveImage(index, index - 1)} disabled={isDisabled || index === 0} sx={{ color: 'white' }}><KeyboardArrowUp fontSize="small" /></IconButton></Tooltip>
+                                                <Tooltip title="Move Down"><IconButton size="small" onClick={() => moveImage(index, index + 1)} disabled={isDisabled || index === media.galleryImages.length - 1} sx={{ color: 'white' }}><KeyboardArrowDown fontSize="small" /></IconButton></Tooltip>
+                                            </Box>
+                                        </Card>
+                                    </Grid>
+                                ))}
+                                <Grid item xs={6} sm={4}>
+                                    <input type="file" accept="image/*" multiple id="gallery-images-upload" style={{ display: 'none' }} onChange={handleGalleryImageAdd} disabled={isDisabled || media.galleryImages.length >= MAX_GALLERY_IMAGES} />
+                                    <label htmlFor="gallery-images-upload">
+                                        <Paper
+                                            sx={{
+                                                height: 120,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexDirection: 'column',
+                                                border: '2px dashed #ccc',
+                                                cursor: 'pointer',
+                                                "&:hover": { borderColor: 'primary.main', bgcolor: '#fafafa' },
+                                                opacity: isDisabled || media.galleryImages.length >= MAX_GALLERY_IMAGES ? 0.5 : 1
                                             }}
-                                        />
-                                    </Box>
-                                    <IconButton
-                                        sx={{
-                                            position: 'absolute',
-                                            top: 4,
-                                            right: 4,
-                                            backgroundColor: 'rgba(255,255,255,0.9)',
-                                            '&:hover': { backgroundColor: 'rgba(255,255,255,1)' }
-                                        }}
-                                        size="small"
-                                        color="error"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleGalleryImageDelete(image.id);
-                                        }}
-                                        disabled={isDisabled}
-                                    >
-                                        <Delete fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                        sx={{
-                                            position: 'absolute',
-                                            top: 4,
-                                            left: 4,
-                                            backgroundColor: 'rgba(255,255,255,0.9)',
-                                            '&:hover': { backgroundColor: 'rgba(255,255,255,1)' }
-                                        }}
-                                        size="small"
-                                        color="primary"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setPreviewImage(image.url);
-                                        }}
-                                        disabled={isDisabled}
-                                    >
-                                        <Visibility fontSize="small" />
-                                    </IconButton>
-                                    <Box
-                                        sx={{
-                                            position: 'absolute',
-                                            bottom: 4,
-                                            left: 4,
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: 0.5
-                                        }}
-                                    >
-                                        {index > 0 && (
-                                            <IconButton
-                                                size="small"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    moveImage(index, index - 1);
-                                                }}
-                                                disabled={isDisabled}
-                                                sx={{
-                                                    backgroundColor: 'rgba(0,0,0,0.7)',
-                                                    color: 'white',
-                                                    '&:hover': { backgroundColor: 'rgba(0,0,0,0.9)' },
-                                                    width: 24,
-                                                    height: 24
-                                                }}
-                                            >
-                                                <KeyboardArrowUp fontSize="small" />
-                                            </IconButton>
-                                        )}
-                                        {index < media.galleryImages.length - 1 && (
-                                            <IconButton
-                                                size="small"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    moveImage(index, index + 1);
-                                                }}
-                                                disabled={isDisabled}
-                                                sx={{
-                                                    backgroundColor: 'rgba(0,0,0,0.7)',
-                                                    color: 'white',
-                                                    '&:hover': { backgroundColor: 'rgba(0,0,0,0.9)' },
-                                                    width: 24,
-                                                    height: 24
-                                                }}
-                                            >
-                                                <KeyboardArrowDown fontSize="small" />
-                                            </IconButton>
-                                        )}
-                                    </Box>
+                                        >
+                                            <AddAPhoto color="action" />
+                                            <Typography variant="caption" align="center" sx={{ mt: 1 }}>Add Images</Typography>
+                                        </Paper>
+                                    </label>
+                                </Grid>
+                            </Grid>
+                            <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mt: 2 }}>
+                                {media.galleryImages.length} / {MAX_GALLERY_IMAGES} images added.
+                            </Typography>
+                        </Paper>
+                    </Grid>
+                </Grid>
 
-                                    <Box
-                                        sx={{
-                                            position: 'absolute',
-                                            bottom: 4,
-                                            right: 4,
-                                            backgroundColor: 'rgba(0,0,0,0.7)',
-                                            color: 'white',
-                                            borderRadius: 1,
-                                            px: 1,
-                                            py: 0.5,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 0.5
-                                        }}
-                                    >
-                                        <Typography variant="caption">{index + 1}</Typography>
-                                    </Box>
-                                </Box>
-                            ))}
-                        </Box>
-                    )}
-
-                    <Box
-                        sx={{
-                            border: '2px dashed #ccc',
-                            borderRadius: 2,
-                            p: 2,
-                            textAlign: 'center',
-                            backgroundColor: '#fafafa'
-                        }}
-                    >
-                        <Collections sx={{ fontSize: 32, color: '#ccc', mb: 1 }} />
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            Add more images to gallery
-                        </Typography>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            style={{ display: 'none' }}
-                            id="gallery-images-upload"
-                            onChange={handleGalleryImageAdd}
-                            disabled={isDisabled}
-                        />
-                        <label htmlFor="gallery-images-upload">
-                            <Button
-                                component="span"
-                                variant="outlined"
-                                startIcon={<CloudUpload />}
-                                size="small"
-                                disabled={isDisabled}
-                            >
-                                Add Images
-                            </Button>
-                        </label>
-                    </Box>
-                </Box>
-
-                <Box sx={{ mt: 3, textAlign: 'right' }}>
+                <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2 }}>
+                    {status && <Alert severity={status.type} sx={{ flexGrow: 1 }}>{status.message}</Alert>}
                     <Button
                         variant="contained"
+                        color="primary"
                         startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <Save />}
                         onClick={handleSave}
                         disabled={isDisabled}
+                        sx={{ minWidth: 120, height: 40 }}
                     >
                         {saving ? 'Saving...' : 'Save Media'}
                     </Button>
                 </Box>
-                {status && <Alert severity={status.type} sx={{ mt: 2 }}>{status.message}</Alert>}
             </CardContent>
-            <Dialog
-                open={!!previewImage}
-                onClose={handlePreviewClose}
-                maxWidth="md"
-                fullWidth
-            >
-                <DialogTitle>Image Preview</DialogTitle>
-                <DialogContent>
-                    <Box textAlign="center">
-                        <img
-                            src={previewImage}
-                            alt="Preview"
-                            style={{
-                                maxWidth: '100%',
-                                maxHeight: '70vh',
-                                objectFit: 'contain'
-                            }}
-                        />
-                    </Box>
+
+            {/* Image Preview Dialog */}
+            <Dialog open={!!previewImage} onClose={() => setPreviewImage(null)} maxWidth="lg" PaperProps={{ sx: { borderRadius: 4 } }}>
+                <DialogContent sx={{ p: 1 }}>
+                    <img src={previewImage} alt="Preview" style={{ width: '100%', maxHeight: '85vh', objectFit: 'contain' }} />
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handlePreviewClose}>Close</Button>
+                    <Button onClick={() => setPreviewImage(null)}>Close</Button>
                 </DialogActions>
             </Dialog>
         </Card>

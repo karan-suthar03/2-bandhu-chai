@@ -1,160 +1,96 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Card,
-    CardContent,
-    Typography,
-    TextField,
-    Button,
-    Box,
-    Grid,
-    Alert,
-    CircularProgress
-} from '@mui/material';
+import { Card, CardContent, Typography, TextField, Button, Box, Grid, Alert, CircularProgress, Divider } from '@mui/material'; // 1. Import Divider
 import { Save, Person } from '@mui/icons-material';
-
-const parseAddress = (address) => {
-    if (!address) {
-        return { street: '', city: '', state: '', pincode: '', landmark: '' };
-    }
-    if (typeof address === 'string') {
-        try {
-            const parsed = JSON.parse(address);
-            if (typeof parsed === 'object' && parsed !== null) {
-                return {
-                    street: parsed.street || '',
-                    city: parsed.city || '',
-                    state: parsed.state || '',
-                    pincode: parsed.pincode || '',
-                    landmark: parsed.landmark || ''
-                };
-            }
-        } catch (e) {
-            return { street: address, city: '', state: '', pincode: '', landmark: '' };
-        }
-    }
-    return {
-        street: address.street || '',
-        city: address.city || '',
-        state: address.state || '',
-        pincode: address.pincode || '',
-        landmark: address.landmark || ''
-    };
-};
+import { parseAddress } from "../../Utils/orderUtils.jsx";
 
 const OrderCustomerDetails = ({ order, onSave, saving }) => {
     const [formData, setFormData] = useState({
-        customerName: order.customerName || '',
-        customerEmail: order.customerEmail || '',
-        customerPhone: order.customerPhone || '',
-        shippingAddress: parseAddress(order.shippingAddress)
+        customerName: '',
+        customerEmail: '',
+        customerPhone: '',
+        shippingAddress: {
+            street: '',
+            city: '',
+            state: '',
+            pincode: '',
+            landmark: ''
+        }
     });
     const [isModified, setIsModified] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
     useEffect(() => {
-        setFormData({
-            customerName: order.customerName || '',
-            customerEmail: order.customerEmail || '',
-            customerPhone: order.customerPhone || '',
-            shippingAddress: parseAddress(order.shippingAddress)
-        });
+        if (order) {
+            setFormData({
+                customerName: order.customerName || '',
+                customerEmail: order.customerEmail || '',
+                customerPhone: order.customerPhone || '',
+                shippingAddress: parseAddress(order.shippingAddress) || {
+                    street: '',
+                    city: '',
+                    state: '',
+                    pincode: '',
+                    landmark: ''
+                }
+            });
+        }
     }, [order]);
 
     const handleInputChange = (field, value) => {
+        const newFormData = { ...formData };
         if (field.startsWith('shippingAddress.')) {
             const addressField = field.split('.')[1];
-            setFormData(prev => ({
-                ...prev,
-                shippingAddress: {
-                    ...prev.shippingAddress,
-                    [addressField]: value
-                }
-            }));
+            newFormData.shippingAddress[addressField] = value;
         } else {
-            setFormData(prev => ({
-                ...prev,
-                [field]: value
-            }));
+            newFormData[field] = value;
         }
+        setFormData(newFormData);
         setIsModified(true);
         setError('');
         setSuccess('');
     };
 
-    const validateEmail = (email) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    };
-
-    const validatePhone = (phone) => {
-        const phoneRegex = /^\+?[\d\s\-\(\)]{10,}$/;
-        return phoneRegex.test(phone);
+    const validateForm = () => {
+        if (!formData.customerName.trim()) return 'Customer name is required.';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customerEmail)) return 'Please enter a valid email.';
+        if (!/^\+?[\d\s-()]{10,}$/.test(formData.customerPhone)) return 'Please enter a valid phone number.';
+        if (!formData.shippingAddress.street.trim()) return 'Street address is required.';
+        if (!formData.shippingAddress.city.trim()) return 'City is required.';
+        if (!formData.shippingAddress.state.trim()) return 'State is required.';
+        if (!/^\d{6}$/.test(formData.shippingAddress.pincode)) return 'Please enter a valid 6-digit pincode.';
+        return null;
     };
 
     const handleSave = async () => {
+        const validationError = validateForm();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
         try {
-            setError('');
-            
-            if (!formData.customerName.trim()) {
-                setError('Customer name is required');
-                return;
-            }
-            if (!validateEmail(formData.customerEmail)) {
-                setError('Please enter a valid email address');
-                return;
-            }
-            if (!validatePhone(formData.customerPhone)) {
-                setError('Please enter a valid phone number');
-                return;
-            }
-            if (!formData.shippingAddress.street.trim()) {
-                setError('Street address is required');
-                return;
-            }
-            if (!formData.shippingAddress.city.trim()) {
-                setError('City is required');
-                return;
-            }
-            if (!formData.shippingAddress.state.trim()) {
-                setError('State is required');
-                return;
-            }
-            if (!formData.shippingAddress.pincode.trim()) {
-                setError('Pincode is required');
-                return;
-            }
-
-            const saveData = {
+            const finalData = {
+                ...formData,
                 customerName: formData.customerName.trim(),
                 customerEmail: formData.customerEmail.trim(),
                 customerPhone: formData.customerPhone.trim(),
-                shippingAddress: {
-                    street: formData.shippingAddress.street.trim(),
-                    city: formData.shippingAddress.city.trim(),
-                    state: formData.shippingAddress.state.trim(),
-                    pincode: formData.shippingAddress.pincode.trim(),
-                    landmark: formData.shippingAddress.landmark.trim()
-                }
             };
-
-            await onSave(saveData);
+            await onSave(finalData);
             setIsModified(false);
             setSuccess('Customer details updated successfully!');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
-            console.error('Save error:', err);
-            setError(err.message || 'Failed to save changes');
+            setError(err.message || 'Failed to save changes.');
         }
     };
+
 
     return (
         <Card>
             <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                    <Typography variant="h6" fontWeight="bold" display="flex" alignItems="center" gap={1}>
-                        <Person />
-                        Customer & Shipping Details
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Typography variant="h6" fontWeight="bold" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Person /> Customer & Shipping
                     </Typography>
                     <Button
                         variant="contained"
@@ -166,104 +102,35 @@ const OrderCustomerDetails = ({ order, onSave, saving }) => {
                         {saving ? 'Saving...' : 'Save Changes'}
                     </Button>
                 </Box>
-
-                {error && (
-                    <Alert severity="error" sx={{ mb: 2 }}>
-                        {error}
-                    </Alert>
-                )}
-
-                {success && (
-                    <Alert severity="success" sx={{ mb: 2 }}>
-                        {success}
-                    </Alert>
-                )}
-
-                <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                        <TextField
-                            fullWidth
-                            label="Customer Name"
-                            value={formData.customerName}
-                            onChange={(e) => handleInputChange('customerName', e.target.value)}
-                            required
-                        />
+                {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+                {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+                <Grid container spacing={3}>
+                    <Grid item xs={12} md={4}>
+                        <TextField fullWidth label="Customer Name" value={formData.customerName} onChange={(e) => handleInputChange('customerName', e.target.value)} required />
                     </Grid>
-                    
-                    <Grid item xs={12} sm={6}>
-                        <TextField
-                            fullWidth
-                            label="Email Address"
-                            type="email"
-                            value={formData.customerEmail}
-                            onChange={(e) => handleInputChange('customerEmail', e.target.value)}
-                            required
-                        />
+                    <Grid item xs={12} md={4}>
+                        <TextField fullWidth label="Email Address" type="email" value={formData.customerEmail} onChange={(e) => handleInputChange('customerEmail', e.target.value)} required />
                     </Grid>
-                    
-                    <Grid item xs={12} sm={6}>
-                        <TextField
-                            fullWidth
-                            label="Phone Number"
-                            value={formData.customerPhone}
-                            onChange={(e) => handleInputChange('customerPhone', e.target.value)}
-                            required
-                        />
+                    <Grid item xs={12} md={4}>
+                        <TextField fullWidth label="Phone Number" value={formData.customerPhone} onChange={(e) => handleInputChange('customerPhone', e.target.value)} required />
                     </Grid>
-
-                    <Grid item xs={12} mt={2}>
-                        <Typography variant="subtitle1" fontWeight="bold">
-                            Shipping Address
-                        </Typography>
-                    </Grid>
-
                     <Grid item xs={12}>
-                        <TextField
-                            fullWidth
-                            label="Street Address"
-                            value={formData.shippingAddress.street}
-                            onChange={(e) => handleInputChange('shippingAddress.street', e.target.value)}
-                            required
-                        />
+                        <Typography variant="subtitle1" fontWeight="bold">Shipping Address</Typography>
                     </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <TextField
-                            fullWidth
-                            label="City"
-                            value={formData.shippingAddress.city}
-                            onChange={(e) => handleInputChange('shippingAddress.city', e.target.value)}
-                            required
-                        />
+                    <Grid item xs={12}>
+                        <TextField fullWidth label="Street Address" value={formData.shippingAddress.street} onChange={(e) => handleInputChange('shippingAddress.street', e.target.value)} required />
                     </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <TextField
-                            fullWidth
-                            label="State"
-                            value={formData.shippingAddress.state}
-                            onChange={(e) => handleInputChange('shippingAddress.state', e.target.value)}
-                            required
-                        />
+                    <Grid item xs={12} sm={6} md={4}>
+                        <TextField fullWidth label="City" value={formData.shippingAddress.city} onChange={(e) => handleInputChange('shippingAddress.city', e.target.value)} required />
                     </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <TextField
-                            fullWidth
-                            label="Pincode"
-                            value={formData.shippingAddress.pincode}
-                            onChange={(e) => handleInputChange('shippingAddress.pincode', e.target.value)}
-                            required
-                        />
+                    <Grid item xs={12} sm={6} md={4}>
+                        <TextField fullWidth label="State" value={formData.shippingAddress.state} onChange={(e) => handleInputChange('shippingAddress.state', e.target.value)} required />
                     </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                        <TextField
-                            fullWidth
-                            label="Landmark (Optional)"
-                            value={formData.shippingAddress.landmark}
-                            onChange={(e) => handleInputChange('shippingAddress.landmark', e.target.value)}
-                        />
+                    <Grid item xs={12} sm={6} md={4}>
+                        <TextField fullWidth label="Pincode" value={formData.shippingAddress.pincode} onChange={(e) => handleInputChange('shippingAddress.pincode', e.target.value)} required />
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                        <TextField fullWidth label="Landmark (Optional)" value={formData.shippingAddress.landmark} onChange={(e) => handleInputChange('shippingAddress.landmark', e.target.value)} />
                     </Grid>
                 </Grid>
             </CardContent>

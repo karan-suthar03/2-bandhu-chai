@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { 
-    Box, Button, TextField, Typography, Card, CardContent, Divider, 
+import {
+    Box, Button, TextField, Typography, Card, CardContent, Divider,
     Chip, FormControlLabel, Switch, CircularProgress, Alert, Grid
 } from '@mui/material';
 import { Category, Save, Star, NewReleases, EnergySavingsLeaf, LocalShipping } from '@mui/icons-material';
@@ -26,9 +26,9 @@ const ProductCategorization = ({ product, onSave, loading }) => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setCategorization(prev => ({ 
-            ...prev, 
-            [name]: type === 'checkbox' ? checked : value 
+        setCategorization(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
         }));
         setStatus(null);
     };
@@ -76,7 +76,7 @@ const ProductCategorization = ({ product, onSave, loading }) => {
                         <TextField
                             label="Category"
                             name="category"
-                            value={categorization.category}
+                            value={categorization.category || ''}
                             disabled={isDisabled}
                             onChange={handleChange}
                             fullWidth
@@ -87,7 +87,7 @@ const ProductCategorization = ({ product, onSave, loading }) => {
                         <TextField
                             label="Badge (e.g., 'Premium', 'Best Seller')"
                             name="badge"
-                            value={categorization.badge}
+                            value={categorization.badge || ''}
                             onChange={handleChange}
                             fullWidth
                             disabled={isDisabled}
@@ -111,7 +111,7 @@ const ProductCategorization = ({ product, onSave, loading }) => {
                         </Button>
                     </Box>
                     <Box display="flex" flexWrap="wrap" gap={1}>
-                        {categorization.features.map((feature, index) => (
+                        {(categorization.features || []).map((feature, index) => (
                             <Chip
                                 key={index}
                                 label={feature}
@@ -128,106 +128,25 @@ const ProductCategorization = ({ product, onSave, loading }) => {
                     <Typography variant="subtitle2" gutterBottom>Product Attributes</Typography>
                     <Grid container spacing={1}>
                         <Grid item xs={12} sm={6}>
-                            <FormControlLabel
-                                disabled={isDisabled}
-                                control={
-                                    <Switch
-                                        name="isNew"
-                                        checked={categorization.isNew}
-                                        onChange={handleChange}
-                                        disabled={isDisabled}
-                                    />
-                                }
-                                label={
-                                    <Box display="flex" alignItems="center" gap={1}>
-                                        <NewReleases fontSize="small" />
-                                        New Product
-                                    </Box>
-                                }
-                            />
+                            <FormControlLabel disabled={isDisabled} control={<Switch name="isNew" checked={!!categorization.isNew} onChange={handleChange} />} label={<Box display="flex" alignItems="center" gap={1}><NewReleases fontSize="small" />New Product</Box>} />
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                            <FormControlLabel
-                                disabled={isDisabled}
-                                control={
-                                    <Switch
-                                        name="featured"
-                                        checked={categorization.featured}
-                                        onChange={handleChange}
-                                        disabled={isDisabled}
-                                    />
-                                }
-                                label={
-                                    <Box display="flex" alignItems="center" gap={1}>
-                                        <Star fontSize="small" />
-                                        Featured
-                                    </Box>
-                                }
-                            />
+                            <FormControlLabel disabled={isDisabled} control={<Switch name="featured" checked={!!categorization.featured} onChange={handleChange} />} label={<Box display="flex" alignItems="center" gap={1}><Star fontSize="small" />Featured</Box>} />
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                            <FormControlLabel
-                                disabled={isDisabled}
-                                control={
-                                    <Switch
-                                        name="organic"
-                                        checked={categorization.organic}
-                                        onChange={handleChange}
-                                        disabled={isDisabled}
-                                    />
-                                }
-                                label={
-                                    <Box display="flex" alignItems="center" gap={1}>
-                                        <EnergySavingsLeaf fontSize="small" />
-                                        Organic
-                                    </Box>
-                                }
-                            />
+                            <FormControlLabel disabled={isDisabled} control={<Switch name="organic" checked={!!categorization.organic} onChange={handleChange} />} label={<Box display="flex" alignItems="center" gap={1}><EnergySavingsLeaf fontSize="small" />Organic</Box>} />
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                            <FormControlLabel
-                                disabled={isDisabled}
-                                control={
-                                    <Switch
-                                        name="fastDelivery"
-                                        checked={categorization.fastDelivery}
-                                        onChange={handleChange}
-                                        disabled={isDisabled}
-                                    />
-                                }
-                                label={
-                                    <Box display="flex" alignItems="center" gap={1}>
-                                        <LocalShipping fontSize="small" />
-                                        Fast Delivery
-                                    </Box>
-                                }
-                            />
+                            <FormControlLabel disabled={isDisabled} control={<Switch name="fastDelivery" checked={!!categorization.fastDelivery} onChange={handleChange} />} label={<Box display="flex" alignItems="center" gap={1}><LocalShipping fontSize="small" />Fast Delivery</Box>} />
                         </Grid>
                         <Grid item xs={12}>
-                            <FormControlLabel
-                                disabled={isDisabled}
-                                control={
-                                    <Switch
-                                        name="deactivated"
-                                        checked={categorization.deactivated}
-                                        onChange={handleChange}
-                                        color="error"
-                                        disabled={isDisabled}
-                                    />
-                                }
-                                label="Deactivate Product"
-                            />
+                            <FormControlLabel disabled={isDisabled} control={<Switch name="deactivated" checked={!!categorization.deactivated} onChange={handleChange} color="error" />} label="Deactivate Product" />
                         </Grid>
                     </Grid>
                 </Box>
 
                 <Box sx={{ mt: 3, textAlign: 'right' }}>
-                    <Button
-                        variant="contained"
-                        startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <Save />}
-                        onClick={handleSave}
-                        disabled={isDisabled}
-                    >
+                    <Button variant="contained" startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <Save />} onClick={handleSave} disabled={isDisabled}>
                         {saving ? 'Saving...' : 'Save Categorization'}
                     </Button>
                 </Box>

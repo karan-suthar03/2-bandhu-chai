@@ -18,96 +18,16 @@ import {
     Assignment, 
     CheckCircle, 
     LocalShipping, 
-    Inventory, 
-    Cancel,
+    Inventory,
     Schedule,
     Done
 } from '@mui/icons-material';
-import { StatusEnum } from '../../enums';
+import {getStatusColor, getStatusIcon, getStatusLabel} from "../../Utils/orderUtils.jsx";
+import {StatusEnum} from "../../enums.js";
+import {formatDate} from "../../../Utils/Utils.js";
 
-const getStatusColor = (status) => {
-    switch (status) {
-        case StatusEnum.DELIVERED:
-            return 'success';
-        case StatusEnum.CANCELLED:
-        case StatusEnum.REFUNDED:
-            return 'error';
-        case StatusEnum.RETURNED:
-            return 'warning';
-        case StatusEnum.SHIPPED:
-        case StatusEnum.OUT_FOR_DELIVERY:
-            return 'info';
-        case StatusEnum.PROCESSING:
-        case StatusEnum.CONFIRMED:
-            return 'primary';
-        default:
-            return 'default';
-    }
-};
-
-const getStatusLabel = (status) => {
-    const labels = {
-        [StatusEnum.PENDING]: 'Pending',
-        [StatusEnum.CONFIRMED]: 'Confirmed',
-        [StatusEnum.PROCESSING]: 'Processing',
-        [StatusEnum.SHIPPED]: 'Shipped',
-        [StatusEnum.OUT_FOR_DELIVERY]: 'On the Way',
-        [StatusEnum.DELIVERED]: 'Delivered',
-        [StatusEnum.CANCELLED]: 'Cancelled',
-        [StatusEnum.RETURNED]: 'Returned',
-        [StatusEnum.REFUNDED]: 'Refunded'
-    };
-    return labels[status] || status;
-};
-
-const getStatusIcon = (status) => {
-    switch (status) {
-        case StatusEnum.PENDING:
-            return <Schedule />;
-        case StatusEnum.CONFIRMED:
-            return <CheckCircle />;
-        case StatusEnum.PROCESSING:
-            return <Inventory />;
-        case StatusEnum.SHIPPED:
-        case StatusEnum.OUT_FOR_DELIVERY:
-            return <LocalShipping />;
-        case StatusEnum.DELIVERED:
-            return <Done />;
-        case StatusEnum.CANCELLED:
-        case StatusEnum.REFUNDED:
-        case StatusEnum.RETURNED:
-            return <Cancel />;
-        default:
-            return <Assignment />;
-    }
-};
 
 const OrderStatusDetails = ({ order }) => {
-    const formatDate = (dateString) => {
-        if (!dateString) return 'Not set';
-        return new Date(dateString).toLocaleString('en-IN', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
-
-    const getStatusProgress = () => {
-        const statusOrder = [
-            StatusEnum.PENDING,
-            StatusEnum.CONFIRMED,
-            StatusEnum.PROCESSING,
-            StatusEnum.SHIPPED,
-            StatusEnum.OUT_FOR_DELIVERY,
-            StatusEnum.DELIVERED
-        ];
-        
-        const currentIndex = statusOrder.indexOf(order.status);
-        return currentIndex >= 0 ? currentIndex + 1 : 1;
-    };
-
     const isCompleted = (status) => {
         const statusOrder = [
             StatusEnum.PENDING,

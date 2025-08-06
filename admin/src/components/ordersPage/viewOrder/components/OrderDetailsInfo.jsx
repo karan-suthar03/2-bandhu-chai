@@ -9,14 +9,9 @@ import {
     Chip
 } from '@mui/material';
 import { Receipt } from '@mui/icons-material';
+import {formatCurrency} from "../../../Utils/Utils.js";
 
 const OrderDetailsInfo = ({ order }) => {
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR'
-        }).format(amount);
-    };
 
     return (
         <Card>

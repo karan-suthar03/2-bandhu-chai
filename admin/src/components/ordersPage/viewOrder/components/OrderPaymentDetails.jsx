@@ -9,80 +9,21 @@ import {
     TableCell,
     TableContainer,
     TableRow,
-    Chip,
-    Divider
+    Chip
 } from '@mui/material';
 import { 
-    Payment, 
-    CreditCard, 
-    AccountBalance, 
-    Phone,
-    Wallet,
-    MonetizationOn
+    Payment,
 } from '@mui/icons-material';
-import { PaymentMethodEnum, PaymentStatusEnum } from '../../enums';
-
-const getPaymentStatusColor = (status) => {
-    switch (status) {
-        case PaymentStatusEnum.COMPLETED:
-            return 'success';
-        case PaymentStatusEnum.FAILED:
-            return 'error';
-        case PaymentStatusEnum.REFUNDED:
-            return 'info';
-        case PaymentStatusEnum.PENDING:
-        default:
-            return 'warning';
-    }
-};
-
-const getPaymentMethodIcon = (method) => {
-    switch (method) {
-        case PaymentMethodEnum.CREDIT_CARD:
-        case PaymentMethodEnum.DEBIT_CARD:
-            return <CreditCard />;
-        case PaymentMethodEnum.NET_BANKING:
-            return <AccountBalance />;
-        case PaymentMethodEnum.UPI:
-            return <Phone />;
-        case PaymentMethodEnum.WALLET:
-            return <Wallet />;
-        case PaymentMethodEnum.CASH_ON_DELIVERY:
-        default:
-            return <MonetizationOn />;
-    }
-};
-
-const getPaymentMethodLabel = (method) => {
-    const labels = {
-        [PaymentMethodEnum.CASH_ON_DELIVERY]: 'Cash on Delivery',
-        [PaymentMethodEnum.CREDIT_CARD]: 'Credit Card',
-        [PaymentMethodEnum.DEBIT_CARD]: 'Debit Card',
-        [PaymentMethodEnum.UPI]: 'UPI',
-        [PaymentMethodEnum.NET_BANKING]: 'Net Banking',
-        [PaymentMethodEnum.WALLET]: 'Digital Wallet'
-    };
-    return labels[method] || method;
-};
-
-const getPaymentStatusLabel = (status) => {
-    const labels = {
-        [PaymentStatusEnum.PENDING]: 'Pending',
-        [PaymentStatusEnum.COMPLETED]: 'Paid',
-        [PaymentStatusEnum.FAILED]: 'Failed',
-        [PaymentStatusEnum.REFUNDED]: 'Refunded'
-    };
-    return labels[status] || status;
-};
+import { PaymentStatusEnum } from '../../enums';
+import {
+    getPaymentMethodIcon,
+    getPaymentMethodLabel,
+    getPaymentStatusColor,
+    getPaymentStatusLabel
+} from "../../Utils/orderUtils.jsx";
+import {formatCurrency} from "../../../Utils/Utils.js";
 
 const OrderPaymentDetails = ({ order }) => {
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR'
-        }).format(amount);
-    };
-
     return (
         <Card>
             <CardContent>

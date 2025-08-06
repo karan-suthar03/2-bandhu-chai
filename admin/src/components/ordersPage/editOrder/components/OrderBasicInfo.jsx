@@ -13,7 +13,8 @@ import {
     Switch,
     FormControlLabel
 } from '@mui/material';
-import { Save, Calculate } from '@mui/icons-material';
+import { Save } from '@mui/icons-material';
+import { formatCurrency } from "../../../Utils/Utils.js";
 
 const OrderBasicInfo = ({ order, onSave, saving }) => {
     const [formData, setFormData] = useState({
@@ -36,7 +37,6 @@ const OrderBasicInfo = ({ order, onSave, saving }) => {
 
             const taxableAmount = Math.max(0, subtotal - totalDiscount);
             const calculatedTax = Math.round(taxableAmount * 0.18);
-
             const calculatedFinalTotal = subtotal - totalDiscount + shippingCost + calculatedTax;
 
             setFormData(prev => ({
@@ -74,8 +74,8 @@ const OrderBasicInfo = ({ order, onSave, saving }) => {
         if (!autoCalculate) {
             const expectedTotal = subtotal - totalDiscount + shippingCost + tax;
             const difference = Math.abs(expectedTotal - finalTotal);
-            if (difference > 0.01) { // Allow for small rounding differences
-                return `Manual calculation mismatch. Expected total: ₹${expectedTotal.toFixed(2)}, but got: ₹${finalTotal.toFixed(2)}`;
+            if (difference > 0.01) { // Allow for small floating-point rounding differences
+                return `Manual calculation mismatch. Expected total: ${formatCurrency(expectedTotal)}, but got: ${formatCurrency(finalTotal)}`;
             }
         }
 
@@ -83,38 +83,31 @@ const OrderBasicInfo = ({ order, onSave, saving }) => {
     };
 
     const handleSave = async () => {
+        setError('');
+
+        const validationError = validateAndCalculate();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+
+        const saveData = {
+            subtotal: parseFloat(formData.subtotal),
+            totalDiscount: parseFloat(formData.totalDiscount),
+            shippingCost: parseFloat(formData.shippingCost),
+            tax: parseFloat(formData.tax),
+            finalTotal: parseFloat(formData.finalTotal)
+        };
+
         try {
-            setError('');
-            
-            const validationError = validateAndCalculate();
-            if (validationError) {
-                setError(validationError);
-                return;
-            }
-
-            const saveData = {
-                subtotal: parseFloat(formData.subtotal),
-                totalDiscount: parseFloat(formData.totalDiscount),
-                shippingCost: parseFloat(formData.shippingCost),
-                tax: parseFloat(formData.tax),
-                finalTotal: parseFloat(formData.finalTotal)
-            };
-
             await onSave(saveData);
             setIsModified(false);
             setSuccess('Order pricing updated successfully!');
             setTimeout(() => setSuccess(''), 3000);
         } catch (err) {
             console.error('Save error:', err);
-            setError(err.message || 'Failed to save changes');
+            setError(err.message || 'Failed to save changes. Please try again.');
         }
-    };
-
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR'
-        }).format(amount || 0);
     };
 
     return (
@@ -148,95 +141,24 @@ const OrderBasicInfo = ({ order, onSave, saving }) => {
                     </Box>
                 </Box>
 
-                {error && (
-                    <Alert severity="error" sx={{ mb: 2 }}>
-                        {error}
-                    </Alert>
-                )}
-
-                {success && (
-                    <Alert severity="success" sx={{ mb: 2 }}>
-                        {success}
-                    </Alert>
-                )}
+                {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+                {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
                 <Grid container spacing={2}>
                     <Grid item xs={12} sm={6}>
-                        <TextField
-                            fullWidth
-                            label="Subtotal"
-                            type="number"
-                            value={formData.subtotal}
-                            onChange={(e) => handleInputChange('subtotal', e.target.value)}
-                            InputProps={{
-                                startAdornment: '₹'
-                            }}
-                            helperText="Base amount before discounts and charges"
-                        />
+                        <TextField fullWidth label="Subtotal" type="number" value={formData.subtotal} onChange={(e) => handleInputChange('subtotal', e.target.value)} InputProps={{ startAdornment: '₹' }} helperText="Base amount before discounts" />
                     </Grid>
-                    
                     <Grid item xs={12} sm={6}>
-                        <TextField
-                            fullWidth
-                            label="Total Discount"
-                            type="number"
-                            value={formData.totalDiscount}
-                            onChange={(e) => handleInputChange('totalDiscount', e.target.value)}
-                            InputProps={{
-                                startAdornment: '₹'
-                            }}
-                            helperText="Total discount applied to the order"
-                        />
+                        <TextField fullWidth label="Total Discount" type="number" value={formData.totalDiscount} onChange={(e) => handleInputChange('totalDiscount', e.target.value)} InputProps={{ startAdornment: '₹' }} helperText="Total discount applied" />
                     </Grid>
-                    
                     <Grid item xs={12} sm={6}>
-                        <TextField
-                            fullWidth
-                            label="Shipping Cost"
-                            type="number"
-                            value={formData.shippingCost}
-                            onChange={(e) => handleInputChange('shippingCost', e.target.value)}
-                            InputProps={{
-                                startAdornment: '₹'
-                            }}
-                            helperText="Shipping and handling charges"
-                        />
+                        <TextField fullWidth label="Shipping Cost" type="number" value={formData.shippingCost} onChange={(e) => handleInputChange('shippingCost', e.target.value)} InputProps={{ startAdornment: '₹' }} helperText="Shipping and handling charges" />
                     </Grid>
-                    
                     <Grid item xs={12} sm={6}>
-                        <TextField
-                            fullWidth
-                            label="Tax (GST 18%)"
-                            type="number"
-                            value={formData.tax}
-                            onChange={(e) => handleInputChange('tax', e.target.value)}
-                            InputProps={{
-                                startAdornment: '₹'
-                            }}
-                            helperText={autoCalculate ? "Auto-calculated at 18%" : "Manual tax amount"}
-                            disabled={autoCalculate}
-                        />
+                        <TextField fullWidth label="Tax (GST 18%)" type="number" value={formData.tax} onChange={(e) => handleInputChange('tax', e.target.value)} InputProps={{ startAdornment: '₹' }} helperText={autoCalculate ? "Auto-calculated at 18%" : "Manual tax amount"} disabled={autoCalculate} />
                     </Grid>
-                    
                     <Grid item xs={12}>
-                        <TextField
-                            fullWidth
-                            label="Final Total"
-                            type="number"
-                            value={formData.finalTotal}
-                            onChange={(e) => handleInputChange('finalTotal', e.target.value)}
-                            InputProps={{
-                                startAdornment: '₹'
-                            }}
-                            helperText={autoCalculate ? "Auto-calculated total" : "Manual final total"}
-                            disabled={autoCalculate}
-                            sx={{
-                                '& .MuiInputBase-root': {
-                                    backgroundColor: autoCalculate ? 'action.hover' : 'transparent',
-                                    fontWeight: 'bold'
-                                }
-                            }}
-                        />
+                        <TextField fullWidth label="Final Total" type="number" value={formData.finalTotal} onChange={(e) => handleInputChange('finalTotal', e.target.value)} InputProps={{ startAdornment: '₹' }} helperText={autoCalculate ? "Auto-calculated total" : "Manual final total"} disabled={autoCalculate} sx={{ '& .MuiInputBase-root': { backgroundColor: autoCalculate ? 'action.hover' : 'transparent', fontWeight: 'bold' } }} />
                     </Grid>
                 </Grid>
 
@@ -248,54 +170,29 @@ const OrderBasicInfo = ({ order, onSave, saving }) => {
                     </Typography>
                     <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
                         <Grid container spacing={1}>
-                            <Grid item xs={8}>
-                                <Typography variant="body2">Subtotal:</Typography>
-                            </Grid>
-                            <Grid item xs={4} textAlign="right">
-                                <Typography variant="body2">{formatCurrency(formData.subtotal)}</Typography>
-                            </Grid>
-                            
-                            <Grid item xs={8}>
-                                <Typography variant="body2" color="error">Less: Discount:</Typography>
-                            </Grid>
-                            <Grid item xs={4} textAlign="right">
-                                <Typography variant="body2" color="error">-{formatCurrency(formData.totalDiscount)}</Typography>
-                            </Grid>
-                            
-                            <Grid item xs={8}>
-                                <Typography variant="body2">Add: Shipping:</Typography>
-                            </Grid>
-                            <Grid item xs={4} textAlign="right">
-                                <Typography variant="body2">+{formatCurrency(formData.shippingCost)}</Typography>
-                            </Grid>
-                            
-                            <Grid item xs={8}>
-                                <Typography variant="body2">Add: Tax (GST):</Typography>
-                            </Grid>
-                            <Grid item xs={4} textAlign="right">
-                                <Typography variant="body2">+{formatCurrency(formData.tax)}</Typography>
-                            </Grid>
-                            
-                            <Grid item xs={12}>
-                                <Divider sx={{ my: 1 }} />
-                            </Grid>
-                            
-                            <Grid item xs={8}>
-                                <Typography variant="body1" fontWeight="bold">Final Total:</Typography>
-                            </Grid>
-                            <Grid item xs={4} textAlign="right">
-                                <Typography variant="body1" fontWeight="bold" color="primary">
-                                    {formatCurrency(formData.finalTotal)}
-                                </Typography>
-                            </Grid>
+                            <Grid item xs={8}><Typography variant="body2">Subtotal:</Typography></Grid>
+                            <Grid item xs={4} textAlign="right"><Typography variant="body2">{formatCurrency(formData.subtotal)}</Typography></Grid>
+
+                            <Grid item xs={8}><Typography variant="body2" color="error">Less: Discount:</Typography></Grid>
+                            <Grid item xs={4} textAlign="right"><Typography variant="body2" color="error">-{formatCurrency(formData.totalDiscount)}</Typography></Grid>
+
+                            <Grid item xs={8}><Typography variant="body2">Add: Shipping:</Typography></Grid>
+                            <Grid item xs={4} textAlign="right"><Typography variant="body2">+{formatCurrency(formData.shippingCost)}</Typography></Grid>
+
+                            <Grid item xs={8}><Typography variant="body2">Add: Tax (GST):</Typography></Grid>
+                            <Grid item xs={4} textAlign="right"><Typography variant="body2">+{formatCurrency(formData.tax)}</Typography></Grid>
+
+                            <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
+
+                            <Grid item xs={8}><Typography variant="body1" fontWeight="bold">Final Total:</Typography></Grid>
+                            <Grid item xs={4} textAlign="right"><Typography variant="body1" fontWeight="bold" color="primary">{formatCurrency(formData.finalTotal)}</Typography></Grid>
                         </Grid>
                     </Box>
                 </Box>
 
-                <Box mt={3} p={2} bgcolor="info.main" sx={{ color: 'info.contrastText' }} borderRadius={1}>
+                <Box mt={3} p={2} bgcolor="info.light" sx={{ color: 'info.dark' }} borderRadius={1}>
                     <Typography variant="body2">
-                        <strong>Auto-Calculate Mode:</strong> When enabled, tax (18% GST) and final total are automatically calculated based on subtotal, discount, and shipping cost. 
-                        When disabled, you can manually set all values, but they must add up correctly.
+                        <strong>Auto-Calculate Mode:</strong> When enabled, tax and total are calculated automatically. When disabled, you can set all values manually, but they must add up correctly.
                     </Typography>
                 </Box>
             </CardContent>

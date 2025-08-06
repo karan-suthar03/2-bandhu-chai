@@ -1,23 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Grid, Stack, Skeleton, Card, CardContent, Alert } from '@mui/material';
-import { getAdminProduct, updateProductMedia, updateProductCategorization, updateProductCoreDetails, updateProductPricing } from '../../../api';
+import {
+    Box, Button, Typography, Grid, Stack, Alert, Skeleton
+} from '@mui/material';
+import { ArrowBack } from '@mui/icons-material';
+import { 
+    getAdminProduct, 
+    updateProduct, 
+    updateProductCoreDetails, 
+    updateProductCategorization, 
+    updateProductMedia 
+} from '../../../api/index.js';
 
-import ProductHeader from './components/ProductHeader';
-import ProductCoreDetails from './components/ProductCoreDetails';
-import ProductPricing from './components/ProductPricing';
-import ProductCategorization from './components/ProductCategorization';
-import ProductMedia from './components/ProductMedia';
+// Import the individual components
+import ProductCoreDetails from './components/ProductCoreDetails.jsx';
+import ProductVariants from './components/ProductVariants.jsx';
+import ProductCategorization from './components/ProductCategorization.jsx';
+import ProductMedia from './components/ProductMedia.jsx';
 
 const EditProduct = () => {
     const { productId } = useParams();
     const navigate = useNavigate();
-
+    
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [product, setProduct] = useState(null);
     const [error, setError] = useState(null);
-    console.log(product)
+    const [productData, setProductData] = useState(null);
+
+    const getImageUrl = (imageObj) => {
+        if (!imageObj) return null;
+        if (typeof imageObj === 'string') return imageObj;
+        if (typeof imageObj === 'object') {
+            const url = imageObj.mediumUrl || imageObj.originalUrl || imageObj.url || null;
+            console.log('Extracted main image URL:', url, 'from:', imageObj);
+            return url;
+        }
+        return null;
+    };
+
+    const prepareGalleryImages = (images) => {
+        if (!Array.isArray(images)) return [];
+        const prepared = images.map((img, index) => ({
+            id: `gallery_${index}`,
+            url: getImageUrl(img),
+            name: `Gallery Image ${index + 1}`,
+            isNew: false
+        })).filter(img => img.url);
+        console.log('Prepared gallery images:', prepared);
+        return prepared;
+    };
+
     useEffect(() => {
         const loadProduct = async () => {
             setLoading(true);
@@ -27,50 +58,50 @@ const EditProduct = () => {
                 const response = await getAdminProduct(productId);
                 
                 if (response.data.success) {
-                    const productData = response.data.data;
-                    
-                    // Transform the data to match the expected format
-                    const transformedProduct = {
-                        id: productData.id,
-                        name: productData.name,
-                        price: productData.price.toString(),
-                        oldPrice: productData.oldPrice?.toString() || '',
-                        stock: productData.stock.toString(),
-                        category: productData.category,
-                        badge: productData.badge,
-                        description: productData.description,
-                        fullDescription: productData.longDescription || '',
-                        features: productData.features || [],
-                        discount: productData.discount?.toString() || '',
-                        isNew: productData.isNew,
-                        featured: productData.featured,
-                        organic: productData.organic,
-                        fastDelivery: productData.fastDelivery,
-                        deactivated: productData.deactivated,
-                        createdAt: productData.createdAt,
-                        updatedAt: productData.updatedAt,
-                        image: productData.image,
-                        images: productData.images,
-                        mainImageUrl: (() => {
-                            if (!productData.image) return '';
-                            if (typeof productData.image === 'string') return productData.image;
-                            return productData.image.largeUrl || productData.image.mediumUrl || productData.image.smallUrl || '';
-                        })(),
-                        galleryImages: (() => {
-                            if (!productData.images || productData.images.length === 0) return [];
-                            return productData.images.map((img, index) => {
-                                if (typeof img === 'string') {
-                                    return { id: index + 1, url: img };
-                                }
-                                return {
-                                    id: index + 1,
-                                    url: img.largeUrl || img.mediumUrl || img.smallUrl || ''
-                                };
-                            });
-                        })()
+                    const data = response.data.data;
+
+                    console.log('Product image data:', {
+                        image: data.image,
+                        images: data.images
+                    });
+
+                    const preparedData = {
+                        name: data.name || '',
+                        description: data.description || '',
+                        fullDescription: data.longDescription || '',
+
+                        category: data.category || '',
+                        badge: data.badge || '',
+                        features: data.features || [],
+                        isNew: data.isNew || false,
+                        featured: data.featured || false,
+                        organic: data.organic || false,
+                        fastDelivery: data.fastDelivery || false,
+
+                        variants: data.variants && data.variants.length > 0 
+                            ? data.variants.map(v => ({
+                                id: v.id.toString(),
+                                size: v.size || '',
+                                price: v.price?.toString() || '',
+                                oldPrice: v.oldPrice?.toString() || '',
+                                stock: v.stock?.toString() || '',
+                                sku: v.sku || ''
+                            }))
+                            : [{
+                                id: 'temp_default',
+                                size: 'Default',
+                                price: data.price?.toString() || '',
+                                oldPrice: data.oldPrice?.toString() || '',
+                                stock: data.stock?.toString() || '',
+                                sku: ''
+                            }],
+                        defaultVariantId: data.defaultVariant ? data.defaultVariant.id.toString() : 'temp_default',
+
+                        mainImageUrl: getImageUrl(data.image),
+                        galleryImages: prepareGalleryImages(data.images)
                     };
                     
-                    setProduct(transformedProduct);
+                    setProductData(preparedData);
                 } else {
                     setError('Failed to load product data');
                 }
@@ -84,140 +115,35 @@ const EditProduct = () => {
 
         if (productId) {
             loadProduct();
-        } else {
-            setError('No product ID provided');
-            setLoading(false);
         }
     }, [productId]);
 
-    const handleSaveChanges = async (dataSection, saveData) => {
-        console.log(`Saving ${dataSection}:`, saveData);
-
-        setSaving(true);
-        
-        try {
-            if (dataSection === 'media') {
-                const { formData } = saveData;
-                
-                if (formData) {
-                    const response = await updateProductMedia(product.id, formData);
-
-                    if (response.data.success) {
-                        const updatedImage = response.data.data.image;
-                        const updatedImages = response.data.data.images;
-                        setProduct(prev => ({
-                            ...prev,
-                            image: updatedImage || prev.image,
-                            images: updatedImages || prev.images,
-                            mainImageUrl: (() => {
-                                if (!updatedImage) return prev.mainImageUrl;
-                                if (typeof updatedImage === 'string') return updatedImage;
-                                return updatedImage.largeUrl || updatedImage.mediumUrl || updatedImage.smallUrl || prev.mainImageUrl;
-                            })(),
-                            galleryImages: (() => {
-                                if (!updatedImages || updatedImages.length === 0) return prev.galleryImages;
-                                return updatedImages.map((img, index) => {
-                                    if (typeof img === 'string') {
-                                        return { id: index + 1, url: img };
-                                    }
-                                    return {
-                                        id: index + 1,
-                                        url: img.largeUrl || img.mediumUrl || img.smallUrl || ''
-                                    };
-                                });
-                            })(),
-                            updatedAt: new Date().toISOString()
-                        }));
-                        
-                        console.log('Media updated successfully:', response.data.message);
-                    }
-                } else {
-                    console.log('No media data to process');
-                }
-            } else if (dataSection === 'categorization') {
-                const response = await updateProductCategorization(product.id, saveData);
-                
-                if (response.data.success) {
-                    setProduct(prev => ({
-                        ...prev,
-                        category: saveData.category,
-                        badge: saveData.badge,
-                        features: saveData.features,
-                        isNew: saveData.isNew,
-                        featured: saveData.featured,
-                        organic: saveData.organic,
-                        fastDelivery: saveData.fastDelivery,
-                        deactivated: saveData.deactivated,
-                        updatedAt: new Date().toISOString()
-                    }));
-                    
-                    console.log('Categorization updated successfully:', response.data.message);
-                }
-            } else if (dataSection === 'coreDetails') {
-                const response = await updateProductCoreDetails(product.id, saveData);
-                
-                if (response.data.success) {
-                    setProduct(prev => ({
-                        ...prev,
-                        name: saveData.name !== undefined ? saveData.name : prev.name,
-                        description: saveData.description !== undefined ? saveData.description : prev.description,
-                        fullDescription: saveData.fullDescription !== undefined ? saveData.fullDescription : prev.fullDescription,
-                        stock: saveData.stock !== undefined ? saveData.stock.toString() : prev.stock,
-                        updatedAt: new Date().toISOString()
-                    }));
-                }
-            } else if (dataSection === 'pricing') {
-                const response = await updateProductPricing(product.id, saveData);
-                
-                if (response.data.success) {
-                    setProduct(prev => ({
-                        ...prev,
-                        price: saveData.price !== undefined ? saveData.price.toString() : prev.price,
-                        oldPrice: saveData.oldPrice !== undefined ? saveData.oldPrice?.toString() || '' : prev.oldPrice,
-                        stock: saveData.stock !== undefined ? saveData.stock.toString() : prev.stock,
-                        discount: saveData.discount !== undefined ? saveData.discount.toString() : prev.discount,
-                        updatedAt: new Date().toISOString()
-                    }));
-                }
-            } else {
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                setProduct(prev => ({
-                    ...prev,
-                    ...saveData,
-                    updatedAt: new Date().toISOString()
-                }));
-            }
-            
-            return Promise.resolve();
-        } catch (error) {
-            console.error(`Error saving ${dataSection}:`, error);
-            throw error;
-        } finally {
-            setSaving(false);
-        }
+    // Save handlers for each component
+    const handleSaveCoreDetails = async (coreDetailsData) => {
+        await updateProductCoreDetails(productId, coreDetailsData);
     };
 
-    const handleBackClick = () => {
-        navigate('/dashboard/products');
+    const handleSaveVariants = async (variantsData) => {
+        await updateProduct(productId, variantsData);
     };
 
-    if (loading) {
+    const handleSaveCategorization = async (categorizationData) => {
+        await updateProductCategorization(productId, categorizationData);
+    };
+
+    const handleSaveMedia = async (mediaData) => {
+        const formData = mediaData.formData || mediaData;
+        await updateProductMedia(productId, formData);
+    };
+
+    if (loading || !productData) {
         return (
             <Box sx={{ p: { xs: 2, md: 4 } }}>
-                <Skeleton variant="text" width={300} height={40} sx={{ mb: 2 }} />
-                <Grid container spacing={4}>
-                    {[...Array(4)].map((_, i) => (
-                        <Grid item xs={12} md={6} key={i}>
-                            <Card elevation={2}>
-                                <CardContent>
-                                    <Skeleton variant="text" width="40%" height={30} sx={{ mb: 2 }} />
-                                    <Skeleton variant="rectangular" height={150} />
-                                </CardContent>
-                            </Card>
-                        </Grid>
-                    ))}
-                </Grid>
+                <Stack spacing={3}>
+                    <Skeleton variant="text" width={300} height={40} />
+                    <Skeleton variant="rectangular" width="100%" height={200} />
+                    <Skeleton variant="rectangular" width="100%" height={300} />
+                </Stack>
             </Box>
         );
     }
@@ -228,50 +154,55 @@ const EditProduct = () => {
                 <Alert severity="error" sx={{ mb: 2 }}>
                     {error}
                 </Alert>
-            </Box>
-        );
-    }
-
-    if (!product) {
-        return (
-            <Box sx={{ p: { xs: 2, md: 4 } }}>
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                    Product not found
-                </Alert>
+                <Button startIcon={<ArrowBack />} onClick={() => navigate('/dashboard/products')}>
+                    Back to Products
+                </Button>
             </Box>
         );
     }
 
     return (
         <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: '#f4f6f8', minHeight: '100vh' }}>
-            <ProductHeader
-                product={product}
-                onBackClick={handleBackClick}
-                hasUnsavedChanges={false}
-            />
+            <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Button startIcon={<ArrowBack />} onClick={() => navigate('/dashboard/products')}>
+                    Back to Products
+                </Button>
+                <Typography variant="h4">Edit Product</Typography>
+            </Box>
 
-            <Stack spacing={4}>
-                <ProductCoreDetails
-                    product={product}
-                    onSave={(data) => handleSaveChanges('coreDetails', data)}
-                    loading={loading || saving}
-                />
-                <ProductPricing
-                    product={product}
-                    onSave={(data) => handleSaveChanges('pricing', data)}
-                    loading={loading || saving}
-                />
-                <ProductCategorization
-                    product={product}
-                    onSave={(data) => handleSaveChanges('categorization', data)}
-                    loading={loading || saving}
-                />
-                <ProductMedia
-                    product={product}
-                    onSave={(data) => handleSaveChanges('media', data)}
-                    loading={loading || saving}
-                />
-            </Stack>
+            <Grid container spacing={4}>
+                <Grid item xs={12} md={7} lg={8}>
+                    <Stack spacing={4}>
+                        <ProductCoreDetails 
+                            product={productData}
+                            onSave={handleSaveCoreDetails}
+                            loading={loading}
+                        />
+
+                        <ProductVariants 
+                            product={{
+                                variants: productData.variants,
+                                defaultVariantId: productData.defaultVariantId
+                            }}
+                            onSave={handleSaveVariants}
+                            loading={loading}
+                        />
+
+                        <ProductCategorization 
+                            product={productData}
+                            onSave={handleSaveCategorization}
+                            loading={loading}
+                        />
+                    </Stack>
+                    <Stack spacing={4}>
+                        <ProductMedia 
+                            product={productData}
+                            onSave={handleSaveMedia}
+                            loading={loading}
+                        />
+                    </Stack>
+                </Grid>
+            </Grid>
         </Box>
     );
 };

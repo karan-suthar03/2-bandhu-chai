@@ -101,9 +101,11 @@ function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
                     {product.oldPrice && (
                         <>
                             <span className="text-sm text-gray-500 line-through">{formatCurrency(product.oldPrice)}</span>
-                            <span className="text-xs font-medium text-[#e67e22] bg-orange-100 px-2 py-1 rounded">
-                                {formatDiscount(product.discount)}
-                            </span>
+                            {formatDiscount(product.discount) && (
+                                <span className="text-xs font-medium text-[#e67e22] bg-orange-100 px-2 py-1 rounded">
+                                    {formatDiscount(product.discount)}
+                                </span>
+                            )}
                         </>
                     )}
                 </div>
@@ -211,9 +213,11 @@ function QuickViewModal({ product, onClose, onAddToCart, onBuyNow }) {
                                 {product.oldPrice && (
                                     <>
                                         <span className="text-lg text-gray-500 line-through">{formatCurrency(product.oldPrice)}</span>
-                                        <span className="text-sm font-medium text-[#e67e22] bg-orange-100 px-2 py-1 rounded text-nowrap">
-                                            {formatDiscount(product.discount)}
-                                        </span>
+                                        {formatDiscount(product.discount) && (
+                                            <span className="text-sm font-medium text-[#e67e22] bg-orange-100 px-2 py-1 rounded text-nowrap">
+                                                {formatDiscount(product.discount)}
+                                            </span>
+                                        )}
                                     </>
                                 )}
                             </div>
@@ -388,7 +392,12 @@ function ShopPage() {
 
 
     const handleAddToCart = async (product) => {
-        const success = await addToCart(product.id);
+        const options = {};
+        if (product.defaultVariant?.id) {
+            options.variantId = product.defaultVariant.id;
+        }
+        
+        const success = await addToCart(product.id, options);
         if (success) {
             setShowSuccessMessage(true);
         }

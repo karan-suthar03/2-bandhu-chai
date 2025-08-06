@@ -35,6 +35,8 @@ function ProductPage() {
     const { addToCart, isInCart, isAddingToCart } = useCart();
     const [product, setProduct] = useState(null);
     const [selectedImage, setSelectedImage] = useState(0);
+    const [selectedSize, setSelectedSize] = useState(null);
+    const [selectedVariant, setSelectedVariant] = useState(null);
     const [quantity, setQuantity] = useState(1);
     const [activeTab, setActiveTab] = useState("description");
     const [reviews, setReviews] = useState([]);
@@ -56,6 +58,14 @@ function ProductPage() {
                 } else {
                     setProduct(productData);
                     setReviews(reviewsData);
+                    
+                    if (productData.sizes && productData.sizes.length > 0) {
+                        const defaultSize = productData.defaultVariant?.size || productData.sizes[0].size;
+                        const defaultVariant = productData.sizes.find(size => size.size === defaultSize) || productData.sizes[0];
+                        setSelectedSize(defaultSize);
+                        setSelectedVariant(defaultVariant);
+                    }
+                    
                     if (productData.images && productData.images.length > 0) {
                         const mainImageIndex = productData.images.findIndex(img => img.isMain);
                         setSelectedImage(mainImageIndex !== -1 ? mainImageIndex : 0);
@@ -84,11 +94,18 @@ function ProductPage() {
     }, [showSuccessMessage]);
 
     const handleAddToCart = async () => {
-        const success = await addToCart(product.id);
+        const variantId = selectedVariant?.id || product.defaultVariant?.id;
+        const success = await addToCart(product.id, { variantId, quantity });
         if (success) {
             setShowSuccessMessage(true);
         }
-        console.log("Adding to cart:", { product, quantity });
+        console.log("Adding to cart:", { product, selectedVariant, quantity });
+    };
+
+    const handleSizeChange = (size) => {
+        setSelectedSize(size);
+        const variant = product.sizes.find(s => s.size === size);
+        setSelectedVariant(variant);
     };
 
     const handleBuyNow = () => {
@@ -175,13 +192,10 @@ function ProductPage() {
                     </div>
                 </section>
 
-                {}
                 <section className="py-12 px-4">
                     <div className="max-w-7xl mx-auto">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                            {}
                             <div className="space-y-4">
-                                {}
                                 <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden group">
                                     <img
                                         src={product.images[selectedImage].largeUrl}
@@ -200,7 +214,6 @@ function ProductPage() {
                                     )}
                                 </div>
 
-                                {}
                                 <div className="flex space-x-4">
                                     {product.images
                                         .sort((a, b) => {
@@ -231,7 +244,6 @@ function ProductPage() {
                                 </div>
                             </div>
 
-                            {}
                             <div className="space-y-6">
                                 <div>
                                     <h1 className="text-3xl md:text-4xl font-bold text-[#3a1f1f] mb-2">
@@ -256,36 +268,69 @@ function ProductPage() {
                                             </span>
                                         </div>
                                         <span className="text-green-600 text-sm font-medium">
-                                            {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                                            {(selectedVariant?.stock || product.stock) > 0 
+                                                ? `${selectedVariant?.stock || product.stock} in stock` 
+                                                : 'Out of stock'}
                                         </span>
                                     </div>
                                 </div>
 
-                                {}
                                 <div className="flex items-center space-x-4">
                                     <span className="text-4xl font-bold text-[#3a1f1f]">
-                                        {formatCurrency(product.price)}
+                                        {formatCurrency(selectedVariant?.price || product.price)}
                                     </span>
-                                    {product.oldPrice && (
+                                    {(selectedVariant?.oldPrice || product.oldPrice) && (
                                         <>
                                             <span className="text-xl text-gray-500 line-through">
-                                                {formatCurrency(product.oldPrice)}
+                                                {formatCurrency(selectedVariant?.oldPrice || product.oldPrice)}
                                             </span>
-                                            <span className="bg-[#e67e22] text-white px-3 py-1 rounded-lg font-medium">
-                                                {formatDiscount(product.discount)}
-                                            </span>
+                                            {formatDiscount(selectedVariant?.discount || product.discount) && (
+                                                <span className="bg-[#e67e22] text-white px-3 py-1 rounded-lg font-medium">
+                                                    {formatDiscount(selectedVariant?.discount || product.discount)}
+                                                </span>
+                                            )}
                                         </>
                                     )}
                                 </div>
 
-                                {}
                                 <div>
                                     <p className="text-[#5b4636] text-lg leading-relaxed break-words whitespace-pre-wrap">
                                         {product.description}
                                     </p>
                                 </div>
 
-                                {}
+                                {product.sizes && product.sizes.length > 1 && (
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-[#3a1f1f] mb-3">Size</h3>
+                                        <div className="flex flex-wrap gap-3">
+                                            {product.sizes.map((size) => (
+                                                <button
+                                                    key={size.id}
+                                                    onClick={() => handleSizeChange(size.size)}
+                                                    disabled={size.stock === 0}
+                                                    className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${
+                                                        selectedSize === size.size
+                                                            ? 'border-[#e67e22] bg-[#e67e22] text-white'
+                                                            : size.stock === 0
+                                                                ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                                : 'border-gray-200 hover:border-[#e67e22] hover:text-[#e67e22]'
+                                                    }`}
+                                                >
+                                                    <div className="text-center">
+                                                        <div className="font-semibold">{size.size}</div>
+                                                        <div className="text-xs">
+                                                            {formatCurrency(size.price)}
+                                                        </div>
+                                                        {size.stock === 0 && (
+                                                            <div className="text-xs text-red-500">Out of Stock</div>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div>
                                     <h3 className="text-lg font-semibold text-[#3a1f1f] mb-3">Quantity</h3>
                                     <div className="flex items-center space-x-4">
@@ -305,12 +350,11 @@ function ProductPage() {
                                             </button>
                                         </div>
                                         <span className="text-sm text-[#5b4636]">
-                                            Only {product.stock} items left
+                                            Only {selectedVariant?.stock || product.stock} items left
                                         </span>
                                     </div>
                                 </div>
 
-                                {}
                                 <div>
                                     <h3 className="text-lg font-semibold text-[#3a1f1f] mb-3">Key Features</h3>
                                     <div className="grid grid-cols-2 gap-3">
@@ -328,9 +372,9 @@ function ProductPage() {
                                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                                     <button
                                         onClick={handleAddToCart}
-                                        disabled={product.stock === 0 || isAddingToCart(product.id)}
+                                        disabled={(selectedVariant?.stock || product.stock) === 0 || isAddingToCart(product.id)}
                                         className={`flex-1 py-4 px-6 rounded-xl font-semibold text-lg transition-all ${
-                                            product.stock === 0
+                                            (selectedVariant?.stock || product.stock) === 0
                                                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                                 : isInCart(product.id)
                                                 ? 'bg-green-100 border-2 border-green-500 text-green-700'
@@ -339,7 +383,7 @@ function ProductPage() {
                                                 : 'bg-white border-2 border-[#e67e22] text-[#e67e22] hover:bg-[#e67e22] hover:text-white hover:scale-105'
                                         }`}
                                     >
-                                        {product.stock === 0 
+                                        {(selectedVariant?.stock || product.stock) === 0 
                                             ? 'Out of Stock' 
                                             : isAddingToCart(product.id) 
                                                 ? (
@@ -355,9 +399,9 @@ function ProductPage() {
                                     </button>
                                     <button
                                         onClick={handleBuyNow}
-                                        disabled={product.stock === 0}
+                                        disabled={(selectedVariant?.stock || product.stock) === 0}
                                         className={`flex-1 py-4 px-6 rounded-xl font-semibold text-lg transition-all ${
-                                            product.stock === 0
+                                            (selectedVariant?.stock || product.stock) === 0
                                                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                                 : 'bg-[#e67e22] text-white hover:bg-[#d35400] hover:scale-105'
                                         }`}
@@ -378,7 +422,6 @@ function ProductPage() {
                                     </button>
                                 </div>
 
-                                {}
                                 <div className="flex items-center space-x-6 pt-4 border-t">
                                     {product.fastDelivery && (
                                         <div className="flex items-center space-x-2">
@@ -407,10 +450,8 @@ function ProductPage() {
                     </div>
                 </section>
 
-                {}
                 <section className="bg-white py-12 px-4">
                     <div className="max-w-7xl mx-auto">
-                        {}
                         <div className="flex space-x-1 border-b border-gray-200 mb-8">
                             {[
                                 { id: "description", label: "Description" },
@@ -432,7 +473,6 @@ function ProductPage() {
                             ))}
                         </div>
 
-                        {}
                         <div className="max-w-4xl">
                             {activeTab === "description" && (
                                 <div className="space-y-6">
@@ -527,7 +567,6 @@ function ProductPage() {
                     </div>
                 </section>
 
-                {}
                 <section className="bg-gray-50 py-12 px-4">
                     <div className="max-w-7xl mx-auto">
                         <h3 className="text-3xl font-bold text-[#3a1f1f] text-center mb-12">

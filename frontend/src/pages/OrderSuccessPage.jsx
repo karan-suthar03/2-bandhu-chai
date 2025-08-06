@@ -165,6 +165,9 @@ function OrderSuccessPage() {
                                             <div>
                                                 <p className="font-medium">{item.name}</p>
                                                 <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                                                {item.size && (
+                                                    <p className="text-sm text-gray-600">Size: {item.size}</p>
+                                                )}
                                             </div>
                                         </div>
                                         <p className="font-medium">{formatPrice(item.total)}</p>

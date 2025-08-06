@@ -2,8 +2,10 @@ import {makeVariants} from '../utils/imageUtils.js';
 
 const validateCreateProduct = async (req, res, next) => {
 
-    const errorResponse = (message) =>
+    const errorResponse = (message) => {
         res.status(400).json({success: false, error: message});
+        console.log("errorResponse:", message);
+    }
 
     if(!req.body || Object.keys(req.body).length === 0) {
         return errorResponse('Product data is required');
@@ -35,27 +37,61 @@ const validateCreateProduct = async (req, res, next) => {
         console.log('No additional images provided');
     }
 
-    console.log("images processed successfully");
+    console.log(req.body)
 
     const {
-        name, price, oldPrice, stock,
-        category, badge, description, fullDescription,
-        features, discount, isNew, featured,
+        name, variants,
+        category, badge, description, longDescription,
+        features, isNew, featured,
         organic, fastDelivery
     } = req.body;
+
+    if (!variants)
+        return errorResponse('Product variants are required and must be a non-empty array');
+
+    if (typeof variants !== 'string') {
+        return errorResponse('Product variants must be a JSON string');
+    }
+
+    let parsedVariants;
+
+    try {
+        parsedVariants = JSON.parse(variants);
+        if (!Array.isArray(parsedVariants) || parsedVariants.length === 0) {
+            return errorResponse('Product variants must be a non-empty JSON array');
+        }
+    }
+    catch (error) {
+        return errorResponse('Product variants must be a valid JSON string');
+    }
+
+    for (const variant of parsedVariants) {
+        if (!variant.size || variant.size.trim().length === 0) {
+            return errorResponse('Each product variant must have a valid size');
+        }
+        if (!variant.price || isNaN(parseFloat(variant.price)) || parseFloat(variant.price) <= 0) {
+            return errorResponse('Each product variant must have a valid price greater than 0');
+        }
+        if (variant.oldPrice && (isNaN(parseFloat(variant.oldPrice)) || parseFloat(variant.oldPrice) <= 0)) {
+            return errorResponse('Each product variant old price must be a valid number greater than 0');
+        }
+        if (variant.stock && (isNaN(parseInt(variant.stock)) || parseInt(variant.stock) < 0)) {
+            return errorResponse('Each product variant stock must be a non-negative integer');
+        }
+        if (variant.discount && (isNaN(parseFloat(variant.discount)) || parseFloat(variant.discount) < 0 || parseFloat(variant.discount) > 1)) {
+            return errorResponse('Each product variant discount must be a number between 0 and 1');
+        }
+        if (!variant.sku || variant.sku.trim().length === 0) {
+            return errorResponse('Each product variant must have a valid SKU');
+        }
+    }
+
+    req.body.variants = parsedVariants;
 
     if (!name || name.trim().length === 0)
         return errorResponse('Product name is required');
 
     req.body.name = name.trim();
-
-    if (!price || isNaN(price) || parseFloat(price) <= 0)
-        return errorResponse('Valid product price is required');
-    req.body.price = parseFloat(price);
-
-    if (!stock || isNaN(stock) || parseInt(stock) < 0)
-        return errorResponse('Valid stock quantity is required');
-    req.body.stock = parseInt(stock);
 
     if (!category || category.trim().length === 0)
         return errorResponse('Product category is required');
@@ -71,15 +107,9 @@ const validateCreateProduct = async (req, res, next) => {
         req.body.badge = badge.trim();
     }
 
-    if (oldPrice && (isNaN(oldPrice) || parseFloat(oldPrice) < 0))
-        return errorResponse('Valid old price is required');
-    if (oldPrice) {
-        req.body.oldPrice = parseFloat(oldPrice);
-    }
-
-    if (!fullDescription || fullDescription.trim().length === 0)
+    if (!longDescription || longDescription.trim().length === 0)
         return errorResponse('Product full description is required');
-    req.body.fullDescription = fullDescription.trim();
+    req.body.fullDescription = longDescription.trim();
 
 
     if (features) {
@@ -90,12 +120,6 @@ const validateCreateProduct = async (req, res, next) => {
         } catch (error) {
             return errorResponse('Product features must be a valid JSON array');
         }
-    }
-
-    if (discount && (isNaN(discount) || parseFloat(discount) < 0 || parseFloat(discount) > 100))
-        return errorResponse('Valid discount percentage is required');
-    if (discount) {
-        req.body.discount = discount/ 100;
     }
 
     const checkBoolean = (value, fieldName) => {

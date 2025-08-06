@@ -14,15 +14,17 @@ import {
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import InventoryIcon from '@mui/icons-material/Inventory';
+import CategoryIcon from '@mui/icons-material/Category';
 import BarChartIcon from '@mui/icons-material/BarChart';
 
 const Sidebar = () => {
-    const theme = useTheme(); // get the current MUI theme
+    const theme = useTheme();
 
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
         { id: 'orders', label: 'Orders', icon: <ShoppingCartIcon />, path: '/dashboard/orders' },
         { id: 'products', label: 'Products', icon: <InventoryIcon />, path: '/dashboard/products' },
+        { id: 'variants', label: 'Variants', icon: <CategoryIcon />, path: '/dashboard/variants' },
         { id: 'analytics', label: 'Analytics', icon: <BarChartIcon />, path: '/dashboard/analytics' },
     ];
 

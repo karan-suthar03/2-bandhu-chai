@@ -21,12 +21,18 @@ async function createOrder(req, res) {
 
     const cartItems = req.session.cart.items;
     const productIds = cartItems.map(item => item.productId);
+    const variantIds = cartItems.map(item => item.variantId).filter(Boolean);
 
     const products = await prisma.product.findMany({
-        where: { id: { in: productIds } }
+        where: { id: { in: productIds } },
+        include: {
+            variants: {
+                where: { id: { in: variantIds } }
+            }
+        }
     });
 
-    if (products.length !== productIds.length) {
+    if (products.length !== [...new Set(productIds)].length) {
         throw new BadRequestError('Some products in your cart are no longer available. Please review your cart and try again.');
     }
 
@@ -38,21 +44,26 @@ async function createOrder(req, res) {
         const product = products.find(p => p.id === cartItem.productId);
         if (!product) continue;
 
-        if (product.stock < cartItem.quantity) {
-            throw new BadRequestError(`Sorry, we don't have enough stock for "${product.name}". Available: ${product.stock}, Requested: ${cartItem.quantity}. Please update your cart and try again.`);
+        const variant = product.variants.find(v => v.id === cartItem.variantId);
+        if (!variant) {
+            throw new BadRequestError(`Product variant no longer available for "${product.name}". Please review your cart and try again.`);
         }
 
-        const itemTotal = product.price * cartItem.quantity;
-        const itemDiscount = product.oldPrice ? (product.oldPrice - product.price) * cartItem.quantity : 0;
+        if (variant.stock < cartItem.quantity) {
+            throw new BadRequestError(`Sorry, we don't have enough stock for "${product.name}" (${variant.size}). Available: ${variant.stock}, Requested: ${cartItem.quantity}. Please update your cart and try again.`);
+        }
+
+        const itemTotal = variant.price * cartItem.quantity;
+        const itemDiscount = variant.oldPrice ? (variant.oldPrice - variant.price) * cartItem.quantity : 0;
 
         subtotal += itemTotal;
         totalDiscount += itemDiscount;
 
         orderItems.push({
-            productId: product.id,
-            productName: product.name,
-            price: product.price,
-            oldPrice: product.oldPrice,
+            productVariantId: variant.id,
+            productName: `${product.name} (${variant.size})`,
+            price: variant.price,
+            oldPrice: variant.oldPrice,
             quantity: cartItem.quantity
         });
     }
@@ -89,7 +100,7 @@ async function createOrder(req, res) {
             include: {
                 orderItems: {
                     include: {
-                        product: true
+                        variant: true
                     }
                 },
                 statusHistory: true
@@ -97,8 +108,8 @@ async function createOrder(req, res) {
         });
 
         for (const item of orderItems) {
-            await tx.product.update({
-                where: { id: item.productId },
+            await tx.productVariant.update({
+                where: { id: item.productVariantId },
                 data: {
                     stock: {
                         decrement: item.quantity
@@ -153,10 +164,14 @@ async function getOrderConfirmation(req, res) {
         include: {
             orderItems: {
                 include: {
-                    product: {
-                        select: {
-                            image: true,
-                            name: true
+                    variant: {
+                        include: {
+                            product: {
+                                select: {
+                                    image: true,
+                                    name: true
+                                }
+                            }
                         }
                     }
                 }
@@ -182,8 +197,10 @@ async function getOrderConfirmation(req, res) {
                     name: item.productName,
                     quantity: item.quantity,
                     price: item.price,
+                    oldPrice: item.oldPrice,
                     total: item.price * item.quantity,
-                    image: item.product?.image
+                    size: item.variant?.size,
+                    image: item.variant?.product?.image
                 })),
                 summary: {
                     subtotal: order.subtotal,
@@ -223,7 +240,16 @@ async function getOrder(req, res) {
         include: {
             orderItems: {
                 include: {
-                    product: true
+                    variant: {
+                        include: {
+                            product: {
+                                select: {
+                                    name: true,
+                                    image: true
+                                }
+                            }
+                        }
+                    }
                 }
             },
             statusHistory: {
@@ -238,7 +264,18 @@ async function getOrder(req, res) {
 
     res.json({
         success: true,
-        order
+        order: {
+            ...order,
+            orderItems: order.orderItems.map(item => ({
+                id: item.id,
+                productName: item.productName,
+                quantity: item.quantity,
+                price: item.price,
+                oldPrice: item.oldPrice,
+                size: item.variant?.size,
+                product: item.variant?.product
+            }))
+        }
     });
 }
 
@@ -251,10 +288,14 @@ async function getOrderByNumber(req, res) {
         include: {
             orderItems: {
                 include: {
-                    product: {
-                        select: {
-                            name: true,
-                            image: true
+                    variant: {
+                        include: {
+                            product: {
+                                select: {
+                                    name: true,
+                                    image: true
+                                }
+                            }
                         }
                     }
                 }
@@ -295,7 +336,9 @@ async function getOrderByNumber(req, res) {
                 productName: item.productName,
                 quantity: item.quantity,
                 price: item.price,
-                product: item.product
+                oldPrice: item.oldPrice,
+                size: item.variant?.size,
+                product: item.variant?.product
             })),
             subtotal: order.subtotal,
             totalDiscount: order.totalDiscount,

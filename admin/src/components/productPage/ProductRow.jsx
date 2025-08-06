@@ -9,6 +9,7 @@ import {
     Box,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import ToggleOffIcon from '@mui/icons-material/ToggleOff';
 import {formatCurrency, formatDiscount} from "../Utils/Utils.js";
@@ -64,12 +65,12 @@ const ProductRow = ({ product, selected, onSelectRow, onToggleActivation }) => {
             </TableCell>
             <TableCell>{product.name}</TableCell>
             <TableCell>{product.category}</TableCell>
-            <TableCell>{formatCurrency(product.price)}</TableCell>
+            <TableCell>{formatCurrency(product.defaultVariant?.price || 0)}</TableCell>
             <TableCell sx={{ textDecoration: 'line-through' }}>
-                {formatCurrency(product.oldPrice)}
+                {product.defaultVariant?.oldPrice ? formatCurrency(product.defaultVariant.oldPrice) : '-'}
             </TableCell>
-            <TableCell>{formatDiscount(product.discount)}</TableCell>
-            {[product.featured, product.stock, product.badge, product.rating, product.isNew, product.organic, product.fastDelivery, product.deactivated]
+            <TableCell>{product.defaultVariant?.discount ? formatDiscount(product.defaultVariant.discount) : '-'}</TableCell>
+            {[product.featured, product.defaultVariant?.stock || 0, product.badge, product.rating, product.isNew, product.organic, product.fastDelivery, product.deactivated]
                 .map((value, index) => (
                     <TableCell key={index}>
                         {typeof value === 'boolean' ? (
@@ -88,6 +89,18 @@ const ProductRow = ({ product, selected, onSelectRow, onToggleActivation }) => {
                 ))}
             <TableCell align="center">
                 <Stack direction="row" spacing={0.5} justifyContent="center">
+                    <Tooltip title="View Product Details">
+                        <IconButton 
+                            size="small" 
+                            color="info"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/dashboard/products/view/${product.id}`);
+                            }}
+                        >
+                            <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
                     <Tooltip title="Edit Product">
                         <IconButton 
                             size="small" 

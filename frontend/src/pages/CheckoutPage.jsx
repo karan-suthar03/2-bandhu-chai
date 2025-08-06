@@ -395,12 +395,15 @@ function CheckoutPage() {
                                     <div className="flex-grow">
                                         <h4 className="font-medium text-[#3a1f1f]">{item.name}</h4>
                                         <p className="text-sm text-[#5b4636]">Quantity: {item.quantity}</p>
+                                        {item.size && (
+                                            <p className="text-sm text-[#5b4636]">Size: {item.size}</p>
+                                        )}
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-medium text-[#3a1f1f]">₹{formatPrice(item.itemTotal)}</p>
+                                        <p className="font-medium text-[#3a1f1f]">{formatPrice(item.itemTotal)}</p>
                                         {item.itemDiscount > 0 && (
                                             <p className="text-sm text-green-600">
-                                                Save ₹{formatPrice(item.itemDiscount)}
+                                                Save {formatPrice(item.itemDiscount)}
                                             </p>
                                         )}
                                     </div>
@@ -411,31 +414,31 @@ function CheckoutPage() {
                         <div className="space-y-3 pt-4 border-t border-gray-200">
                             <div className="flex justify-between text-[#5b4636]">
                                 <span>Subtotal</span>
-                                <span>₹{formatPrice(checkoutPreview.summary.subtotal)}</span>
+                                <span>{formatPrice(checkoutPreview.summary.subtotal)}</span>
                             </div>
                             
                             {checkoutPreview.summary.totalDiscount > 0 && (
                                 <div className="flex justify-between text-green-600">
                                     <span>Total Discount</span>
-                                    <span>-₹{formatPrice(checkoutPreview.summary.totalDiscount)}</span>
+                                    <span>-{formatPrice(checkoutPreview.summary.totalDiscount)}</span>
                                 </div>
                             )}
                             
                             <div className="flex justify-between text-[#5b4636]">
                                 <span>Shipping</span>
                                 <span className={checkoutPreview.summary.shippingCost === 0 ? 'text-green-600 font-medium' : ''}>
-                                    {checkoutPreview.summary.shippingCost === 0 ? 'FREE' : `₹${formatPrice(checkoutPreview.summary.shippingCost)}`}
+                                    {checkoutPreview.summary.shippingCost === 0 ? 'FREE' : formatPrice(checkoutPreview.summary.shippingCost)}
                                 </span>
                             </div>
                             
                             <div className="flex justify-between text-[#5b4636]">
                                 <span>Tax (GST 18%)</span>
-                                <span>₹{formatPrice(checkoutPreview.summary.tax)}</span>
+                                <span>{formatPrice(checkoutPreview.summary.tax)}</span>
                             </div>
                             
                             <div className="flex justify-between text-xl font-bold pt-3 border-t border-gray-200 text-[#e67e22]">
                                 <span>Total Amount</span>
-                                <span>₹{formatPrice(checkoutPreview.summary.finalTotal)}</span>
+                                <span>{formatPrice(checkoutPreview.summary.finalTotal)}</span>
                             </div>
                         </div>
 

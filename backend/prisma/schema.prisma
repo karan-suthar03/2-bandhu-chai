@@ -16,15 +16,10 @@ datasource db {
 model Product {
   id              Int     @id @default(autoincrement())
   name            String
-  price           Float
-  oldPrice        Float?
-  discount        Float?
   description     String
   longDescription String?
   category        String
   badge           String
-  rating          Float   @default(0.0)
-  stock           Int     @default(0)
   isNew           Boolean @default(false)
   organic         Boolean @default(false)
   fastDelivery    Boolean @default(false)
@@ -33,21 +28,71 @@ model Product {
   image           Json?
   images          Json[]
 
-  // Image Type are
-  // small
-  // medium
-  // large
-  // extraLarge
-
   features       String[]
-  sizes          Json?
   specifications Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  orderItems OrderItem[]
+  rating      Float @default(0.0) // Calculated average rating
+  reviewCount Int   @default(0) // Total number of reviews
+
+  defaultVariantId Int? @unique
+
+  defaultVariant ProductVariant? @relation("DefaultVariant", fields: [defaultVariantId], references: [id], onDelete: SetNull)
+
+  variants ProductVariant[]
+
+  reviews Review[]
 
   @@map("products")
+}
+
+model ProductVariant {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  size     String
+  price    Float
+  oldPrice Float?
+  discount Float?
+  stock    Int     @default(0)
+  sku      String? @unique
+
+  orderItems OrderItem[]
+
+  defaultForProduct Product? @relation("DefaultVariant")
+
+  @@map("product_variants")
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  role      String   @default("admin")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
+}
+
+model Review {
+  id           Int     @id @default(autoincrement())
+  reviewerName String
+  rating       Int
+  comment      String?
+  isVerified   Boolean @default(false)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("reviews")
 }
 
 enum OrderStatus {
@@ -78,27 +123,13 @@ enum PaymentMethod {
   WALLET
 }
 
-model Admin {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  email     String   @unique
-  password  String
-  role      String   @default("admin")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("admins")
-}
-
 model Order {
-  id          String  @id @default(cuid())
-  sessionId   String?
+  id        String  @id @default(cuid())
+  sessionId String?
 
-  customerName  String
-  customerEmail String
-  customerPhone String
-
+  customerName    String
+  customerEmail   String
+  customerPhone   String
   shippingAddress Json
 
   status        OrderStatus   @default(PENDING)
@@ -128,17 +159,17 @@ model Order {
 }
 
 model OrderItem {
-  id        Int    @id @default(autoincrement())
-  orderId   String
-  productId Int
+  id               Int    @id @default(autoincrement())
+  orderId          String
+  productVariantId Int
 
   productName String
   price       Float
   oldPrice    Float?
   quantity    Int
 
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant ProductVariant @relation(fields: [productVariantId], references: [id])
 
   @@map("order_items")
 }

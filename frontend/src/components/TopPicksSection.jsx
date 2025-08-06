@@ -14,7 +14,11 @@ function ProductCard({ product }) {
 
     const handleAddToCart = async (e) => {
         e.stopPropagation();
-        await addToCart(product.id);
+        const options = {};
+        if (product.defaultVariant?.id) {
+            options.variantId = product.defaultVariant.id;
+        }
+        await addToCart(product.id, options);
     };
 
     return (
@@ -37,8 +41,14 @@ function ProductCard({ product }) {
 
                 <div className="flex items-center gap-3 mb-3">
                     <span className="text-xl font-bold text-[#3a1f1f]">{formatCurrency(product.price)}</span>
-                    <span className="text-sm text-gray-500 line-through">{formatCurrency(product.oldPrice)}</span>
-                    <span className="text-xs font-medium text-[#e67e22]">{formatDiscount(product.discount)}</span>
+                    {product.oldPrice && (
+                        <>
+                            <span className="text-sm text-gray-500 line-through">{formatCurrency(product.oldPrice)}</span>
+                            {formatDiscount(product.discount) && (
+                                <span className="text-xs font-medium text-[#e67e22]">{formatDiscount(product.discount)}</span>
+                            )}
+                        </>
+                    )}
                 </div>
 
                 <div className="flex items-center mb-4">

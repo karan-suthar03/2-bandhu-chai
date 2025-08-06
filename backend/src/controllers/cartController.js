@@ -32,28 +32,48 @@ async function getCart(req, res) {
     }
 
     const productIds = cartItems.map(item => item.productId);
+    const variantIds = cartItems.map(item => item.variantId).filter(Boolean);
+    
     const products = await prisma.product.findMany({
         where: {
             id: { in: productIds },
             deactivated: false
+        },
+        include: {
+            variants: {
+                where: { id: { in: variantIds } }
+            }
         }
     });
 
-    const enrichedCart = products.map(product => {
-        const cartItem = cartItems.find(item => item.productId === product.id);
-        return {
+    const enrichedCart = [];
+    
+    for (const cartItem of cartItems) {
+        const product = products.find(p => p.id === cartItem.productId);
+        if (!product) continue;
+        
+        const variant = product.variants.find(v => v.id === cartItem.variantId);
+        if (!variant) continue;
+        
+        enrichedCart.push({
             ...product,
+            selectedVariant: variant,
+            price: variant.price,
+            oldPrice: variant.oldPrice,
+            size: variant.size,
+            stock: variant.stock,
             quantity: cartItem.quantity,
-            addedAt: cartItem.addedAt
-        };
-    });
+            addedAt: cartItem.addedAt,
+            variantId: cartItem.variantId
+        });
+    }
 
     const subtotal = enrichedCart.reduce((sum, item) => 
         sum + (item.price * item.quantity), 0
     );
     
     const totalDiscount = enrichedCart.reduce((sum, item) => 
-        sum + ((item.oldPrice - item.price) * item.quantity), 0
+        sum + ((item.oldPrice ? item.oldPrice - item.price : 0) * item.quantity), 0
     );
     
     const shippingCost = subtotal > 999 ? 0 : 99;
@@ -82,6 +102,7 @@ async function getCart(req, res) {
 
 async function addToCart(req, res) {
     const productId = parseInt(req.body.productId);
+    let variantId = parseInt(req.body.variantId);
     const quantity = parseInt(req.body.quantity) || 1;
 
     if (!productId || isNaN(productId)) {
@@ -89,11 +110,34 @@ async function addToCart(req, res) {
     }
 
     const product = await prisma.product.findUnique({
-        where: { id: productId }
+        where: { id: productId },
+        include: {
+            variants: true,
+            defaultVariant: true
+        }
     });
 
     if (!product || product.deactivated) {
         throw new NotFoundError('Product not found or is no longer available');
+    }
+
+    if (!variantId || isNaN(variantId)) {
+        if (product.defaultVariant) {
+            variantId = product.defaultVariant.id;
+        } else if (product.variants.length > 0) {
+            variantId = product.variants[0].id;
+        } else {
+            throw new BadRequestError('No variants available for this product');
+        }
+    }
+
+    const variant = product.variants.find(v => v.id === variantId);
+    if (!variant) {
+        throw new NotFoundError('Product variant not found');
+    }
+
+    if (variant.stock < quantity) {
+        throw new BadRequestError(`Insufficient stock. Available: ${variant.stock}, Requested: ${quantity}`);
     }
 
     if (!req.session.cart) {
@@ -105,15 +149,20 @@ async function addToCart(req, res) {
     }
 
     const existingItemIndex = req.session.cart.items.findIndex(
-        item => item.productId === productId
+        item => item.productId === productId && item.variantId === variantId
     );
 
     if (existingItemIndex >= 0) {
-        req.session.cart.items[existingItemIndex].quantity += quantity;
+        const newQuantity = req.session.cart.items[existingItemIndex].quantity + quantity;
+        if (newQuantity > variant.stock) {
+            throw new BadRequestError(`Cannot add ${quantity} more. Total would be ${newQuantity}, but only ${variant.stock} available.`);
+        }
+        req.session.cart.items[existingItemIndex].quantity = newQuantity;
         req.session.cart.items[existingItemIndex].updatedAt = new Date();
     } else {
         req.session.cart.items.push({
             productId,
+            variantId,
             quantity,
             addedAt: new Date(),
             updatedAt: new Date()
@@ -131,7 +180,7 @@ async function addToCart(req, res) {
 
 async function updateCartItem(req, res) {
     const productId = parseInt(req.params.productId);
-    const { quantity } = req.body;
+    const { quantity, variantId } = req.body;
 
     if (!productId || isNaN(productId)) {
         throw new BadRequestError('Invalid product ID');
@@ -142,7 +191,7 @@ async function updateCartItem(req, res) {
     }
 
     const itemIndex = req.session.cart.items.findIndex(
-        item => item.productId === productId
+        item => item.productId === productId && (!variantId || item.variantId === parseInt(variantId))
     );
 
     if (itemIndex === -1) {
@@ -152,6 +201,20 @@ async function updateCartItem(req, res) {
     if (quantity <= 0) {
         req.session.cart.items.splice(itemIndex, 1);
     } else {
+        if (req.session.cart.items[itemIndex].variantId) {
+            const variant = await prisma.productVariant.findUnique({
+                where: { id: req.session.cart.items[itemIndex].variantId }
+            });
+            
+            if (!variant) {
+                throw new NotFoundError('Product variant not found');
+            }
+            
+            if (quantity > variant.stock) {
+                throw new BadRequestError(`Insufficient stock. Available: ${variant.stock}, Requested: ${quantity}`);
+            }
+        }
+        
         req.session.cart.items[itemIndex].quantity = quantity;
         req.session.cart.items[itemIndex].updatedAt = new Date();
     }
@@ -255,12 +318,18 @@ async function getCheckoutPreview(req, res) {
 
     const cartItems = req.session.cart.items;
     const productIds = cartItems.map(item => item.productId);
+    const variantIds = cartItems.map(item => item.variantId).filter(Boolean);
 
     const products = await prisma.product.findMany({
-        where: { id: { in: productIds } }
+        where: { id: { in: productIds } },
+        include: {
+            variants: {
+                where: { id: { in: variantIds } }
+            }
+        }
     });
 
-    if (products.length !== productIds.length) {
+    if (products.length !== [...new Set(productIds)].length) {
         throw new BadRequestError('Some products are no longer available');
     }
 
@@ -273,23 +342,30 @@ async function getCheckoutPreview(req, res) {
         const product = products.find(p => p.id === cartItem.productId);
         if (!product) continue;
 
-        if (product.stock < cartItem.quantity) {
+        const variant = product.variants.find(v => v.id === cartItem.variantId);
+        if (!variant) continue;
+
+        if (variant.stock < cartItem.quantity) {
             stockIssues.push({
                 productId: product.id,
-                productName: product.name,
+                productName: `${product.name} (${variant.size})`,
                 requested: cartItem.quantity,
-                available: product.stock
+                available: variant.stock
             });
         }
 
-        const itemTotal = product.price * cartItem.quantity;
-        const itemDiscount = product.oldPrice ? (product.oldPrice - product.price) * cartItem.quantity : 0;
+        const itemTotal = variant.price * cartItem.quantity;
+        const itemDiscount = variant.oldPrice ? (variant.oldPrice - variant.price) * cartItem.quantity : 0;
 
         subtotal += itemTotal;
         totalDiscount += itemDiscount;
 
         checkoutItems.push({
             ...product,
+            selectedVariant: variant,
+            price: variant.price,
+            oldPrice: variant.oldPrice,
+            size: variant.size,
             quantity: cartItem.quantity,
             itemTotal,
             itemDiscount

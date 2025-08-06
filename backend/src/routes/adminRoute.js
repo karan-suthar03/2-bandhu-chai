@@ -13,7 +13,8 @@ import {
     deactivateProduct,
     activateProduct,
     bulkDeactivateProducts,
-    bulkActivateProducts 
+    bulkActivateProducts,
+    getAllVariants 
 } from '../controllers/adminProductsController.js';
 import { 
     getAdminOrders, 
@@ -49,6 +50,7 @@ router.put('/profile', updateAdminProfile);
 router.put('/password', changeAdminPassword);
 
 router.get('/products', getAdminProducts);
+router.get('/variants', getAllVariants);
 router.post('/products/bulk-deactivate', bulkDeactivateProducts);
 router.post('/products/bulk-activate', bulkActivateProducts);
 router.get('/product/:id', getAdminProduct);

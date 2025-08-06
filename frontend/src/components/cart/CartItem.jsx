@@ -18,18 +18,23 @@ function CartItem({ item, onQuantityUpdate, onRemove, onProductClick }) {
                     >
                         {item.name}
                     </h3>
+                    {item.size && (
+                        <p className="text-sm text-[#5b4636] mb-1">Size: {item.size}</p>
+                    )}
                     <div className="flex items-center space-x-2">
                         <span className="text-lg font-bold text-[#3a1f1f]">
-                            ₹{formatPrice(item.price)}
+                            {formatPrice(item.price)}
                         </span>
                         {item.oldPrice && (
                             <>
                                 <span className="text-sm text-gray-500 line-through">
-                                    ₹{formatPrice(item.oldPrice)}
+                                    {formatPrice(item.oldPrice)}
                                 </span>
-                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                    {formatDiscount(item.discount)}
-                                </span>
+                                {formatDiscount(item.discount) && (
+                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                        {formatDiscount(item.discount)}
+                                    </span>
+                                )}
                             </>
                         )}
                     </div>
@@ -72,11 +77,11 @@ function CartItem({ item, onQuantityUpdate, onRemove, onProductClick }) {
                 </div>
                 <div className="text-right">
                     <p className="text-lg font-bold text-[#3a1f1f]">
-                        ₹{formatPrice(item.price * item.quantity)}
+                        {formatPrice(item.price * item.quantity)}
                     </p>
                     {item.oldPrice && (
                         <p className="text-sm text-gray-500 line-through">
-                            ₹{formatPrice(item.oldPrice * item.quantity)}
+                            {formatPrice(item.oldPrice * item.quantity)}
                         </p>
                     )}
                 </div>

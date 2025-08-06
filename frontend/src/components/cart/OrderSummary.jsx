@@ -59,35 +59,35 @@ function OrderSummary({ orderSummary, loading = false }) {
                             <div className="space-y-3">
                                 <div className="flex justify-between">
                                     <span className="text-[#5b4636]">Subtotal ({orderSummary.itemCount} items)</span>
-                                    <span className="font-semibold text-[#3a1f1f]">₹{formatPrice(orderSummary.subtotal)}</span>
+                                    <span className="font-semibold text-[#3a1f1f]">{formatPrice(orderSummary.subtotal)}</span>
                                 </div>
                                 <div className="flex justify-between text-green-600">
                                     <span>Discount</span>
-                                    <span>-₹{formatPrice(orderSummary.totalDiscount)}</span>
+                                    <span>-{formatPrice(orderSummary.totalDiscount)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-[#5b4636]">Shipping</span>
                                     <span className={`font-semibold ${orderSummary.shippingCost === 0 ? 'text-green-600' : 'text-[#3a1f1f]'}`}>
-                                        {orderSummary.shippingCost === 0 ? 'FREE' : `₹${formatPrice(orderSummary.shippingCost)}`}
+                                        {orderSummary.shippingCost === 0 ? 'FREE' : formatPrice(orderSummary.shippingCost)}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-[#5b4636]">Tax (GST 18%)</span>
-                                    <span className="font-semibold text-[#3a1f1f]">₹{formatPrice(orderSummary.tax)}</span>
+                                    <span className="font-semibold text-[#3a1f1f]">{formatPrice(orderSummary.tax)}</span>
                                 </div>
                             </div>
 
                             <div className="border-t pt-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-lg font-bold text-[#3a1f1f]">Total</span>
-                                    <span className="text-2xl font-bold text-[#e67e22]">₹{formatPrice(orderSummary.finalTotal)}</span>
+                                    <span className="text-2xl font-bold text-[#e67e22]">{formatPrice(orderSummary.finalTotal)}</span>
                                 </div>
                             </div>
 
                             {orderSummary.subtotal > 0 && orderSummary.subtotal < 999 && (
                                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                                     <p className="text-sm text-yellow-800">
-                                        Add ₹{formatPrice(999 - orderSummary.subtotal)} more for free shipping!
+                                        Add {formatPrice(999 - orderSummary.subtotal)} more for free shipping!
                                     </p>
                                 </div>
                             )}
@@ -101,7 +101,7 @@ function OrderSummary({ orderSummary, loading = false }) {
                                         <span className="text-green-800 font-semibold">Great savings!</span>
                                     </div>
                                     <p className="text-sm text-green-700">
-                                        You saved ₹{formatPrice(orderSummary.totalDiscount)} on this order!
+                                        You saved {formatPrice(orderSummary.totalDiscount)} on this order!
                                     </p>
                                     {orderSummary.shippingCost === 0 && (
                                         <p className="text-sm text-green-700 mt-1">

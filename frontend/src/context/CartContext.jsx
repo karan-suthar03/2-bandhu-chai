@@ -50,12 +50,14 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const addToCart = async (productId, quantity = 1) => {
+  const addToCart = async (productId, options = {}) => {
+    const { quantity = 1 } = options;
+    
     try {
       setAddToCartLoading(prev => new Set(prev).add(productId));
       setOrderSummaryLoading(true);
       
-      const cart = await cartService.addToCart(productId, quantity);
+      const cart = await cartService.addToCart(productId, options);
       if (cart.success) {
         setCartItems(cart.items);
         setOrderSummary(cart.orderSummary);

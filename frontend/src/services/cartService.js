@@ -36,12 +36,20 @@ class CartService {
         }
     }
 
-    async addToCart(productId, quantity = 1) {
+    async addToCart(productId, options = {}) {
+        const { variantId, quantity = 1 } = options;
+        
         try {
-            const response = await axios.post('/cart/add', {
+            const requestBody = {
                 productId,
                 quantity
-            });
+            };
+
+            if (variantId) {
+                requestBody.variantId = variantId;
+            }
+            
+            const response = await axios.post('/cart/add', requestBody);
 
             if (response.data.success) {
                 return await this.getCart();

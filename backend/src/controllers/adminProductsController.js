@@ -67,20 +67,32 @@ export const getAdminProducts = async (req, res) => {
             conditions.push({ badge: { contains: badge.trim(), mode: 'insensitive' } });
         }
 
-        if (minPrice) {
-            conditions.push({ price: { gte: parseFloat(minPrice) } });
+        if (minPrice || maxPrice) {
+            const priceCondition = {};
+            if (minPrice) priceCondition.gte = parseFloat(minPrice);
+            if (maxPrice) priceCondition.lte = parseFloat(maxPrice);
+            
+            conditions.push({
+                variants: {
+                    some: {
+                        price: priceCondition
+                    }
+                }
+            });
         }
 
-        if (maxPrice) {
-            conditions.push({ price: { lte: parseFloat(maxPrice) } });
-        }
-
-        if (minStock) {
-            conditions.push({ stock: { gte: parseInt(minStock) } });
-        }
-
-        if (maxStock) {
-            conditions.push({ stock: { lte: parseInt(maxStock) } });
+        if (minStock || maxStock) {
+            const stockCondition = {};
+            if (minStock) stockCondition.gte = parseInt(minStock);
+            if (maxStock) stockCondition.lte = parseInt(maxStock);
+            
+            conditions.push({
+                variants: {
+                    some: {
+                        stock: stockCondition
+                    }
+                }
+            });
         }
 
         if (featured !== undefined && featured !== '') {
@@ -113,13 +125,9 @@ export const getAdminProducts = async (req, res) => {
             'id': 'id',
             'name': 'name',
             'category': 'category',
-            'price': 'price',
             'rating': 'rating',
-            'stock': 'stock',
             'featured': 'featured',
             'badge': 'badge',
-            'oldPrice': 'oldPrice',
-            'discount': 'discount',
             'organic': 'organic',
             'isNew': 'isNew',
             'fastDelivery': 'fastDelivery',
@@ -139,7 +147,31 @@ export const getAdminProducts = async (req, res) => {
                 where,
                 skip: offset,
                 take: parseInt(limit),
-                orderBy: orderBy
+                orderBy: orderBy,
+                include: {
+                    variants: {
+                        select: {
+                            id: true,
+                            size: true,
+                            price: true,
+                            oldPrice: true,
+                            discount: true,
+                            stock: true,
+                            sku: true
+                        }
+                    },
+                    defaultVariant: {
+                        select: {
+                            id: true,
+                            size: true,
+                            price: true,
+                            oldPrice: true,
+                            discount: true,
+                            stock: true,
+                            sku: true
+                        }
+                    }
+                }
             }),
             prisma.product.count({ where })
         ]);
@@ -166,7 +198,22 @@ export const getAdminProducts = async (req, res) => {
                 }
             }
 
-            return product;
+            const totalStock = product.variants.reduce((sum, variant) => sum + variant.stock, 0);
+            const minPrice = Math.min(...product.variants.map(v => v.price));
+            const maxPrice = Math.max(...product.variants.map(v => v.price));
+            const variantCount = product.variants.length;
+
+            return {
+                ...product,
+                variantSummary: {
+                    totalStock,
+                    priceRange: minPrice === maxPrice ? `₹${minPrice}` : `₹${minPrice} - ₹${maxPrice}`,
+                    variantCount: `${variantCount} size${variantCount > 1 ? 's' : ''}`,
+                    lowStock: totalStock < 10
+                },
+                variants: product.variants,
+                defaultVariant: product.defaultVariant
+            };
         });
 
         console.log(`Found ${products.length} products, total: ${total}`);
@@ -196,7 +243,31 @@ export const getAdminProduct = async (req, res) => {
         const { id } = req.params;
 
         const product = await prisma.product.findUnique({
-            where: { id: parseInt(id) }
+            where: { id: parseInt(id) },
+            include: {
+                variants: {
+                    select: {
+                        id: true,
+                        size: true,
+                        price: true,
+                        oldPrice: true,
+                        discount: true,
+                        stock: true,
+                        sku: true
+                    }
+                },
+                defaultVariant: {
+                    select: {
+                        id: true,
+                        size: true,
+                        price: true,
+                        oldPrice: true,
+                        discount: true,
+                        stock: true,
+                        sku: true
+                    }
+                }
+            }
         });
 
         if (!product) {
@@ -275,86 +346,102 @@ async function uploadVariants(mainImage) {
 }
 
 export const createProduct = async (req, res) => {
+    const {
+        name, category, badge, description, longDescription, features,
+        isNew, featured, organic, fastDelivery,
+        variants: variantsData
+    } = req.body;
+
     try {
-        let mainImage = req.files?.mainImage[0];
+        const mainImageVariantsUrls = await uploadVariants(req.files.mainImage[0]);
 
-        let mainImageVariantsUrls = await uploadVariants(mainImage);
-
-        console.log('Main image upload URL:', mainImageVariantsUrls);
         let additionalImagesVariantsUrls = [];
-
         if (req.areFilesPresent && req.files.gallery && req.files.gallery.length > 0) {
-            const allUploadsPromise = req.files.gallery.map(img => {
-                return uploadVariants(img).then(variantsUrls => {
-                    console.log('Additional image variants uploaded:', variantsUrls);
-                    return variantsUrls;
-                });
-            });
-
-            additionalImagesVariantsUrls = await Promise.all(allUploadsPromise);
-        } else {
-            console.log('No gallery images to upload.');
+            additionalImagesVariantsUrls = await Promise.all(
+                req.files.gallery.map(img => uploadVariants(img))
+            );
         }
 
-        let data = {
-            name: req.body.name,
-            price: req.body.price,
-            oldPrice: req.body.oldPrice ? parseFloat(req.body.oldPrice) : null,
-            discount: req.body.discount ? parseFloat(req.body.discount) : null,
-            stock: req.body.stock,
-            category: req.body.category,
-            description: req.body.description,
-            badge: req.body.badge || null,
-            image: mainImageVariantsUrls,
-            images: additionalImagesVariantsUrls,
-            features: req.body.features ? JSON.parse(req.body.features) : [],
-            longDescription: req.body.fullDescription,
-            isNew: !!req.body.isNew,
-            organic: !!req.body.organic,
-            fastDelivery: !!req.body.fastDelivery,
-            featured: !!req.body.featured,
-            deactivated: !!req.body.deactivated,
-        }
+        const product = await prisma.$transaction(async (tx) => {
 
-        let createdProduct = await prisma.product.create({
-            data
-        })
+            const createdProduct = await tx.product.create({
+                data: {
+                    name,
+                    category,
+                    description,
+                    longDescription: req.body.fullDescription,
+                    badge: badge || null,
+                    features: features ? JSON.parse(features) : [],
+                    isNew: isNew === 'true',
+                    featured: featured === 'true',
+                    organic: organic === 'true',
+                    fastDelivery: fastDelivery === 'true',
+                    image: mainImageVariantsUrls,
+                    images: additionalImagesVariantsUrls,
 
-        let processedImage = createdProduct.image;
-        let processedImages = createdProduct.images;
-
-        if (processedImage && typeof processedImage === 'string') {
-            try {
-                processedImage = JSON.parse(processedImage);
-            } catch (e) {
-                console.warn('Failed to parse image JSON string in response:', processedImage);
-            }
-        }
-        if (processedImages && Array.isArray(processedImages)) {
-            processedImages = processedImages.map(img => {
-                if (typeof img === 'string') {
-                    try {
-                        return JSON.parse(img);
-                    } catch (e) {
-                        console.warn('Failed to parse image JSON string in response:', img);
-                        return img;
+                    variants: {
+                        create: variantsData.map(variant => {
+                            const price = parseFloat(variant.price);
+                            const oldPrice = variant.oldPrice ? parseFloat(variant.oldPrice) : null;
+                            let discount = null;
+                            if (oldPrice && oldPrice > price) {
+                                discount = (oldPrice - price) / oldPrice;
+                            } else if (variant.discount) {
+                                discount = parseFloat(variant.discount);
+                            }
+                            
+                            return {
+                                size: variant.size,
+                                price: price,
+                                oldPrice: oldPrice,
+                                stock: parseInt(variant.stock),
+                                discount: discount,
+                                sku: variant.sku,
+                            };
+                        })
                     }
+                },
+                include: {
+                    variants: true,
                 }
-                return img;
             });
-        }
 
-        res.status(201).json({
-            message: 'Product created',
-            createdProduct: {
-                ...createdProduct,
-                image: processedImage,
-                images: processedImages
+            const defaultVariantData = variantsData.find(v => v.isDefault === true);
+            if (!defaultVariantData) {
+                throw new Error("Default variant was not specified in the request.");
             }
+
+            const defaultVariant = createdProduct.variants.find(v => v.sku === defaultVariantData.sku);
+            if (!defaultVariant) {
+                throw new Error("Could not find the created default variant by SKU. SKUs might be missing or duplicated.");
+            }
+
+            const updatedProduct = await tx.product.update({
+                where: { id: createdProduct.id },
+                data: {
+                    defaultVariantId: defaultVariant.id,
+                },
+                include: {
+                    variants: true,
+                }
+            });
+
+            return updatedProduct;
         });
+
+        console.log('Transaction successful.');
+        res.status(201).json({
+            message: 'Product created successfully',
+            product: product
+        });
+
     } catch (err) {
-        console.error('Error in createProduct:', err);
-        res.status(500).json({ error: 'Failed to create product' });
+        console.error('Error in createProduct flow:', err);
+        if (err.code === 'P2028') {
+            res.status(500).json({ error: 'A critical operation timed out.', details: err.message });
+        } else {
+            res.status(500).json({ error: 'Failed to create product.', details: err.message });
+        }
     }
 };
 
@@ -365,78 +452,146 @@ export const updateProduct = async (req, res) => {
             name, 
             description, 
             longDescription,
-            price, 
-            oldPrice,
-            discount,
             category, 
             badge,
-            rating,
-            stock,
-            image, 
-            images,
             features,
-            sizes,
-            specifications,
             isNew,
             organic,
             fastDelivery,
             featured,
-            deactivated
+            deactivated,
+            variants,
+            defaultVariantId
         } = req.body;
 
         const existingProduct = await prisma.product.findUnique({
-            where: { id: parseInt(id) }
+            where: { id: parseInt(id) },
+            include: {
+                variants: true,
+                defaultVariant: true
+            }
         });
 
         if (!existingProduct) {
             throw new NotFoundError('Product not found');
         }
 
-        if (price !== undefined && price < 0) {
-            throw new ValidationError('Price cannot be negative');
+        if (variants && Array.isArray(variants)) {
+            if (variants.length === 0) {
+                throw new ValidationError('At least one variant is required');
+            }
+
+            for (const variant of variants) {
+                if (!variant.size?.trim()) {
+                    throw new ValidationError('Each variant must have a size');
+                }
+                if (!variant.price || variant.price <= 0) {
+                    throw new ValidationError('Each variant must have a valid price');
+                }
+                if (variant.stock < 0) {
+                    throw new ValidationError('Variant stock cannot be negative');
+                }
+                if (variant.oldPrice && variant.oldPrice < variant.price) {
+                    throw new ValidationError('Old price cannot be less than current price');
+                }
+            }
+
+            if (defaultVariantId) {
+                const hasDefaultVariant = variants.some(v => 
+                    (v.id && v.id === defaultVariantId) || v.isDefault
+                );
+                if (!hasDefaultVariant) {
+                    throw new ValidationError('Default variant must be one of the provided variants');
+                }
+            }
         }
 
-        if (stock !== undefined && stock < 0) {
-            throw new ValidationError('Stock cannot be negative');
-        }
+        const result = await prisma.$transaction(async (tx) => {
+            const updateData = {};
+            if (name !== undefined) updateData.name = name.trim();
+            if (description !== undefined) updateData.description = description.trim();
+            if (longDescription !== undefined) updateData.longDescription = longDescription?.trim() || null;
+            if (category !== undefined) updateData.category = category.trim();
+            if (badge !== undefined) updateData.badge = badge?.trim() || '';
+            if (features !== undefined) updateData.features = features || [];
+            if (isNew !== undefined) updateData.isNew = Boolean(isNew);
+            if (organic !== undefined) updateData.organic = Boolean(organic);
+            if (fastDelivery !== undefined) updateData.fastDelivery = Boolean(fastDelivery);
+            if (featured !== undefined) updateData.featured = Boolean(featured);
+            if (deactivated !== undefined) updateData.deactivated = Boolean(deactivated);
 
-        if (oldPrice && price && oldPrice < price) {
-            throw new ValidationError('Old price cannot be less than current price');
-        }
+            const updatedProduct = await tx.product.update({
+                where: { id: parseInt(id) },
+                data: updateData
+            });
 
-        if (discount && (discount < 0 || discount > 100)) {
-            throw new ValidationError('Discount must be between 0 and 100');
-        }
+            if (variants && Array.isArray(variants)) {
+                const existingVariantIds = existingProduct.variants.map(v => v.id);
+                const newVariantIds = variants.filter(v => v.id && !v.id.toString().startsWith('temp_')).map(v => v.id);
+                const variantsToDelete = existingVariantIds.filter(id => !newVariantIds.includes(id));
+                
+                if (variantsToDelete.length > 0) {
+                    await tx.productVariant.deleteMany({
+                        where: {
+                            id: { in: variantsToDelete },
+                            productId: parseInt(id)
+                        }
+                    });
+                }
 
-        const updateData = {};
-        if (name !== undefined) updateData.name = name.trim();
-        if (description !== undefined) updateData.description = description.trim();
-        if (longDescription !== undefined) updateData.longDescription = longDescription?.trim() || null;
-        if (price !== undefined) updateData.price = parseFloat(price);
-        if (oldPrice !== undefined) updateData.oldPrice = oldPrice ? parseFloat(oldPrice) : null;
-        if (discount !== undefined) updateData.discount = discount ? parseFloat(discount) : null;
-        if (category !== undefined) updateData.category = category.trim();
-        if (badge !== undefined) updateData.badge = badge?.trim() || '';
-        if (rating !== undefined) updateData.rating = parseFloat(rating);
-        if (stock !== undefined) updateData.stock = parseInt(stock);
-        if (image !== undefined) updateData.image = image?.trim() || '';
-        if (images !== undefined) updateData.images = images || [];
-        if (features !== undefined) updateData.features = features || [];
-        if (sizes !== undefined) updateData.sizes = sizes || null;
-        if (specifications !== undefined) updateData.specifications = specifications || null;
-        if (isNew !== undefined) updateData.isNew = Boolean(isNew);
-        if (organic !== undefined) updateData.organic = Boolean(organic);
-        if (fastDelivery !== undefined) updateData.fastDelivery = Boolean(fastDelivery);
-        if (featured !== undefined) updateData.featured = Boolean(featured);
-        if (deactivated !== undefined) updateData.deactivated = Boolean(deactivated);
+                let newDefaultVariantId = defaultVariantId;
+                for (const variant of variants) {
+                    const variantData = {
+                        size: variant.size.trim(),
+                        price: parseFloat(variant.price),
+                        oldPrice: variant.oldPrice ? parseFloat(variant.oldPrice) : null,
+                        stock: parseInt(variant.stock) || 0,
+                        sku: variant.sku || '',
+                        discount: variant.discount || 0
+                    };
 
-        const updatedProduct = await prisma.product.update({
-            where: { id: parseInt(id) },
-            data: updateData
+                    if (variant.id && !variant.id.toString().startsWith('temp_')) {
+                        const updatedVariant = await tx.productVariant.update({
+                            where: { id: parseInt(variant.id) },
+                            data: variantData
+                        });
+
+                        if (variant.isDefault || variant.id === defaultVariantId) {
+                            newDefaultVariantId = updatedVariant.id;
+                        }
+                    } else {
+                        const newVariant = await tx.productVariant.create({
+                            data: {
+                                ...variantData,
+                                productId: parseInt(id)
+                            }
+                        });
+
+                        if (variant.isDefault || variants.length === 1) {
+                            newDefaultVariantId = newVariant.id;
+                        }
+                    }
+                }
+
+                if (newDefaultVariantId) {
+                    await tx.product.update({
+                        where: { id: parseInt(id) },
+                        data: { defaultVariantId: parseInt(newDefaultVariantId) }
+                    });
+                }
+            }
+
+            return await tx.product.findUnique({
+                where: { id: parseInt(id) },
+                include: {
+                    variants: true,
+                    defaultVariant: true
+                }
+            });
         });
 
-        let processedImage = updatedProduct.image;
-        let processedImages = updatedProduct.images;
+        let processedImage = result.image;
+        let processedImages = result.images;
 
         if (processedImage && typeof processedImage === 'string') {
             try {
@@ -464,7 +619,7 @@ export const updateProduct = async (req, res) => {
             success: true,
             message: 'Product updated successfully',
             data: {
-                ...updatedProduct,
+                ...result,
                 image: processedImage,
                 images: processedImages
             }
@@ -1036,6 +1191,183 @@ export const bulkActivateProducts = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to activate products'
+        });
+    }
+};
+
+export const getAllVariants = async (req, res) => {
+    try {
+        const { 
+            page = 1, 
+            limit = 20, 
+            search = '',
+            productId,
+            size,
+            minPrice,
+            maxPrice,
+            minStock,
+            maxStock,
+            lowStock = false,
+            outOfStock = false,
+            _sort = 'product.name',
+            _order = 'asc'
+        } = req.query;
+        
+        const offset = (page - 1) * limit;
+
+        let where = {};
+        const conditions = [];
+
+        if (search && search.trim()) {
+            conditions.push({
+                OR: [
+                    { 
+                        product: {
+                            name: { contains: search, mode: 'insensitive' }
+                        }
+                    },
+                    { 
+                        product: {
+                            category: { contains: search, mode: 'insensitive' }
+                        }
+                    },
+                    { size: { contains: search, mode: 'insensitive' } },
+                    { sku: { contains: search, mode: 'insensitive' } }
+                ]
+            });
+        }
+
+        if (productId && productId.trim()) {
+            const id = parseInt(productId.trim());
+            if (!isNaN(id)) {
+                conditions.push({ productId: id });
+            }
+        }
+
+        if (size && size.trim()) {
+            conditions.push({ size: { contains: size.trim(), mode: 'insensitive' } });
+        }
+
+        if (minPrice || maxPrice) {
+            const priceCondition = {};
+            if (minPrice) priceCondition.gte = parseFloat(minPrice);
+            if (maxPrice) priceCondition.lte = parseFloat(maxPrice);
+            conditions.push({ price: priceCondition });
+        }
+
+        if (minStock || maxStock) {
+            const stockCondition = {};
+            if (minStock) stockCondition.gte = parseInt(minStock);
+            if (maxStock) stockCondition.lte = parseInt(maxStock);
+            conditions.push({ stock: stockCondition });
+        }
+
+        if (lowStock === 'true') {
+            conditions.push({ 
+                stock: { 
+                    gt: 0,
+                    lt: 10 
+                } 
+            });
+        }
+
+        if (outOfStock === 'true') {
+            conditions.push({ stock: { lte: 0 } });
+        }
+
+        if (conditions.length > 0) {
+            where = { AND: conditions };
+        }
+
+        let orderBy;
+        switch (_sort) {
+            case 'product.name':
+                orderBy = { product: { name: _order } };
+                break;
+            case 'size':
+                orderBy = { size: _order };
+                break;
+            case 'price':
+                orderBy = { price: _order };
+                break;
+            case 'stock':
+                orderBy = { stock: _order };
+                break;
+            case 'sku':
+                orderBy = { sku: _order };
+                break;
+            default:
+                orderBy = { product: { name: 'asc' } };
+        }
+
+        const [variants, total] = await Promise.all([
+            prisma.productVariant.findMany({
+                where,
+                skip: offset,
+                take: parseInt(limit),
+                orderBy,
+                include: {
+                    product: {
+                        select: {
+                            id: true,
+                            name: true,
+                            category: true,
+                            image: true,
+                            badge: true,
+                            deactivated: true
+                        }
+                    }
+                }
+            }),
+            prisma.productVariant.count({ where })
+        ]);
+
+        const processedVariants = variants.map(variant => {
+            let productImage = variant.product.image;
+            let smallImageUrl = null;
+            
+            if (productImage && typeof productImage === 'string') {
+                try {
+                    productImage = JSON.parse(productImage);
+                } catch (e) {
+                    console.warn('Failed to parse image JSON string:', productImage);
+                }
+            }
+
+            if (productImage && typeof productImage === 'object') {
+                smallImageUrl = productImage.smallUrl || productImage.url || null;
+            }
+
+            return {
+                ...variant,
+                product: {
+                    ...variant.product,
+                    image: productImage,
+                    smallImageUrl: smallImageUrl
+                },
+                stockStatus: variant.stock <= 0 ? 'Out of Stock' : 
+                           variant.stock < 10 ? 'Low Stock' : 'In Stock',
+                stockLevel: variant.stock <= 0 ? 'danger' : 
+                          variant.stock < 10 ? 'warning' : 'success'
+            };
+        });
+
+        res.json({
+            success: true,
+            data: processedVariants,
+            total,
+            pagination: {
+                current: parseInt(page),
+                pages: Math.ceil(total / limit),
+                total
+            }
+        });
+    } catch (error) {
+        console.error('Get variants error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch variants',
+            error: error.message
         });
     }
 };

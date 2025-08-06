@@ -16,11 +16,49 @@ import {
 import { ShoppingCart } from '@mui/icons-material';
 
 const OrderItems = ({ order }) => {
+    console.log('Order data in EditOrder OrderItems:', order);
+    console.log('Order items:', order.orderItems);
+    if (order.orderItems && order.orderItems.length > 0) {
+        console.log('First order item:', order.orderItems[0]);
+        console.log('First item variant:', order.orderItems[0].variant);
+        console.log('First item product:', order.orderItems[0].variant?.product);
+    }
+
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
             currency: 'INR'
         }).format(amount);
+    };
+
+    const getImageUrl = (imageObj) => {
+        if (!imageObj) return null;
+        if (typeof imageObj === 'string') {
+            try {
+                const parsed = JSON.parse(imageObj);
+                return parsed.mediumUrl || parsed.originalUrl || parsed.url || null;
+            } catch (e) {
+                return imageObj;
+            }
+        }
+        if (typeof imageObj === 'object') {
+            return imageObj.mediumUrl || imageObj.originalUrl || imageObj.url || null;
+        }
+        return null;
+    };
+
+    const getProductImage = (item) => {
+        const product = item.variant?.product;
+        if (!product) return null;
+
+        const mainImageUrl = getImageUrl(product.image);
+        if (mainImageUrl) return mainImageUrl;
+
+        if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+            return getImageUrl(product.images[0]);
+        }
+
+        return null;
     };
 
     return (
@@ -61,30 +99,25 @@ const OrderItems = ({ order }) => {
                                         <TableCell>
                                             <Box display="flex" alignItems="center" gap={2}>
                                                 <Avatar
-                                                    src={
-                                                        item.product?.image?.smallUrl || 
-                                                        item.product?.image?.mediumUrl || 
-                                                        item.product?.image?.largeUrl ||
-                                                        (item.product?.images && item.product.images.length > 0 ? 
-                                                            item.product.images[0]?.smallUrl || 
-                                                            item.product.images[0]?.mediumUrl || 
-                                                            item.product.images[0]?.largeUrl 
-                                                            : null
-                                                        )
-                                                    }
-                                                    alt={item.product?.name}
+                                                    src={getProductImage(item)}
+                                                    alt={item.variant?.product?.name}
                                                     sx={{ width: 40, height: 40 }}
                                                     variant="rounded"
                                                 >
-                                                    {item.product?.name?.charAt(0)}
+                                                    {item.variant?.product?.name?.charAt(0)}
                                                 </Avatar>
                                                 <Box>
                                                     <Typography variant="body2" fontWeight="medium">
-                                                        {item.product?.name || 'Unknown Product'}
+                                                        {item.variant?.product?.name || 'Unknown Product'}
                                                     </Typography>
                                                     <Typography variant="caption" color="text.secondary">
-                                                        Product ID: {item.productId}
+                                                        Product ID: {item.variant?.product?.id || item.productVariantId}
                                                     </Typography>
+                                                    {item.variant?.size && (
+                                                        <Typography variant="caption" color="text.secondary" display="block">
+                                                            Size: {item.variant.size}
+                                                        </Typography>
+                                                    )}
                                                 </Box>
                                             </Box>
                                         </TableCell>

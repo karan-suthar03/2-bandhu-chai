@@ -122,7 +122,15 @@ export const getAdminOrders = async (req, res) => {
                 take: perPage,
                 orderBy,
                 include: {
-                    orderItems: { include: { product: true } }
+                    orderItems: { 
+                        include: { 
+                            variant: {
+                                include: {
+                                    product: true
+                                }
+                            }
+                        } 
+                    }
                 }
             }),
             prisma.order.count({ where })
@@ -160,14 +168,17 @@ export const getAdminOrder = async (req, res) => {
             include: {
                 orderItems: {
                     include: {
-                        product: {
-                            select: {
-                                id: true,
-                                name: true,
-                                price: true,
-                                image: true,
-                                images: true,
-                                category: true
+                        variant: {
+                            include: {
+                                product: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        image: true,
+                                        images: true,
+                                        category: true
+                                    }
+                                }
                             }
                         }
                     }
@@ -232,12 +243,15 @@ export const updateOrderStatus = async (req, res) => {
             include: {
                 orderItems: {
                     include: {
-                        product: {
-                            select: {
-                                name: true,
-                                price: true,
-                                image: true,
-                                images: true
+                        variant: {
+                            include: {
+                                product: {
+                                    select: {
+                                        name: true,
+                                        image: true,
+                                        images: true
+                                    }
+                                }
                             }
                         }
                     }
@@ -385,12 +399,15 @@ export const updateOrder = async (req, res) => {
             include: {
                 orderItems: {
                     include: {
-                        product: {
-                            select: {
-                                name: true,
-                                price: true,
-                                image: true,
-                                images: true
+                        variant: {
+                            include: {
+                                product: {
+                                    select: {
+                                        name: true,
+                                        image: true,
+                                        images: true
+                                    }
+                                }
                             }
                         }
                     }

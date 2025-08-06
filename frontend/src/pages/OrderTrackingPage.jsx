@@ -233,6 +233,9 @@ function OrderTrackingPage() {
                                             <div className="flex-grow">
                                                 <h4 className="font-medium text-gray-800">{item.productName}</h4>
                                                 <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                                                {item.size && (
+                                                    <p className="text-sm text-gray-600">Size: {item.size}</p>
+                                                )}
                                                 <p className="text-sm text-gray-600">Price: {formatPrice(item.price)}</p>
                                             </div>
                                             <div className="text-right">

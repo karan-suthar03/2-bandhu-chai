@@ -1,7 +1,14 @@
-import prisma from "../config/prisma.js";
-import { BadRequestError, NotFoundError } from "../middlewares/errors/AppError.js";
+import { OrderService } from "../services/orderService.js";
+import { CartService } from "../services/cartService.js";
+import { sendSuccess, sendNotFound, sendBadRequest } from "../utils/responseUtils.js";
+import { validateRequired, validateEmail, validatePhone, sanitizeString } from "../utils/validationUtils.js";
+import asyncHandler from "../middlewares/asyncHandler.js";
 
-async function createOrder(req, res) {
+const createOrder = asyncHandler(async (req, res) => {
+    console.log('createOrder called with body:', req.body);
+    console.log('Session cart:', req.session?.cart);
+    console.log('Session ID:', req.sessionID);
+    
     const {
         customerName,
         customerEmail,
@@ -11,508 +18,211 @@ async function createOrder(req, res) {
         notes
     } = req.body;
 
-    if (!customerName || !customerEmail || !customerPhone || !shippingAddress) {
-        throw new BadRequestError('Please provide all required information: customer name, email, phone number, and complete shipping address');
+    console.log('Extracted data:', { customerName, customerEmail, customerPhone, shippingAddress, paymentMethod, notes });
+
+    const requiredFields = ['customerName', 'customerEmail', 'customerPhone', 'shippingAddress'];
+    const missingFields = validateRequired(requiredFields, req.body);
+    
+    console.log('Missing fields:', missingFields);
+    
+    if (missingFields.length > 0) {
+        console.log('Returning bad request for missing fields');
+        return sendBadRequest(res, `Missing required fields: ${missingFields.join(', ')}`);
+    }
+
+    if (!validateEmail(customerEmail)) {
+        console.log('Invalid email format:', customerEmail);
+        return sendBadRequest(res, 'Invalid email format');
+    }
+
+    if (!validatePhone(customerPhone)) {
+        console.log('Invalid phone format:', customerPhone);
+        return sendBadRequest(res, 'Invalid phone number format');
     }
 
     if (!req.session.cart || !req.session.cart.items || req.session.cart.items.length === 0) {
-        throw new BadRequestError('Your cart is empty. Please add some products before placing an order.');
+        console.log('Cart is empty or missing');
+        return sendBadRequest(res, 'Your cart is empty. Please add some products before placing an order.');
     }
 
-    const cartItems = req.session.cart.items;
-    const productIds = cartItems.map(item => item.productId);
-    const variantIds = cartItems.map(item => item.variantId).filter(Boolean);
+    console.log('Cart items:', req.session.cart.items);
 
-    const products = await prisma.product.findMany({
-        where: { id: { in: productIds } },
-        include: {
-            variants: {
-                where: { id: { in: variantIds } }
-            }
-        }
-    });
-
-    if (products.length !== [...new Set(productIds)].length) {
-        throw new BadRequestError('Some products in your cart are no longer available. Please review your cart and try again.');
-    }
-
-    let subtotal = 0;
-    let totalDiscount = 0;
-    const orderItems = [];
-
-    for (const cartItem of cartItems) {
-        const product = products.find(p => p.id === cartItem.productId);
-        if (!product) continue;
-
-        const variant = product.variants.find(v => v.id === cartItem.variantId);
-        if (!variant) {
-            throw new BadRequestError(`Product variant no longer available for "${product.name}". Please review your cart and try again.`);
-        }
-
-        if (variant.stock < cartItem.quantity) {
-            throw new BadRequestError(`Sorry, we don't have enough stock for "${product.name}" (${variant.size}). Available: ${variant.stock}, Requested: ${cartItem.quantity}. Please update your cart and try again.`);
-        }
-
-        const itemTotal = variant.price * cartItem.quantity;
-        const itemDiscount = variant.oldPrice ? (variant.oldPrice - variant.price) * cartItem.quantity : 0;
-
-        subtotal += itemTotal;
-        totalDiscount += itemDiscount;
-
-        orderItems.push({
-            productVariantId: variant.id,
-            productName: `${product.name} (${variant.size})`,
-            price: variant.price,
-            oldPrice: variant.oldPrice,
-            quantity: cartItem.quantity
-        });
-    }
-
-    const shippingCost = subtotal > 999 ? 0 : 99;
-    const tax = Math.round(subtotal * 0.18);
-    const finalTotal = subtotal + shippingCost + tax;
-
-    const order = await prisma.$transaction(async (tx) => {
-        const newOrder = await tx.order.create({
-            data: {
-                sessionId: req.session.id,
-                customerName,
-                customerEmail,
-                customerPhone,
-                shippingAddress,
-                paymentMethod,
-                subtotal,
-                totalDiscount,
-                shippingCost,
-                tax,
-                finalTotal,
-                notes,
-                orderItems: {
-                    create: orderItems
-                },
-                statusHistory: {
-                    create: {
-                        status: 'PENDING',
-                        notes: 'Order created'
-                    }
-                }
-            },
-            include: {
-                orderItems: {
-                    include: {
-                        variant: true
-                    }
-                },
-                statusHistory: true
-            }
-        });
-
-        for (const item of orderItems) {
-            await tx.productVariant.update({
-                where: { id: item.productVariantId },
-                data: {
-                    stock: {
-                        decrement: item.quantity
-                    }
-                }
-            });
-        }
-
-        return newOrder;
-    });
-
-    req.session.cart = {
-        items: [],
-        createdAt: new Date(),
-        lastUpdated: new Date()
+    const orderData = {
+        customerName: sanitizeString(customerName),
+        customerEmail: sanitizeString(customerEmail),
+        customerPhone: sanitizeString(customerPhone),
+        shippingAddress,
+        paymentMethod,
+        notes: sanitizeString(notes)
     };
 
-    res.status(201).json({
-        success: true,
-        message: 'Order placed successfully! 🎉',
-        userMessage: {
-            title: 'Thank you for your order!',
-            message: 'Your order has been placed successfully. We will contact you through email or call you within 24 hours to confirm your order details and delivery schedule.',
-            contactInfo: 'If you have any questions, please contact us at support@bandhuchai.com or call us at +91-XXXXXXXXXX',
-            nextSteps: [
-                'You will receive an order confirmation email shortly',
-                'Our team will contact you within 24 hours',
-                'We will confirm your delivery address and preferred time',
-                'Your order will be processed and shipped once confirmed'
-            ]
-        },
-        order: {
-            id: order.id,
-            status: order.status,
-            statusMessage: 'Order received - Awaiting confirmation',
-            customerName: order.customerName,
-            customerEmail: order.customerEmail,
-            customerPhone: order.customerPhone,
-            finalTotal: order.finalTotal,
-            paymentMethod: order.paymentMethod,
-            createdAt: order.createdAt,
-            estimatedDelivery: '3-7 business days (after confirmation)'
-        }
-    });
-}
+    console.log('Order data prepared:', orderData);
 
-async function getOrderConfirmation(req, res) {
-    const { orderId } = req.params;
+    try {
+        const order = await OrderService.createOrder(orderData, req.session.cart.items, req.sessionID);
+        console.log('Order created successfully:', order.id);
 
-    const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        include: {
-            orderItems: {
-                include: {
-                    variant: {
-                        include: {
-                            product: {
-                                select: {
-                                    image: true,
-                                    name: true
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    });
+        CartService.clearCart(req.session);
 
-    if (!order) {
-        throw new NotFoundError('Order not found');
-    }
+        console.log('About to send response with userMessage...');
 
-    res.json({
-        success: true,
-        data: {
+        const responseData = {
+            success: true,
+            message: 'Order placed successfully! 🎉',
+            userMessage: {
+                title: 'Thank you for your order!',
+                message: 'Your order has been placed successfully. We will contact you through email or call you within 24 hours to confirm your order details and delivery schedule.',
+                contactInfo: 'If you have any questions, please contact us at support@bandhuchai.com or call us at +91-XXXXXXXXXX',
+                nextSteps: [
+                    'You will receive an order confirmation email shortly',
+                    'Our team will contact you within 24 hours',
+                    'We will confirm your delivery address and preferred time',
+                    'Your order will be processed and shipped once confirmed'
+                ]
+            },
             order: {
                 id: order.id,
+                status: order.status,
+                statusMessage: 'Order received - Awaiting confirmation',
                 customerName: order.customerName,
                 customerEmail: order.customerEmail,
                 customerPhone: order.customerPhone,
-                status: order.status,
-                statusMessage: 'Order received - Awaiting confirmation',
-                items: order.orderItems.map(item => ({
-                    name: item.productName,
-                    quantity: item.quantity,
-                    price: item.price,
-                    oldPrice: item.oldPrice,
-                    total: item.price * item.quantity,
-                    size: item.variant?.size,
-                    image: item.variant?.product?.image
-                })),
-                summary: {
-                    subtotal: order.subtotal,
-                    shippingCost: order.shippingCost,
-                    tax: order.tax,
-                    finalTotal: order.finalTotal
-                },
+                finalTotal: order.finalTotal,
                 paymentMethod: order.paymentMethod,
-                shippingAddress: order.shippingAddress,
                 createdAt: order.createdAt,
                 estimatedDelivery: '3-7 business days (after confirmation)'
-            },
-            nextSteps: [
-                'You will receive an order confirmation email shortly',
-                'Our team will contact you within 24 hours',
-                'We will confirm your delivery address and preferred time',
-                'Your order will be processed and shipped once confirmed'
-            ],
-            supportInfo: {
-                email: 'support@bandhuchai.com',
-                phone: '+91-XXXXXXXXXX',
-                message: 'If you have any questions, please don\'t hesitate to contact us.'
             }
-        }
-    });
-}
-
-async function getOrder(req, res) {
-    const orderId = parseInt(req.params.orderId);
-
-    if (!orderId || isNaN(orderId)) {
-        throw new BadRequestError('Invalid order ID');
+        };
+        
+        console.log('Response data being sent:', responseData);
+        res.status(201).json(responseData);
+    } catch (error) {
+        console.error('Error creating order:', {
+            message: error.message,
+            stack: error.stack,
+            orderData,
+            cartItems: req.session.cart.items
+        });
+        throw error;
     }
+});
 
-    const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        include: {
-            orderItems: {
-                include: {
-                    variant: {
-                        include: {
-                            product: {
-                                select: {
-                                    name: true,
-                                    image: true
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            statusHistory: {
-                orderBy: { createdAt: 'desc' }
-            }
-        }
-    });
-
+const getOrderConfirmation = asyncHandler(async (req, res) => {
+    const orderId = sanitizeString(req.params.orderId);
+    
+    const order = await OrderService.getOrderById(orderId, true);
+    
     if (!order) {
-        throw new NotFoundError('Order not found');
+        return sendNotFound(res, 'Order not found');
     }
 
-    res.json({
-        success: true,
-        order: {
-            ...order,
-            orderItems: order.orderItems.map(item => ({
-                id: item.id,
-                productName: item.productName,
-                quantity: item.quantity,
-                price: item.price,
-                oldPrice: item.oldPrice,
-                size: item.variant?.size,
-                product: item.variant?.product
-            }))
-        }
-    });
-}
-
-async function getOrderByNumber(req, res) {
-    const { orderId } = req.params;
-    console.log(orderId);
-
-    const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        include: {
-            orderItems: {
-                include: {
-                    variant: {
-                        include: {
-                            product: {
-                                select: {
-                                    name: true,
-                                    image: true
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            statusHistory: {
-                orderBy: { createdAt: 'desc' }
-            }
-        }
-    });
-
-    if (!order) {
-        throw new NotFoundError('Order not found. Please check your order number and try again.');
-    }
-
-    const statusMessages = {
-        'PENDING': 'Order received - Awaiting confirmation',
-        'CONFIRMED': 'Order confirmed - Preparing for shipment',
-        'PROCESSING': 'Order is being processed',
-        'SHIPPED': 'Order shipped - On the way',
-        'DELIVERED': 'Order delivered successfully',
-        'CANCELLED': 'Order cancelled'
-    };
-
-    res.json({
-        success: true,
+    return sendSuccess(res, {
         order: {
             id: order.id,
-            status: order.status,
-            statusMessage: statusMessages[order.status] || 'Processing',
             customerName: order.customerName,
             customerEmail: order.customerEmail,
             customerPhone: order.customerPhone,
-            shippingAddress: order.shippingAddress,
+            shippingAddress: JSON.parse(order.shippingAddress),
             paymentMethod: order.paymentMethod,
-            paymentStatus: order.paymentStatus || 'PENDING',
-            orderItems: order.orderItems.map(item => ({
-                id: item.id,
-                productName: item.productName,
-                quantity: item.quantity,
-                price: item.price,
-                oldPrice: item.oldPrice,
-                size: item.variant?.size,
-                product: item.variant?.product
-            })),
+            status: order.status,
+            paymentStatus: order.paymentStatus,
             subtotal: order.subtotal,
             totalDiscount: order.totalDiscount,
             shippingCost: order.shippingCost,
             tax: order.tax,
             finalTotal: order.finalTotal,
+            notes: order.notes,
             createdAt: order.createdAt,
-            updatedAt: order.updatedAt,
-            statusHistory: order.statusHistory,
-            estimatedDelivery: order.status === 'SHIPPED' ? '1-3 business days' : '3-7 business days (after confirmation)'
+            orderItems: order.orderItems.map(item => ({
+                id: item.id,
+                productName: item.productName,
+                size: item.size,
+                quantity: item.quantity,
+                price: item.price,
+                oldPrice: item.oldPrice,
+                itemTotal: item.itemTotal
+            }))
         }
     });
-}
+});
 
-async function updateOrderStatus(req, res) {
-    const orderId = parseInt(req.params.orderId);
+const getOrder = asyncHandler(async (req, res) => {
+    const orderId = sanitizeString(req.params.orderId);
+    
+    const order = await OrderService.getOrderById(orderId, true);
+    
+    if (!order) {
+        return sendNotFound(res, 'Order not found');
+    }
+
+    return sendSuccess(res, { order });
+});
+
+const getOrderByNumber = asyncHandler(async (req, res) => {
+    const orderId = sanitizeString(req.params.orderId);
+    const { email } = req.query;
+    
+    const order = await OrderService.getOrderById(orderId, true);
+    
+    if (!order) {
+        return sendNotFound(res, 'Order not found');
+    }
+
+    if (email && order.customerEmail.toLowerCase() !== email.toLowerCase()) {
+        return sendNotFound(res, 'Order not found');
+    }
+
+    return sendSuccess(res, { order });
+});
+
+const updateOrderStatus = asyncHandler(async (req, res) => {
+    const orderId = sanitizeString(req.params.orderId);
     const { status, notes } = req.body;
 
-    if (!orderId || isNaN(orderId)) {
-        throw new BadRequestError('Invalid order ID');
+    if (!status) {
+        return sendBadRequest(res, 'Status is required');
     }
 
-    const validStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'RETURNED', 'REFUNDED'];
+    const validStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
     if (!validStatuses.includes(status)) {
-        throw new BadRequestError('Invalid status');
+        return sendBadRequest(res, `Invalid status. Valid statuses: ${validStatuses.join(', ')}`);
     }
 
-    const order = await prisma.order.findUnique({
-        where: { id: orderId }
-    });
-
-    if (!order) {
-        throw new NotFoundError('Order not found');
-    }
-
-    if (order.status === 'DELIVERED' || order.status === 'CANCELLED') {
-        throw new BadRequestError('Cannot update status of delivered or cancelled orders');
-    }
-
-    const updatedOrder = await prisma.$transaction(async (tx) => {
-        const updated = await tx.order.update({
-            where: { id: orderId },
-            data: { status }
-        });
-
-        await tx.orderStatusHistory.create({
-            data: {
-                orderId,
-                status,
-                notes: notes || `Order status updated to ${status}`
-            }
-        });
-
-        return updated;
-    });
-
-    res.json({
-        success: true,
-        message: 'Order status updated successfully',
+    const updatedOrder = await OrderService.updateOrderStatus(orderId, status, notes);
+    
+    return sendSuccess(res, {
         order: updatedOrder
+    }, 'Order status updated successfully');
+});
+
+const getAllOrders = asyncHandler(async (req, res) => {
+    const result = await OrderService.getOrders(req.query);
+    
+    return sendSuccess(res, {
+        orders: result.orders,
+        pagination: result.pagination
     });
-}
+});
 
-async function getAllOrders(req, res) {
-    const { status, page = 1, limit = 10 } = req.query;
-    const skip = (page - 1) * limit;
-
-    const whereClause = status ? { status } : {};
-
-    const orders = await prisma.order.findMany({
-        where: whereClause,
-        include: {
-            orderItems: {
-                include: {
-                    product: {
-                        select: {
-                            name: true,
-                            image: true
-                        }
-                    }
-                }
-            },
-            _count: {
-                select: {
-                    orderItems: true
-                }
-            }
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: parseInt(skip),
-        take: parseInt(limit)
-    });
-
-    const totalOrders = await prisma.order.count({
-        where: whereClause
-    });
-
-    res.json({
-        success: true,
-        orders,
-        pagination: {
-            currentPage: parseInt(page),
-            totalPages: Math.ceil(totalOrders / limit),
-            totalOrders,
-            limit: parseInt(limit)
-        }
-    });
-}
-
-async function cancelOrder(req, res) {
-    const orderId = parseInt(req.params.orderId);
-    const { reason } = req.body;
-
-    if (!orderId || isNaN(orderId)) {
-        throw new BadRequestError('Invalid order ID');
-    }
-
-    const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        include: {
-            orderItems: true
-        }
-    });
-
+const cancelOrder = asyncHandler(async (req, res) => {
+    const orderId = sanitizeString(req.params.orderId);
+    
+    const order = await OrderService.getOrderById(orderId, false);
+    
     if (!order) {
-        throw new NotFoundError('Order not found');
+        return sendNotFound(res, 'Order not found');
     }
 
-    if (order.status === 'DELIVERED') {
-        throw new BadRequestError('Cannot cancel a delivered order. Please contact support for returns.');
+    if (['DELIVERED', 'CANCELLED'].includes(order.status)) {
+        return sendBadRequest(res, 'Order cannot be cancelled');
     }
 
-    if (order.status === 'CANCELLED') {
-        throw new BadRequestError('Order is already cancelled');
-    }
-
-    if (order.status === 'SHIPPED') {
-        throw new BadRequestError('Cannot cancel a shipped order. Please contact support.');
-    }
-
-    await prisma.$transaction(async (tx) => {
-        await tx.order.update({
-            where: { id: orderId },
-            data: { 
-                status: 'CANCELLED',
-                notes: reason ? `Cancelled: ${reason}` : 'Order cancelled by user'
-            }
-        });
-
-        await tx.orderStatusHistory.create({
-            data: {
-                orderId,
-                status: 'CANCELLED',
-                notes: reason || 'Order cancelled by user'
-            }
-        });
-
-        for (const item of order.orderItems) {
-            await tx.product.update({
-                where: { id: item.productId },
-                data: {
-                    stock: {
-                        increment: item.quantity
-                    }
-                }
-            });
-        }
-    });
-
-    res.json({
-        success: true,
-        message: 'Order cancelled successfully. Stock has been restored.'
-    });
-}
+    const updatedOrder = await OrderService.updateOrderStatus(orderId, 'CANCELLED', 'Cancelled by customer');
+    
+    return sendSuccess(res, {
+        order: updatedOrder
+    }, 'Order cancelled successfully');
+});
 
 export {
     createOrder,

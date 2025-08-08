@@ -1,7 +1,5 @@
 import {PutObjectCommand} from '@aws-sdk/client-s3';
 import s3 from "../config/s3Client.js";
-import * as crypto from "node:crypto";
-import * as path from "node:path";
 
 const bucketName = process.env.BUCKET_NAME;
 const region = process.env.BUCKET_REGION;

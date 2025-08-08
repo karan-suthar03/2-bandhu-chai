@@ -28,9 +28,7 @@ import {
 import { 
     getAdminProfile, 
     updateAdminProfile, 
-    changeAdminPassword, 
-    getSystemAnalytics, 
-    getLowStockProducts 
+    changeAdminPassword
 } from '../controllers/adminController.js';
 import {validateCreateProduct, validateProductMediaUpdate, validateProductCategorization, validateProductCoreDetails, validateProductPricing} from "../middlewares/productMiddleware.js";
 
@@ -42,8 +40,6 @@ router.use(authenticateToken);
 router.use(requireAdmin);
 
 router.get('/dashboard/stats', getDashboardStats);
-router.get('/analytics', getSystemAnalytics);
-router.get('/low-stock', getLowStockProducts);
 
 router.get('/profile', getAdminProfile);
 router.put('/profile', updateAdminProfile);

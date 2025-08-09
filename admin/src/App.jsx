@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import { Routes, Route, Navigate, useNavigate} from 'react-router-dom';
 import Login from './Login';
-import Dashboard from './Dashboard';
+import Analytics from './Analytics';
 import PrivateRoute from './PrivateRoute';
 import { isAdminLoggedIn, isAdminLoggedInSync, getAdminFromStorage, logoutAdmin } from './api';
 
@@ -37,7 +37,7 @@ function App() {
   const handleLogin = (admin) => {
     setLoggedIn(true);
     setCurrentAdmin(admin);
-    navigate('/dashboard')
+    navigate('/')
   };
 
   const handleLogout = async () => {
@@ -58,14 +58,13 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route
-          path="/dashboard/*"
+          path="/*"
           element={
             <PrivateRoute loggedIn={loggedIn}>
-              <Dashboard onLogout={handleLogout} currentAdmin={currentAdmin} />
+              <Analytics onLogout={handleLogout} currentAdmin={currentAdmin} />
             </PrivateRoute>
           }
         />
-        <Route path="/" element={<Navigate to={loggedIn ? "/dashboard" : "/login"} replace />} />
       </Routes>
   );
 }

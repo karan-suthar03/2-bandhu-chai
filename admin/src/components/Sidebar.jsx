@@ -11,7 +11,6 @@ import {
     useTheme,
 } from '@mui/material';
 
-import DashboardIcon from '@mui/icons-material/Dashboard';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -22,12 +21,11 @@ const Sidebar = () => {
     const theme = useTheme();
 
     const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-        { id: 'orders', label: 'Orders', icon: <ShoppingCartIcon />, path: '/dashboard/orders' },
-        { id: 'products', label: 'Products', icon: <InventoryIcon />, path: '/dashboard/products' },
-        { id: 'variants', label: 'Variants', icon: <CategoryIcon />, path: '/dashboard/variants' },
-        { id: 'reviews', label: 'Reviews', icon: <RateReviewIcon />, path: '/dashboard/reviews' },
-        { id: 'analytics', label: 'Analytics', icon: <BarChartIcon />, path: '/dashboard/analytics' },
+        { id: 'analytics', label: 'Analytics', icon: <BarChartIcon />, path: '/analytics' },
+        { id: 'orders', label: 'Orders', icon: <ShoppingCartIcon />, path: '/orders' },
+        { id: 'products', label: 'Products', icon: <InventoryIcon />, path: '/products' },
+        { id: 'variants', label: 'Variants', icon: <CategoryIcon />, path: '/variants' },
+        { id: 'reviews', label: 'Reviews', icon: <RateReviewIcon />, path: '/reviews' },
     ];
 
     return (

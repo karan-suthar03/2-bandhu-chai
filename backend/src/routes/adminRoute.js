@@ -40,6 +40,12 @@ import {
     getReviewStats
 } from '../controllers/adminReviewsController.js';
 import {validateCreateProduct, validateProductMediaUpdate, validateProductCategorization, validateProductCoreDetails, validateProductPricing} from "../middlewares/productMiddleware.js";
+import { 
+    invalidateProductCachesMiddleware, 
+    invalidateSpecificProductCacheMiddleware, 
+    invalidateAllProductCachesMiddleware,
+    invalidateReviewCachesMiddleware
+} from '../middlewares/cacheInvalidation.js';
 
 const router = Router();
 const storage = multer.memoryStorage();
@@ -56,8 +62,8 @@ router.put('/password', changeAdminPassword);
 
 router.get('/products', getAdminProducts);
 router.get('/variants', getAllVariants);
-router.post('/products/bulk-deactivate', bulkDeactivateProducts);
-router.post('/products/bulk-activate', bulkActivateProducts);
+router.post('/products/bulk-deactivate', invalidateAllProductCachesMiddleware, bulkDeactivateProducts);
+router.post('/products/bulk-activate', invalidateAllProductCachesMiddleware, bulkActivateProducts);
 router.get('/product/:id', getAdminProduct);
 router.post(
   '/product',
@@ -66,12 +72,13 @@ router.post(
     { name: 'gallery', maxCount: 10 },
   ]),
     validateCreateProduct,
+    invalidateProductCachesMiddleware,
   createProduct
 );
-router.put('/product/:id', updateProduct);
-router.put('/product/:id/core-details', validateProductCoreDetails, updateProductCoreDetails);
-router.put('/product/:id/pricing', validateProductPricing, updateProductPricing);
-router.put('/product/:id/categorization', validateProductCategorization, updateProductCategorization);
+router.put('/product/:id', invalidateSpecificProductCacheMiddleware, updateProduct);
+router.put('/product/:id/core-details', validateProductCoreDetails, invalidateSpecificProductCacheMiddleware, updateProductCoreDetails);
+router.put('/product/:id/pricing', validateProductPricing, invalidateSpecificProductCacheMiddleware, updateProductPricing);
+router.put('/product/:id/categorization', validateProductCategorization, invalidateSpecificProductCacheMiddleware, updateProductCategorization);
 router.put(
   '/product/:id/media',
   upload.fields([
@@ -79,10 +86,11 @@ router.put(
     { name: 'gallery', maxCount: 10 },
   ]),
   validateProductMediaUpdate,
+  invalidateSpecificProductCacheMiddleware,
   updateProductMedia
 );
-router.put('/product/:id/deactivate', deactivateProduct);
-router.put('/product/:id/activate', activateProduct);
+router.put('/product/:id/deactivate', invalidateSpecificProductCacheMiddleware, deactivateProduct);
+router.put('/product/:id/activate', invalidateSpecificProductCacheMiddleware, activateProduct);
 
 router.get('/orders', getAdminOrders);
 router.post('/orders/bulk-delete', bulkDeleteOrders);
@@ -93,10 +101,10 @@ router.delete('/orders/:id', deleteOrder);
 
 router.get('/reviews', getAdminReviews);
 router.get('/reviews/stats', getReviewStats);
-router.post('/reviews/bulk-delete', bulkDeleteReviews);
-router.post('/reviews/bulk-verify', bulkUpdateVerification);
+router.post('/reviews/bulk-delete', invalidateReviewCachesMiddleware, bulkDeleteReviews);
+router.post('/reviews/bulk-verify', invalidateReviewCachesMiddleware, bulkUpdateVerification);
 router.get('/reviews/:id', getAdminReview);
-router.put('/reviews/:id/verify', updateReviewVerification);
-router.delete('/reviews/:id', deleteReview);
+router.put('/reviews/:id/verify', invalidateReviewCachesMiddleware, updateReviewVerification);
+router.delete('/reviews/:id', invalidateReviewCachesMiddleware, deleteReview);
 
 export default router;

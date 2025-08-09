@@ -2,34 +2,9 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { getProduct } from "../api/products.js";
+import { getProductReviews, createProductReview } from "../api/reviews.js";
 import {formatCurrency, formatDiscount} from "../utils/priceUtils.js";
 import productImage from "../assets/product.jpg";
-const reviewsData = [
-    {
-        id: 1,
-        name: "Rajesh Kumar",
-        rating: 5,
-        date: "2 days ago",
-        comment: "Excellent quality tea! The aroma is fantastic and the taste is rich and full-bodied. Highly recommended for tea lovers.",
-        verified: true
-    },
-    {
-        id: 2,
-        name: "Priya Sharma",
-        rating: 4,
-        date: "1 week ago",
-        comment: "Very good tea. The packaging is also premium. The taste is authentic and strong. Will order again.",
-        verified: true
-    },
-    {
-        id: 3,
-        name: "Amit Patel",
-        rating: 5,
-        date: "2 weeks ago",
-        comment: "Best Assam tea I've had in years. The organic certification gives me confidence in the quality. Fast delivery too!",
-        verified: true
-    }
-];
 function ProductPage() {
     const { productId } = useParams();
     const { addToCart, isInCart, isAddingToCart } = useCart();
@@ -38,9 +13,12 @@ function ProductPage() {
     const [selectedSize, setSelectedSize] = useState(null);
     const [selectedVariant, setSelectedVariant] = useState(null);
     const [quantity, setQuantity] = useState(1);
-    const [activeTab, setActiveTab] = useState("description");
     const [reviews, setReviews] = useState([]);
-    const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+    const [reviewsSummary, setReviewsSummary] = useState(null);
+    const [submittingReview, setSubmittingReview] = useState(false);
+    const [reviewForm, setReviewForm] = useState({ name: "", email: "", rating: 5, comment: "" });
+    const [hoveredRating, setHoveredRating] = useState(0);
+    const [reviewErrors, setReviewErrors] = useState({});
     const [isInWishlist, setIsInWishlist] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -57,7 +35,22 @@ function ProductPage() {
                     setProduct(null);
                 } else {
                     setProduct(productData);
-                    setReviews(reviewsData);
+                    try {
+                        const { reviews: list, summary } = await getProductReviews(productId, { page: 1, limit: 10 });
+                        setReviews(list.map(r => ({
+                            id: r.id,
+                            name: r.reviewerName,
+                            rating: r.rating,
+                            date: new Date(r.createdAt).toLocaleDateString(),
+                            comment: r.comment || "",
+                            verified: r.isVerified
+                        })));
+                        setReviewsSummary(summary);
+                    } catch (e) {
+                        console.warn('Failed to load reviews:', e.message);
+                        setReviews([]);
+                        setReviewsSummary(null);
+                    }
                     
                     if (productData.sizes && productData.sizes.length > 0) {
                         const defaultSize = productData.defaultVariant?.size || productData.sizes[0].size;
@@ -84,21 +77,9 @@ function ProductPage() {
         window.scrollTo(0, 0);
     }, [productId]);
 
-    useEffect(() => {
-        if (showSuccessMessage) {
-            const timer = setTimeout(() => {
-                setShowSuccessMessage(false);
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [showSuccessMessage]);
-
     const handleAddToCart = async () => {
         const variantId = selectedVariant?.id || product.defaultVariant?.id;
-        const success = await addToCart(product.id, { variantId, quantity });
-        if (success) {
-            setShowSuccessMessage(true);
-        }
+        await addToCart(product.id, { variantId, quantity });
         console.log("Adding to cart:", { product, selectedVariant, quantity });
     };
 
@@ -114,6 +95,65 @@ function ProductPage() {
 
     const handleWishlist = () => {
         setIsInWishlist(!isInWishlist);
+    };
+
+    const refreshReviews = async () => {
+        try {
+            const { reviews: list, summary } = await getProductReviews(product.id || productId, { page: 1, limit: 10 });
+            setReviews(list.map(r => ({
+                id: r.id,
+                name: r.reviewerName,
+                rating: r.rating,
+                date: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '',
+                comment: r.comment || "",
+                verified: r.isVerified
+            })));
+            setReviewsSummary(summary);
+            if (summary) {
+                setProduct(p => p ? { ...p, reviewCount: summary.count, reviews: summary.count } : p);
+            }
+        } catch (e) {
+            console.warn('Failed to refresh reviews:', e.message);
+        }
+    };
+
+    const handleSubmitReview = async () => {
+        setReviewErrors({});
+        const errors = {};
+        if (!reviewForm.name.trim()) {
+            errors.name = "Name is required";
+        }
+        if (!reviewForm.email.trim()) {
+            errors.email = "Email is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reviewForm.email)) {
+            errors.email = "Please enter a valid email address";
+        }
+        if (!reviewForm.rating || reviewForm.rating < 1 || reviewForm.rating > 5) {
+            errors.rating = "Please select a rating";
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setReviewErrors(errors);
+            return;
+        }
+
+        setSubmittingReview(true);
+        try {
+            const created = await createProductReview(product.id, {
+                name: reviewForm.name.trim(),
+                email: reviewForm.email.trim(),
+                rating: Number(reviewForm.rating),
+                comment: reviewForm.comment.trim() || undefined
+            });
+            await refreshReviews();
+            setReviewForm({ name: "", email: "", rating: 5, comment: "" });
+            setReviewErrors({});
+        } catch (e) {
+            const errorMessage = e?.response?.data?.error?.message || e?.response?.data?.message || 'Failed to submit review';
+            setReviewErrors({ submit: errorMessage });
+        } finally {
+            setSubmittingReview(false);
+        }
     };
 
     if (loading) {
@@ -165,17 +205,6 @@ function ProductPage() {
     return (
         <>
             <main className="min-h-screen pt-20 bg-gray-50">
-                {}
-                {showSuccessMessage && (
-                    <div className="fixed top-20 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center animate-pulse">
-                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        Added to cart successfully!
-                    </div>
-                )}
-
-                {}
                 <section className="bg-white py-4 px-4 border-b">
                     <div className="max-w-7xl mx-auto">
                         <nav className="flex items-center space-x-2 text-sm text-[#5b4636]">
@@ -264,7 +293,7 @@ function ProductPage() {
                                                 ))}
                                             </div>
                                             <span className="ml-2 text-sm text-[#5b4636]">
-                                                {product.rating} ({product.reviews} reviews)
+                                                {product.rating} ({product.reviews ?? product.reviewCount ?? 0} reviews)
                                             </span>
                                         </div>
                                         <span className="text-green-600 text-sm font-medium">
@@ -355,19 +384,21 @@ function ProductPage() {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <h3 className="text-lg font-semibold text-[#3a1f1f] mb-3">Key Features</h3>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {product.features.map((feature, index) => (
-                                            <div key={index} className="flex items-center space-x-2">
-                                                <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                </svg>
-                                                <span className="text-sm text-[#5b4636]">{feature}</span>
-                                            </div>
-                                        ))}
+                                {Array.isArray(product.features) && product.features.length > 0 && (
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-[#3a1f1f] mb-3">Key Features</h3>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {product.features.map((feature, index) => (
+                                                <div key={index} className="flex items-center space-x-2">
+                                                    <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                    </svg>
+                                                    <span className="text-sm text-[#5b4636]">{feature}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
                                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                                     <button
@@ -452,82 +483,156 @@ function ProductPage() {
 
                 <section className="bg-white py-12 px-4">
                     <div className="max-w-7xl mx-auto">
-                        <div className="flex space-x-1 border-b border-gray-200 mb-8">
-                            {[
-                                { id: "description", label: "Description" },
-                                { id: "specifications", label: "Specifications" },
-                                { id: "brewing", label: "Brewing Guide" },
-                                { id: "reviews", label: "Reviews" }
-                            ].map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`px-6 py-3 font-medium text-sm transition-all ${
-                                        activeTab === tab.id
-                                            ? "text-[#e67e22] border-b-2 border-[#e67e22]"
-                                            : "text-[#5b4636] hover:text-[#e67e22]"
-                                    }`}
-                                >
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </div>
-
                         <div className="max-w-4xl">
-                            {activeTab === "description" && (
+                            {product.longDescription && (
                                 <div className="space-y-6">
-                                    <h3 className="text-2xl font-bold text-[#3a1f1f]">Product Description</h3>
+                                    <h3 className="text-2xl font-bold text-[#3a1f1f]">Product Details</h3>
                                     <p className="text-[#5b4636] text-lg leading-relaxed break-words whitespace-pre-wrap">
                                         {product.longDescription}
                                     </p>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </section>
 
-                            {activeTab === "specifications" && (
-                                <div className="space-y-6">
-                                    <h3 className="text-2xl font-bold text-[#3a1f1f]">Specifications</h3>
+                <section className="bg-white py-12 px-4">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="max-w-4xl">
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-2xl font-bold text-[#3a1f1f]">Customer Reviews</h3>
+                                    <span className="text-sm text-[#5b4636]">
+                                        {reviewsSummary ? `${reviewsSummary.count} total` : `${product.reviews ?? product.reviewCount ?? 0} total`}
+                                    </span>
+                                </div>
+
+                                <div className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+                                    <h4 className="font-semibold text-[#3a1f1f] mb-4">Write a Review</h4>
+
+                                    {reviewErrors.submit && (
+                                        <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+                                            {reviewErrors.submit}
+                                        </div>
+                                    )}
+                                    
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {Object.entries(product.specifications).map(([key, value]) => (
-                                            <div key={key} className="flex justify-between py-3 border-b border-gray-200">
-                                                <span className="font-medium text-[#3a1f1f]">{key}:</span>
-                                                <span className="text-[#5b4636]">{value}</span>
-                                            </div>
-                                        ))}
+                                        <div>
+                                            <input
+                                                type="text"
+                                                placeholder="Your Name"
+                                                className={`w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:border-transparent ${
+                                                    reviewErrors.name 
+                                                        ? 'border-red-500 focus:ring-red-500' 
+                                                        : 'border-gray-300 focus:ring-[#e67e22]'
+                                                }`}
+                                                value={reviewForm.name}
+                                                onChange={e => {
+                                                    setReviewForm(f => ({ ...f, name: e.target.value }));
+                                                    if (reviewErrors.name) setReviewErrors(prev => ({ ...prev, name: null }));
+                                                }}
+                                            />
+                                            {reviewErrors.name && (
+                                                <p className="mt-1 text-sm text-red-600">{reviewErrors.name}</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="email"
+                                                placeholder="Your Email"
+                                                className={`w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:border-transparent ${
+                                                    reviewErrors.email 
+                                                        ? 'border-red-500 focus:ring-red-500' 
+                                                        : 'border-gray-300 focus:ring-[#e67e22]'
+                                                }`}
+                                                value={reviewForm.email}
+                                                onChange={e => {
+                                                    setReviewForm(f => ({ ...f, email: e.target.value }));
+                                                    if (reviewErrors.email) setReviewErrors(prev => ({ ...prev, email: null }));
+                                                }}
+                                            />
+                                            {reviewErrors.email && (
+                                                <p className="mt-1 text-sm text-red-600">{reviewErrors.email}</p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
 
-                            {activeTab === "brewing" && (
-                                <div className="space-y-6">
-                                    <h3 className="text-2xl font-bold text-[#3a1f1f]">Brewing Instructions</h3>
-                                    <div className="space-y-4">
-                                        {product.brewingInstructions.map((instruction, index) => (
-                                            <div key={index} className="flex items-start space-x-3">
-                                                <span className="flex-shrink-0 w-6 h-6 bg-[#e67e22] text-white rounded-full flex items-center justify-center text-sm font-bold">
-                                                    {index + 1}
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-medium text-[#3a1f1f] mb-2">Rating</label>
+                                        <div className="flex items-center space-x-1">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <button
+                                                    key={star}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setReviewForm(f => ({ ...f, rating: star }));
+                                                        if (reviewErrors.rating) setReviewErrors(prev => ({ ...prev, rating: null }));
+                                                    }}
+                                                    onMouseEnter={() => setHoveredRating(star)}
+                                                    onMouseLeave={() => setHoveredRating(0)}
+                                                    className="focus:outline-none transition-transform hover:scale-110"
+                                                >
+                                                    <svg
+                                                        className={`w-8 h-8 ${
+                                                            star <= (hoveredRating || reviewForm.rating)
+                                                                ? 'text-yellow-400' 
+                                                                : 'text-gray-300'
+                                                        } transition-colors`}
+                                                        fill="currentColor"
+                                                        viewBox="0 0 20 20"
+                                                    >
+                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.518 4.674h4.911c.969 0 1.371 1.24.588 1.81l-3.977 2.89 1.518 4.674c.3.921-.755 1.688-1.54 1.118l-3.977-2.89-3.977 2.89c-.784.57-1.838-.197-1.54-1.118l1.518-4.674-3.977-2.89c-.784-.57-.38-1.81.588-1.81h4.911l1.518-4.674z" />
+                                                    </svg>
+                                                </button>
+                                            ))}
+                                            <span className="ml-2 text-sm text-[#5b4636]">
+                                                {reviewForm.rating} star{reviewForm.rating !== 1 ? 's' : ''}
+                                            </span>
+                                        </div>
+                                        {reviewErrors.rating && (
+                                            <p className="mt-1 text-sm text-red-600">{reviewErrors.rating}</p>
+                                        )}
+                                    </div>
+                                    
+                                    <textarea
+                                        className="mt-4 w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#e67e22] focus:border-transparent"
+                                        placeholder="Share your thoughts about this product... (optional)"
+                                        rows="4"
+                                        value={reviewForm.comment}
+                                        onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}
+                                    />
+                                    
+                                    <div className="mt-4">
+                                        <button
+                                            onClick={handleSubmitReview}
+                                            disabled={submittingReview}
+                                            className={`bg-[#e67e22] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#d35400] transition-all duration-200 transform hover:scale-105 ${
+                                                submittingReview ? 'opacity-70 cursor-not-allowed' : ''
+                                            }`}
+                                        >
+                                            {submittingReview ? (
+                                                <span className="flex items-center">
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                                    Submitting...
                                                 </span>
-                                                <p className="text-[#5b4636]">{instruction}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === "reviews" && (
-                                <div className="space-y-6">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-2xl font-bold text-[#3a1f1f]">Customer Reviews</h3>
-                                        <button className="bg-[#e67e22] text-white px-4 py-2 rounded-lg hover:bg-[#d35400] transition">
-                                            Write a Review
+                                            ) : (
+                                                'Submit Review'
+                                            )}
                                         </button>
                                     </div>
-                                    <div className="space-y-6">
-                                        {reviews.map((review) => (
-                                            <div key={review.id} className="border border-gray-200 rounded-lg p-6">
+                                </div>
+                                <div className="space-y-6">
+                                    {reviews.length === 0 ? (
+                                        <div className="text-center py-8 text-[#5b4636]">
+                                            <p>No reviews yet. Be the first to review this product!</p>
+                                        </div>
+                                    ) : (
+                                        reviews.map((review) => (
+                                            <div key={review.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                                                 <div className="flex items-center justify-between mb-4">
                                                     <div className="flex items-center space-x-3">
-                                                        <div className="w-10 h-10 bg-[#e67e22] rounded-full flex items-center justify-center text-white font-bold">
-                                                            {review.name.charAt(0)}
+                                                        <div className="w-12 h-12 bg-gradient-to-br from-[#e67e22] to-[#d35400] rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                                            {review.name.charAt(0).toUpperCase()}
                                                         </div>
                                                         <div>
                                                             <p className="font-semibold text-[#3a1f1f]">{review.name}</p>
@@ -546,7 +651,7 @@ function ProductPage() {
                                                             {[...Array(5)].map((_, i) => (
                                                                 <svg
                                                                     key={i}
-                                                                    className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                                                                    className={`w-5 h-5 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
                                                                     fill="currentColor"
                                                                     viewBox="0 0 20 20"
                                                                 >
@@ -557,12 +662,14 @@ function ProductPage() {
                                                         <span className="text-sm text-[#5b4636]">{review.date}</span>
                                                     </div>
                                                 </div>
-                                                <p className="text-[#5b4636]">{review.comment}</p>
+                                                {review.comment && (
+                                                    <p className="text-[#5b4636] leading-relaxed">{review.comment}</p>
+                                                )}
                                             </div>
-                                        ))}
-                                    </div>
+                                        ))
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </div>
                     </div>
                 </section>

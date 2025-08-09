@@ -30,6 +30,15 @@ import {
     updateAdminProfile, 
     changeAdminPassword
 } from '../controllers/adminController.js';
+import {
+    getAdminReviews,
+    getAdminReview,
+    updateReviewVerification,
+    deleteReview,
+    bulkDeleteReviews,
+    bulkUpdateVerification,
+    getReviewStats
+} from '../controllers/adminReviewsController.js';
 import {validateCreateProduct, validateProductMediaUpdate, validateProductCategorization, validateProductCoreDetails, validateProductPricing} from "../middlewares/productMiddleware.js";
 
 const router = Router();
@@ -81,5 +90,13 @@ router.get('/orders/:id', getAdminOrder);
 router.put('/orders/:id', updateOrder);
 router.put('/orders/:orderId/status', updateOrderStatus);
 router.delete('/orders/:id', deleteOrder);
+
+router.get('/reviews', getAdminReviews);
+router.get('/reviews/stats', getReviewStats);
+router.post('/reviews/bulk-delete', bulkDeleteReviews);
+router.post('/reviews/bulk-verify', bulkUpdateVerification);
+router.get('/reviews/:id', getAdminReview);
+router.put('/reviews/:id/verify', updateReviewVerification);
+router.delete('/reviews/:id', deleteReview);
 
 export default router;

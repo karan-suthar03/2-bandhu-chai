@@ -188,4 +188,32 @@ export const updateOrderStatus = async (orderId, data) => {
   return api.put(`/admin/orders/${orderId}/status`, data);
 };
 
+export const getAdminReviews = async (params = {}) => {
+  return api.get('/admin/reviews', { params });
+};
+
+export const getAdminReview = async (reviewId) => {
+  return api.get(`/admin/reviews/${reviewId}`);
+};
+
+export const getReviewStats = async () => {
+  return api.get('/admin/reviews/stats');
+};
+
+export const updateReviewVerification = async (reviewId, isVerified) => {
+  return api.put(`/admin/reviews/${reviewId}/verify`, { isVerified });
+};
+
+export const deleteReview = async (reviewId) => {
+  return api.delete(`/admin/reviews/${reviewId}`);
+};
+
+export const bulkDeleteReviews = async (reviewIds) => {
+  return api.post('/admin/reviews/bulk-delete', { reviewIds });
+};
+
+export const bulkUpdateReviewVerification = async (reviewIds, isVerified) => {
+  return api.post('/admin/reviews/bulk-verify', { reviewIds, isVerified });
+};
+
 export default api;

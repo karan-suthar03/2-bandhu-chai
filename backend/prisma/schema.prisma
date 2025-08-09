@@ -82,6 +82,7 @@ model Admin {
 model Review {
   id           Int     @id @default(autoincrement())
   reviewerName String
+  reviewerEmail String?
   rating       Int
   comment      String?
   isVerified   Boolean @default(false)

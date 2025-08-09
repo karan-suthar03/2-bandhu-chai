@@ -84,6 +84,8 @@ const getProduct = async (req, res) => {
                 id: variant.id
             })),
             rating: product.rating,
+            reviewCount: product.reviewCount,
+            reviews: product.reviewCount,
             badge: product.badge,
             images: [product.image,...product.images],
             category: product.category,

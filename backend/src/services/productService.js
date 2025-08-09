@@ -100,6 +100,8 @@ export class ProductService {
             stock: product.defaultVariant?.stock || 0,
             badge: product.badge,
             rating: product.rating || 0,
+            reviewCount: product.reviewCount || 0,
+            reviews: product.reviewCount || 0,
             category: product.category,
             featured: product.featured,
             organic: product.organic,

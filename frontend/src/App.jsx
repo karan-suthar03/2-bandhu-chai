@@ -21,7 +21,7 @@ function App() {
   return (
     <ErrorBoundary>
       <CartProvider>
-        <Router basename="/2-bandhu-chai">
+  <Router>
           <ScrollToTop />
           <Navbar />
           <Routes>

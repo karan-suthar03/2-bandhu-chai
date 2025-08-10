@@ -216,4 +216,22 @@ export const bulkUpdateReviewVerification = async (reviewIds, isVerified) => {
   return api.post('/admin/reviews/bulk-verify', { reviewIds, isVerified });
 };
 
+export const getEmailStats = async (filters = {}) => {
+  const params = new URLSearchParams(filters);
+  return api.get(`/admin/emails/stats?${params}`);
+};
+
+export const getEmailLogs = async (filters = {}) => {
+  const params = new URLSearchParams(filters);
+  return api.get(`/admin/emails/logs?${params}`);
+};
+
+export const getOrderEmailLogs = async (orderId) => {
+  return api.get(`/admin/emails/orders/${orderId}`);
+};
+
+export const retryFailedEmails = async (maxAttempts = 3) => {
+  return api.post('/admin/emails/retry', { maxAttempts });
+};
+
 export default api;

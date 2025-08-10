@@ -16,6 +16,7 @@ import InventoryIcon from '@mui/icons-material/Inventory';
 import CategoryIcon from '@mui/icons-material/Category';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import RateReviewIcon from '@mui/icons-material/RateReview';
+import EmailIcon from '@mui/icons-material/Email';
 
 const Sidebar = () => {
     const theme = useTheme();
@@ -26,6 +27,7 @@ const Sidebar = () => {
         { id: 'products', label: 'Products', icon: <InventoryIcon />, path: '/products' },
         { id: 'variants', label: 'Variants', icon: <CategoryIcon />, path: '/variants' },
         { id: 'reviews', label: 'Reviews', icon: <RateReviewIcon />, path: '/reviews' },
+        { id: 'emails', label: 'Emails', icon: <EmailIcon />, path: '/emails' },
     ];
 
     return (

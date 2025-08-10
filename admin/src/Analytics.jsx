@@ -12,6 +12,8 @@ import EditOrder from "./components/ordersPage/editOrder/EditOrder.jsx";
 import OrderDetails from "./components/ordersPage/viewOrder/OrderDetails.jsx";
 import ReviewDetails from "./components/reviewsPage/ReviewDetails.jsx";
 import VariantsView from "./components/VariantsView.jsx";
+import EmailsView from "./components/EmailsView.jsx";
+import EmailDetails from "./components/emailsPage/EmailDetails.jsx";
 const EmptyAnalyticsContent = ({ onLogout, currentAdmin }) => {
     return (
         <Box sx={{ 
@@ -51,6 +53,8 @@ const Analytics = ({ onLogout, currentAdmin }) => {
                     <Route path="variants" element={<VariantsView />} />
                     <Route path="reviews" element={<ReviewsView />} />
                     <Route path="reviews/view/:reviewId" element={<ReviewDetails />} />
+                    <Route path="emails" element={<EmailsView />} />
+                    <Route path="emails/view/:emailId" element={<EmailDetails />} />
                     <Route path="analytics" element={<AnalyticsView />} />
                 </Routes>
             </Box>

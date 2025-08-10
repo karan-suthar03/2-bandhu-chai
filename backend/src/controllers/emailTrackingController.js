@@ -66,16 +66,10 @@ const getEmailLogs = asyncHandler(async (req, res) => {
     const pagination = {
         page: parseInt(page),
         limit: parseInt(limit),
-        total,
-        totalPages: Math.ceil(total / parseInt(limit)),
-        hasNext: parseInt(page) < Math.ceil(total / parseInt(limit)),
-        hasPrev: parseInt(page) > 1
+        total
     };
 
-    return sendSuccess(res, {
-        emailLogs,
-        pagination
-    }, 'Email logs retrieved successfully');
+    return sendResponse(res, 200, createPaginatedResponse(emailLogs, pagination));
 });
 
 const getOrderEmailLogs = asyncHandler(async (req, res) => {

@@ -39,6 +39,12 @@ import {
     bulkUpdateVerification,
     getReviewStats
 } from '../controllers/adminReviewsController.js';
+import {
+    getEmailStats,
+    getEmailLogs,
+    getOrderEmailLogs,
+    retryFailedEmails
+} from '../controllers/emailTrackingController.js';
 import {validateCreateProduct, validateProductMediaUpdate, validateProductCategorization, validateProductCoreDetails, validateProductPricing} from "../middlewares/productMiddleware.js";
 import { 
     invalidateProductCachesMiddleware, 
@@ -106,5 +112,11 @@ router.post('/reviews/bulk-verify', invalidateReviewCachesMiddleware, bulkUpdate
 router.get('/reviews/:id', getAdminReview);
 router.put('/reviews/:id/verify', invalidateReviewCachesMiddleware, updateReviewVerification);
 router.delete('/reviews/:id', invalidateReviewCachesMiddleware, deleteReview);
+
+
+router.get('/emails/stats', getEmailStats);
+router.get('/emails/logs', getEmailLogs);
+router.get('/emails/orders/:orderId', getOrderEmailLogs);
+router.post('/emails/retry', retryFailedEmails);
 
 export default router;

@@ -285,6 +285,7 @@ Thank you for choosing Bandhu Chai! 🍵
 
         const emailLogData = {
             type: 'ORDER_PLACED',
+            sender: `${SENDER_NAME} <${SENDER_EMAIL}>`,
             recipient: order.customerEmail,
             subject: mailOptions.subject,
             orderId: order.id,
@@ -424,6 +425,7 @@ Thank you for choosing Bandhu Chai! 🍵
 
         const emailLogData = {
             type: 'ORDER_STATUS_UPDATE',
+            sender: `${SENDER_NAME} <${SENDER_EMAIL}>`,
             recipient: order.customerEmail,
             subject: mailOptions.subject,
             orderId: order.id,

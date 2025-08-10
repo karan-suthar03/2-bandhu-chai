@@ -5,6 +5,7 @@ class EmailTrackingService {
     async createEmailLog(emailData) {
         const {
             type,
+            sender = 'noreply@bandhuchai.com',
             recipient,
             subject,
             orderId = null,
@@ -15,6 +16,7 @@ class EmailTrackingService {
             const emailLog = await prisma.emailLog.create({
                 data: {
                     type,
+                    sender,
                     recipient,
                     subject,
                     orderId,

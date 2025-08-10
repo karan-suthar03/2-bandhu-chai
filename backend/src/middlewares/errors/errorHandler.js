@@ -1,4 +1,4 @@
-const errorHandler = (err, req, res) => {
+const errorHandler = (err, req, res, next) => {
     console.error('Error occurred:', {
         message: err.message,
         stack: err.stack,

@@ -191,6 +191,7 @@ model OrderStatusHistory {
 model EmailLog {
   id          Int           @id @default(autoincrement())
   type        EmailType
+  sender      String        @default("noreply@bandhuchai.com") // Sender email address
   recipient   String
   subject     String
   status      EmailStatus   @default(PENDING)

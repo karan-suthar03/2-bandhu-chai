@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import errorHandler from "./middlewares/errors/errorHandler.js";
+import emailService from "./services/emailService.js";
 
 const app = express();
 import productsRouter from "./routes/productsRoute.js";
@@ -11,6 +12,7 @@ import cartRouter from "./routes/cartRoute.js";
 import orderRouter from "./routes/orderRoute.js";
 import authRouter from "./routes/authRoute.js";
 import adminRouter from "./routes/adminRoute.js";
+import contactRouter from "./routes/contactRoute.js";
 
 app.use(express.json());
 app.use(cors({
@@ -47,6 +49,14 @@ app.use((req,res,next)=>{
     }
     next();
 })
+emailService.initialize()
+    .then(() => {
+        console.log('✅ Email service initialized successfully');
+    })
+    .catch((error) => {
+        console.error('❌ Email service initialization failed:', error.message);
+        console.error('📧 Email functionality will be disabled');
+    });
 
 app.get("/", (req, res) => {
     res.send("API is running...");
@@ -57,6 +67,7 @@ app.use('/cart', cartRouter);
 app.use('/orders', orderRouter);
 app.use('/auth', authRouter);
 app.use('/admin', adminRouter);
+app.use('/contact', contactRouter);
 
 // Global error handler (must be last)
 app.use(errorHandler);

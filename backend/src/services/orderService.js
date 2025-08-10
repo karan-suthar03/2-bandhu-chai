@@ -1,4 +1,5 @@
 import prisma from "../config/prisma.js";
+import emailService from "./emailService.js";
 
 export class OrderService {
     static async getOrders(filters = {}) {
@@ -212,6 +213,14 @@ export class OrderService {
                 }
             })
         ]);
+
+        try {
+            const fullOrder = await OrderService.getOrderById(orderId, true);
+            await emailService.sendOrderStatusUpdateEmail(fullOrder, order.status, newStatus, notes);
+            console.log(`Order status update email sent for order ${orderId}: ${order.status} -> ${newStatus}`);
+        } catch (emailError) {
+            console.error(`Failed to send status update email for order ${orderId}:`, emailError.message);
+        }
 
         return updatedOrder;
     }

@@ -152,6 +152,7 @@ model Order {
 
   orderItems    OrderItem[]
   statusHistory OrderStatusHistory[]
+  emailLogs     EmailLog[]
 
   notes         String?
   internalNotes String?
@@ -185,4 +186,45 @@ model OrderStatusHistory {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_status_history")
+}
+
+model EmailLog {
+  id          Int           @id @default(autoincrement())
+  type        EmailType
+  recipient   String
+  subject     String
+  status      EmailStatus   @default(PENDING)
+  messageId   String?       // Nodemailer message ID
+  orderId     String?       // Optional link to order
+  attempts    Int           @default(0)
+  lastAttempt DateTime?
+  sentAt      DateTime?
+  failedAt    DateTime?
+  errorMessage String?
+  metadata    Json?         // Additional tracking data
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  order Order? @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("email_logs")
+}
+
+enum EmailType {
+  ORDER_CONFIRMATION
+  ORDER_STATUS_UPDATE
+  ORDER_CANCELLATION
+  CONTACT_FORM
+  NEWSLETTER
+  MARKETING
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  BOUNCED
+  DELIVERED
+  OPENED
+  CLICKED
 }

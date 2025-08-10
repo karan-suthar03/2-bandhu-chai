@@ -1,5 +1,6 @@
 import { OrderService } from "../services/orderService.js";
 import { CartService } from "../services/cartService.js";
+import emailService from "../services/emailService.js";
 import { sendSuccess, sendNotFound, sendBadRequest } from "../utils/responseUtils.js";
 import { validateRequired, validateEmail, validatePhone, sanitizeString } from "../utils/validationUtils.js";
 import asyncHandler from "../middlewares/asyncHandler.js";
@@ -63,6 +64,13 @@ const createOrder = asyncHandler(async (req, res) => {
         console.log('Order created successfully:', order.id);
 
         CartService.clearCart(req.session);
+        try {
+            const fullOrder = await OrderService.getOrderById(order.id, true);
+            await emailService.sendOrderPlacedEmail(fullOrder);
+            console.log('Order placed email sent successfully');
+        } catch (emailError) {
+            console.error('Failed to send order placed email:', emailError.message);
+        }
 
         console.log('About to send response with userMessage...');
 
@@ -71,26 +79,26 @@ const createOrder = asyncHandler(async (req, res) => {
             message: 'Order placed successfully! 🎉',
             userMessage: {
                 title: 'Thank you for your order!',
-                message: 'Your order has been placed successfully. We will contact you through email or call you within 24 hours to confirm your order details and delivery schedule.',
+                message: 'Your order has been placed successfully. We will review your order and send you a confirmation email once it\'s approved. Our team will contact you within 24 hours.',
                 contactInfo: 'If you have any questions, please contact us at support@bandhuchai.com or call us at +91-XXXXXXXXXX',
                 nextSteps: [
-                    'You will receive an order confirmation email shortly',
-                    'Our team will contact you within 24 hours',
-                    'We will confirm your delivery address and preferred time',
-                    'Your order will be processed and shipped once confirmed'
+                    'We will review your order within 24 hours',
+                    'You will receive a confirmation email once approved',
+                    'Our team will contact you to confirm delivery details',
+                    'Your order will be processed and shipped after confirmation'
                 ]
             },
             order: {
                 id: order.id,
                 status: order.status,
-                statusMessage: 'Order received - Awaiting confirmation',
+                statusMessage: 'Order received - Pending admin review and confirmation',
                 customerName: order.customerName,
                 customerEmail: order.customerEmail,
                 customerPhone: order.customerPhone,
                 finalTotal: order.finalTotal,
                 paymentMethod: order.paymentMethod,
                 createdAt: order.createdAt,
-                estimatedDelivery: '3-7 business days (after confirmation)'
+                estimatedDelivery: 'Will be confirmed after order approval'
             }
         };
         
@@ -188,7 +196,59 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
         return sendBadRequest(res, `Invalid status. Valid statuses: ${validStatuses.join(', ')}`);
     }
 
+    const currentOrder = await OrderService.getOrderById(orderId, true);
+    if (!currentOrder) {
+        return sendNotFound(res, 'Order not found');
+    }
+
     const updatedOrder = await OrderService.updateOrderStatus(orderId, status, notes);
+    if (currentOrder.status !== status) {
+        try {
+            console.log(`Sending status update email for order ${orderId}: ${currentOrder.status} -> ${status}`);
+            const emailOrderData = {
+                order: {
+                    id: updatedOrder.id,
+                    customerName: updatedOrder.customerName,
+                    customerEmail: updatedOrder.customerEmail,
+                    customerPhone: updatedOrder.customerPhone,
+                    finalTotal: updatedOrder.finalTotal.toFixed(2),
+                    paymentMethod: updatedOrder.paymentMethod,
+                    notes: updatedOrder.notes,
+                    createdAt: updatedOrder.createdAt,
+                    status: updatedOrder.status
+                },
+                items: updatedOrder.orderItems.map(item => ({
+                    name: item.productName,
+                    variantName: null,
+                    price: parseFloat(item.price),
+                    quantity: item.quantity,
+                    imageUrl: null
+                }))
+            };
+
+            if (status === 'CONFIRMED') {
+                console.log('📧 Sending ORDER CONFIRMATION email (admin confirmed the order)');
+                const emailResult = await emailService.sendOrderConfirmation(emailOrderData);
+                console.log('✅ Order confirmation email sent successfully:', emailResult.messageId);
+            } else {
+                const statusMessages = {
+                    'PROCESSING': 'Your order is now being processed and prepared for shipment. We will notify you once it\'s ready to ship.',
+                    'SHIPPED': 'Exciting news! Your order has been shipped and is on its way to you. You should receive it within the next few days.',
+                    'DELIVERED': 'Your order has been successfully delivered! We hope you enjoy your Bandhu Chai products. Thank you for choosing us!',
+                    'CANCELLED': 'Your order has been cancelled as requested. If you have any questions or concerns, please don\'t hesitate to contact us.'
+                };
+
+                const statusMessage = notes || statusMessages[status] || `Your order status has been updated to ${status.toLowerCase()}.`;
+                
+                const emailResult = await emailService.sendOrderStatusUpdate(emailOrderData, status.toLowerCase(), statusMessage);
+                console.log(`✅ Order ${status.toLowerCase()} email sent successfully:`, emailResult.messageId);
+            }
+            
+        } catch (emailError) {
+            console.error('❌ Failed to send email:', emailError.message);
+            console.error('Email error details:', emailError);
+        }
+    }
     
     return sendSuccess(res, {
         order: updatedOrder
@@ -218,6 +278,33 @@ const cancelOrder = asyncHandler(async (req, res) => {
     }
 
     const updatedOrder = await OrderService.updateOrderStatus(orderId, 'CANCELLED', 'Cancelled by customer');
+    
+    try {
+        console.log(`Sending cancellation email for order ${orderId}`);
+        
+        const emailOrderData = {
+            order: {
+                id: updatedOrder.id,
+                customerName: updatedOrder.customerName,
+                customerEmail: updatedOrder.customerEmail,
+                customerPhone: updatedOrder.customerPhone,
+                finalTotal: updatedOrder.finalTotal.toFixed(2),
+                paymentMethod: updatedOrder.paymentMethod,
+                notes: updatedOrder.notes,
+                createdAt: updatedOrder.createdAt,
+                status: updatedOrder.status
+            }
+        };
+
+        const cancellationMessage = 'Your order has been successfully cancelled as requested. If this was done in error or if you have any questions, please contact our support team and we\'ll be happy to help.';
+        
+        const emailResult = await emailService.sendOrderStatusUpdate(emailOrderData, 'cancelled', cancellationMessage);
+        console.log('✅ Order cancellation email sent successfully:', emailResult.messageId);
+        
+    } catch (emailError) {
+        console.error('❌ Failed to send order cancellation email:', emailError.message);
+        console.error('Email error details:', emailError);
+    }
     
     return sendSuccess(res, {
         order: updatedOrder

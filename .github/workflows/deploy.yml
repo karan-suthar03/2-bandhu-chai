@@ -1,0 +1,155 @@
+name: Deploy Full Stack to EC2
+
+on:
+  push:
+    branches:
+      - deployment
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ secrets.EC2_USER }}
+      EC2_KEY: ${{ secrets.EC2_SSH_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      ################################################
+      # FRONTEND (Vite -> dist)
+      ################################################
+      - name: Install & build frontend
+        run: |
+          echo ">>> Building frontend..."
+          cd frontend
+          npm ci
+          npm run build
+          echo ">>> Build output listing (frontend/dist):"
+          ls -la dist || true
+
+      - name: Ensure frontend build exists
+        run: |
+          if [ ! -d "frontend/dist" ] || [ -z "$(ls -A frontend/dist 2>/dev/null)" ]; then
+            echo "Error: frontend/dist is missing or empty"
+            exit 1
+          fi
+          echo "frontend build okay"
+
+      - name: Deploy frontend to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "frontend/dist/*"
+          target: "/var/www/chai.karansuthar.works"
+          overwrite: true
+          timeout: 60s
+
+      ################################################
+      # ADMIN PANEL (Vite -> dist)
+      ################################################
+      - name: Install & build admin
+        run: |
+          echo ">>> Building admin..."
+          cd admin
+          npm ci
+          npm run build
+          echo ">>> Build output listing (admin/dist):"
+          ls -la dist || true
+
+      - name: Ensure admin build exists
+        run: |
+          if [ ! -d "admin/dist" ] || [ -z "$(ls -A admin/dist 2>/dev/null)" ]; then
+            echo "Error: admin/dist is missing or empty"
+            exit 1
+          fi
+          echo "admin build okay"
+
+      - name: Deploy admin to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "admin/dist/*"
+          target: "/var/www/chai-admin.karansuthar.works"
+          overwrite: true
+          timeout: 60s
+
+      ################################################
+      # BACKEND
+      ################################################
+
+      - name: Deploy backend source to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "backend/"
+          target: "/var/www/chai-backend/"
+          overwrite: true
+          timeout: 120s
+
+
+      - name: Install backend deps & restart services on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            echo ">>> Ensuring folders permissions..."
+            sudo mkdir -p /var/www/chai.karansuthar.works
+            sudo mkdir -p /var/www/chai-admin.karansuthar.works
+            sudo mkdir -p /var/www/chai-backend
+            sudo chown -R $USER:$USER /var/www || true
+
+            echo ">>> Backup .env file if it exists"
+            if [ -f "/var/www/chai-backend/backend/.env" ]; then
+              cp /var/www/chai-backend/backend/.env /tmp/.env.backup
+              echo ".env file backed up"
+            else
+              echo "No existing .env file found"
+            fi
+
+            echo ">>> Backend: install deps"
+            cd /var/www/chai-backend/backend || exit 1
+            echo "Running npm install to ensure all dependencies are up to date..."
+            npm install --omit=dev
+
+
+            echo ">>> Restore .env file if backup exists"
+            if [ -f "/tmp/.env.backup" ]; then
+              cp /tmp/.env.backup /var/www/chai-backend/backend/.env
+              echo ".env file restored from backup"
+              rm /tmp/.env.backup
+            else
+              echo "⚠️  WARNING: No .env file found! Please upload your .env file manually."
+            fi
+
+            echo ">>> Generate Prisma client"
+            npx prisma generate
+
+            echo ">>> Run database migrations"
+            npx prisma migrate deploy || echo "Migration completed or up to date"
+
+            echo ">>> Restarting backend with pm2"
+            pm2 stop chai-backend 2>/dev/null || echo "No existing process found"
+            pm2 delete chai-backend 2>/dev/null || echo "No existing process to delete"
+            pm2 start index.js --name chai-backend
+
+            echo ">>> Restarting nginx"
+            sudo systemctl restart nginx || sudo service nginx restart || true
+            
+      - name: Deployment finished
+        run: echo "✅ Deployment completed"

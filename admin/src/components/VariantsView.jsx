@@ -59,13 +59,13 @@ const VariantsView = () => {
                 <Stack direction="row" spacing={2}>
                     <Button
                         variant="outlined"
-                        onClick={() => navigate('/dashboard/products')}
+                        onClick={() => navigate('/products')}
                     >
                         View Products
                     </Button>
                     <Button
                         variant="contained"
-                        onClick={() => navigate('/dashboard/products/add')}
+                        onClick={() => navigate('/products/add')}
                         startIcon={<InventoryIcon />}
                     >
                         Add Product
@@ -90,7 +90,7 @@ const VariantsView = () => {
                     <VariantRow
                         key={variant.id}
                         variant={variant}
-                        onViewProduct={(productId) => navigate(`/dashboard/products/view/${productId}`)}
+                        onViewProduct={(productId) => navigate(`/products/view/${productId}`)}
                     />
                 )) : loading ? (
                     <TableRow>

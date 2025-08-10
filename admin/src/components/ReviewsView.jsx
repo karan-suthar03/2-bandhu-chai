@@ -119,7 +119,7 @@ const ReviewsView = () => {
   };
 
   const handleView = (review) => {
-    navigate(`/dashboard/reviews/view/${review.id}`);
+    navigate(`/reviews/view/${review.id}`);
   };
 
   const handleDelete = (review) => {

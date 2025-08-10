@@ -33,8 +33,8 @@ const OrderDetails = () => {
     const navigate = useNavigate();
     const { order, loading, error } = useOrderDetails(orderId);
 
-    const handleBackClick = () => navigate('/dashboard/orders');
-    const handleEditClick = () => navigate(`/dashboard/orders/edit/${order.id}`);
+    const handleBackClick = () => navigate('/orders');
+    const handleEditClick = () => navigate(`/orders/edit/${order.id}`);
 
     if (loading) {
         return <OrderDetailsSkeleton />;

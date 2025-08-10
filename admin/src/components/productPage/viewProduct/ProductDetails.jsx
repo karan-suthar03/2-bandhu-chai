@@ -16,8 +16,8 @@ const ProductDetails = () => {
     const navigate = useNavigate();
     const { product, loading, error } = useProductDetails(productId);
 
-    const handleEdit = () => navigate(`/dashboard/products/edit/${productId}`);
-    const handleBack = () => navigate('/dashboard/products');
+    const handleEdit = () => navigate(`/products/edit/${productId}`);
+    const handleBack = () => navigate('/products');
 
     if (loading) {
         return <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>;

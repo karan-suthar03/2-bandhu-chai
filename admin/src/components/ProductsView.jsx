@@ -241,7 +241,7 @@ const ProductsView = () => {
             >
               🔄 Refresh
             </Button>
-            <Button variant="contained" onClick={() => navigate('/dashboard/products/add')}>
+            <Button variant="contained" onClick={() => navigate('/products/add')}>
               + Add Product
             </Button>
           </Box>

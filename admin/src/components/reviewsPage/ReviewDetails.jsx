@@ -77,7 +77,7 @@ const ReviewDetails = () => {
           message: 'Review deleted successfully'
         });
         setTimeout(() => {
-          navigate('/dashboard/reviews');
+          navigate('/reviews');
         }, 2000);
       }
     } catch (err) {
@@ -136,7 +136,7 @@ const ReviewDetails = () => {
         <Alert severity="error">{error}</Alert>
         <Button
           variant="contained"
-          onClick={() => navigate('/dashboard/reviews')}
+          onClick={() => navigate('/reviews')}
           sx={{ mt: 2 }}
           startIcon={<ArrowBack />}
         >
@@ -152,7 +152,7 @@ const ReviewDetails = () => {
         <Alert severity="warning">Review not found</Alert>
         <Button
           variant="contained"
-          onClick={() => navigate('/dashboard/reviews')}
+          onClick={() => navigate('/reviews')}
           sx={{ mt: 2 }}
           startIcon={<ArrowBack />}
         >
@@ -165,10 +165,10 @@ const ReviewDetails = () => {
   return (
     <Box p={3}>
       <Breadcrumbs sx={{ mb: 2 }}>
-        <Link color="inherit" href="/dashboard" sx={{ textDecoration: 'none' }}>
+        <Link color="inherit" href="/analytics" sx={{ textDecoration: 'none' }}>
           Dashboard
         </Link>
-        <Link color="inherit" href="/dashboard/reviews" sx={{ textDecoration: 'none' }}>
+        <Link color="inherit" href="/reviews" sx={{ textDecoration: 'none' }}>
           Reviews
         </Link>
         <Typography color="text.primary">Review Details</Typography>
@@ -189,7 +189,7 @@ const ReviewDetails = () => {
         <Box display="flex" gap={2}>
           <Button
             variant="outlined"
-            onClick={() => navigate('/dashboard/reviews')}
+            onClick={() => navigate('/reviews')}
             startIcon={<ArrowBack />}
           >
             Back to Reviews
@@ -282,7 +282,7 @@ const ReviewDetails = () => {
               <Button
                 variant="outlined"
                 size="small"
-                onClick={() => navigate(`/dashboard/products/view/${review.productId}`)}
+                onClick={() => navigate(`/products/view/${review.productId}`)}
                 disabled={!review.product}
               >
                 View Product

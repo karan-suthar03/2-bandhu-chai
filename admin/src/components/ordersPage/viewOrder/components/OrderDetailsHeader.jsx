@@ -6,10 +6,10 @@ import {getStatusColor, getStatusLabel} from "../../Utils/orderUtils.jsx";
 const OrderDetailsHeader = ({ order, onBackClick, onEditClick }) => (
     <Box sx={{ mb: 4 }}>
         <Breadcrumbs sx={{ mb: 2 }}>
-            <Link color="inherit" href="/dashboard" sx={{ textDecoration: 'none' }}>
+            <Link color="inherit" href="/analytics" sx={{ textDecoration: 'none' }}>
                 Dashboard
             </Link>
-            <Link color="inherit" href="/dashboard/orders" sx={{ textDecoration: 'none' }}>
+            <Link color="inherit" href="/orders" sx={{ textDecoration: 'none' }}>
                 Orders
             </Link>
             <Typography color="text.primary">Order Details</Typography>

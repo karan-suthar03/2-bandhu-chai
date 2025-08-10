@@ -113,7 +113,7 @@ const OrdersView = () => {
   };
 
   const handleEdit = (order) => {
-    navigate(`/dashboard/orders/edit/${order.id}`);
+    navigate(`/orders/edit/${order.id}`);
   };
 
   const handleDeleteSelected = () => {

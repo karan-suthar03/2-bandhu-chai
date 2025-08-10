@@ -95,7 +95,7 @@ const ProductRow = ({ product, selected, onSelectRow, onToggleActivation }) => {
                             color="info"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/dashboard/products/view/${product.id}`);
+                                navigate(`/products/view/${product.id}`);
                             }}
                         >
                             <VisibilityIcon fontSize="small" />
@@ -107,7 +107,7 @@ const ProductRow = ({ product, selected, onSelectRow, onToggleActivation }) => {
                             color="primary"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/dashboard/products/edit/${product.id}`);
+                                navigate(`/products/edit/${product.id}`);
                             }}
                         >
                             <EditIcon fontSize="small" />

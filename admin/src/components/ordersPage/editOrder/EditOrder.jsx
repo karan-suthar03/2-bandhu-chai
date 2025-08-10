@@ -35,7 +35,7 @@ const EditOrder = () => {
         handleUpdateStatus
     } = useEditOrder(orderId);
 
-    const handleBackClick = () => navigate('/dashboard/orders');
+    const handleBackClick = () => navigate('/orders');
 
     if (loading) return <EditOrderSkeleton />;
     if (error || !order) return <Box sx={{ p: 3 }}><Alert severity="error">{error || 'Order not found'}</Alert></Box>;

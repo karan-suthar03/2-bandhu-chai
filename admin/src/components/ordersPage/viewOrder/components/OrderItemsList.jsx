@@ -24,7 +24,7 @@ const OrderItemsList = ({ order }) => {
 
     const handleProductClick = (productId) => {
         if (productId) {
-            navigate(`/dashboard/products/edit/${productId}`);
+            navigate(`/products/edit/${productId}`);
         }
     };
 

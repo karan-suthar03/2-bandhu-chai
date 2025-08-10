@@ -6,8 +6,8 @@ import {getStatusColor, getStatusLabel} from "../../Utils/orderUtils.jsx";
 const OrderHeader = ({ order, onBackClick }) => (
     <Box sx={{ mb: 4 }}>
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-            <Link underline="hover" color="inherit" href="/dashboard">Dashboard</Link>
-            <Link underline="hover" color="inherit" href="/dashboard/orders">Orders</Link>
+            <Link underline="hover" color="inherit" href="/analytics">Analytics</Link>
+            <Link underline="hover" color="inherit" href="/orders">Orders</Link>
             <Typography color="text.primary">Edit Order</Typography>
         </Breadcrumbs>
         <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>

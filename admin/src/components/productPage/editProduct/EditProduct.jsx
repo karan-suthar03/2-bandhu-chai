@@ -30,14 +30,14 @@ const EditProduct = () => {
     if (error) return (
         <Box sx={{ p: 3 }}>
             <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-            <Button startIcon={<ArrowBack />} onClick={() => navigate('/dashboard/products')}>Back to Products</Button>
+            <Button startIcon={<ArrowBack />} onClick={() => navigate('/products')}>Back to Products</Button>
         </Box>
     );
 
     return (
         <Box sx={{ p: { xs: 2, md: 4 }, backgroundColor: '#f4f6f8' }}>
             <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Button startIcon={<ArrowBack />} onClick={() => navigate('/dashboard/products')}>Back to Products</Button>
+                <Button startIcon={<ArrowBack />} onClick={() => navigate('/products')}>Back to Products</Button>
                 <Typography variant="h4">Edit Product: {product.core.name}</Typography>
             </Box>
             <Grid container spacing={4}>

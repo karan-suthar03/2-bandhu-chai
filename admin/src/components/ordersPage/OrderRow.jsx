@@ -14,7 +14,7 @@ const OrderRow = ({ order, selected, onSelectRow, onDelete, onEdit }) => {
     const paymentMethodChipProps = React.useMemo(() => getPaymentMethodChipProps(order.paymentMethod), [order.paymentMethod]);
 
     const handleRowClick = () => {
-        navigate(`/dashboard/orders/view/${order.id}`);
+        navigate(`/orders/view/${order.id}`);
     };
 
     const handleActionClick = (e, action) => {

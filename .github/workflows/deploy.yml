@@ -124,7 +124,13 @@ jobs:
 
             echo ">>> Backend: install deps"
             cd /var/www/chai-backend/backend || exit 1
-            npm install --omit=dev
+            if [ ! -d "node_modules" ]; then
+              echo "node_modules not found, running npm install..."
+              npm install --omit=dev
+            else
+              echo "node_modules exists, skipping npm install"
+            fi
+
 
             echo ">>> Restore .env file if backup exists"
             if [ -f "/tmp/.env.backup" ]; then

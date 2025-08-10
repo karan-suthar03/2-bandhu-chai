@@ -113,13 +113,13 @@ jobs:
 
             echo ">>> Backend: install deps"
             cd ~/backend || exit 1
-            npm ci --production
+            npm install --omit=dev
 
             echo ">>> Restarting backend with pm2"
             pm2 restart chai-backend || pm2 start server.js --name chai-backend
 
             echo ">>> Restarting nginx"
             sudo systemctl restart nginx || sudo service nginx restart || true
-
+            
       - name: Deployment finished
         run: echo "✅ Deployment completed"

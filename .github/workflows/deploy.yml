@@ -94,8 +94,8 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "backend/*"
-          target: "/var/www/chai.karansuthar.works/backend"
+          source: "backend/**"
+          target: "/var/www/chai.karansuthar.works"
           overwrite: true
           timeout: 120s
 

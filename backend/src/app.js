@@ -16,7 +16,10 @@ import contactRouter from "./routes/contactRoute.js";
 
 app.use(express.json());
 app.use(cors({
-    origin: true,
+    origin: [
+        'https://chai.karansuthar.works',
+        'https://chai-admin.karansuthar.works'
+    ],
     credentials: true
 }));
 app.use(cookieParser());

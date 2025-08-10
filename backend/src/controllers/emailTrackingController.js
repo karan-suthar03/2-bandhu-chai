@@ -32,7 +32,9 @@ const getEmailLogs = asyncHandler(async (req, res) => {
         type,
         status,
         orderId,
-        recipient
+        recipient,
+        _sort,
+        _order = 'desc'
     } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -42,6 +44,26 @@ const getEmailLogs = asyncHandler(async (req, res) => {
     if (status) whereClause.status = status;
     if (orderId) whereClause.orderId = orderId;
     if (recipient) whereClause.recipient = { contains: recipient, mode: 'insensitive' };
+
+    let orderBy = { createdAt: 'desc' };
+    if (_sort) {
+        const fieldMapping = {
+            'id': 'id',
+            'type': 'type',
+            'sender': 'sender',
+            'recipient': 'recipient',
+            'subject': 'subject',
+            'status': 'status',
+            'orderId': 'orderId',
+            'attempts': 'attempts',
+            'errorMessage': 'errorMessage',
+            'sentAt': 'sentAt',
+            'createdAt': 'createdAt'
+        };
+        
+        const mappedField = fieldMapping[_sort] || 'createdAt';
+        orderBy = { [mappedField]: _order.toLowerCase() === 'asc' ? 'asc' : 'desc' };
+    }
 
     const [emailLogs, total] = await Promise.all([
         prisma.emailLog.findMany({
@@ -56,7 +78,7 @@ const getEmailLogs = asyncHandler(async (req, res) => {
                     }
                 }
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy,
             skip,
             take: parseInt(limit)
         }),

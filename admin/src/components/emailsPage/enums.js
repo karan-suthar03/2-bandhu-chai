@@ -1,41 +1,35 @@
 export const EmailTypeEnum = {
   ORDER_CONFIRMATION: 'ORDER_CONFIRMATION',
-  ORDER_SHIPPED: 'ORDER_SHIPPED',
-  ORDER_DELIVERED: 'ORDER_DELIVERED',
-  ORDER_CANCELLED: 'ORDER_CANCELLED',
-  PASSWORD_RESET: 'PASSWORD_RESET',
-  WELCOME: 'WELCOME',
-  PROMOTIONAL: 'PROMOTIONAL',
+  ORDER_STATUS_UPDATE: 'ORDER_STATUS_UPDATE',
+  ORDER_CANCELLATION: 'ORDER_CANCELLATION',
+  CONTACT_FORM: 'CONTACT_FORM',
   NEWSLETTER: 'NEWSLETTER',
-  CONTACT_FORM: 'CONTACT_FORM'
+  MARKETING: 'MARKETING'
 };
 
 export const EmailStatusEnum = {
   PENDING: 'PENDING',
   SENT: 'SENT',
   FAILED: 'FAILED',
-  RETRYING: 'RETRYING'
+  BOUNCED: 'BOUNCED',
+  DELIVERED: 'DELIVERED',
+  OPENED: 'OPENED',
+  CLICKED: 'CLICKED'
 };
 
 export const getEmailTypeColor = (type) => {
   switch (type) {
     case EmailTypeEnum.ORDER_CONFIRMATION:
       return 'success';
-    case EmailTypeEnum.ORDER_SHIPPED:
+    case EmailTypeEnum.ORDER_STATUS_UPDATE:
       return 'info';
-    case EmailTypeEnum.ORDER_DELIVERED:
-      return 'primary';
-    case EmailTypeEnum.ORDER_CANCELLED:
+    case EmailTypeEnum.ORDER_CANCELLATION:
       return 'error';
-    case EmailTypeEnum.PASSWORD_RESET:
-      return 'warning';
-    case EmailTypeEnum.WELCOME:
-      return 'secondary';
-    case EmailTypeEnum.PROMOTIONAL:
-      return 'default';
-    case EmailTypeEnum.NEWSLETTER:
-      return 'default';
     case EmailTypeEnum.CONTACT_FORM:
+      return 'primary';
+    case EmailTypeEnum.NEWSLETTER:
+      return 'secondary';
+    case EmailTypeEnum.MARKETING:
       return 'default';
     default:
       return 'default';
@@ -46,12 +40,18 @@ export const getEmailStatusColor = (status) => {
   switch (status) {
     case EmailStatusEnum.SENT:
       return 'success';
+    case EmailStatusEnum.DELIVERED:
+      return 'primary';
+    case EmailStatusEnum.OPENED:
+      return 'info';
+    case EmailStatusEnum.CLICKED:
+      return 'secondary';
     case EmailStatusEnum.FAILED:
+      return 'error';
+    case EmailStatusEnum.BOUNCED:
       return 'error';
     case EmailStatusEnum.PENDING:
       return 'warning';
-    case EmailStatusEnum.RETRYING:
-      return 'info';
     default:
       return 'default';
   }

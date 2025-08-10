@@ -22,7 +22,7 @@ const Sidebar = () => {
     const theme = useTheme();
 
     const menuItems = [
-        { id: 'analytics', label: 'Analytics', icon: <BarChartIcon />, path: '/analytics' },
+        { id: 'analytics', label: 'Analytics', icon: <BarChartIcon />, path: '/' },
         { id: 'orders', label: 'Orders', icon: <ShoppingCartIcon />, path: '/orders' },
         { id: 'products', label: 'Products', icon: <InventoryIcon />, path: '/products' },
         { id: 'variants', label: 'Variants', icon: <CategoryIcon />, path: '/variants' },
@@ -55,7 +55,7 @@ const Sidebar = () => {
                     <NavLink
                         key={item.id}
                         to={item.path}
-                        end={item.id === 'dashboard'}
+                        end={item.id === 'analytics'}
                         style={{ textDecoration: 'none' }}
                     >
                         {({ isActive }) => (

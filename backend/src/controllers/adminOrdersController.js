@@ -95,56 +95,53 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     const [
         totalOrders,
         pendingOrders,
-        confirmedOrders,
-        shippedOrders,
-        deliveredOrders,
-        cancelledOrders,
-        totalRevenue,
-        todayOrders,
-        monthlyRevenue
+        deliveredOrders
     ] = await Promise.all([
         prisma.order.count(),
         prisma.order.count({ where: { status: 'PENDING' } }),
-        prisma.order.count({ where: { status: 'CONFIRMED' } }),
-        prisma.order.count({ where: { status: 'SHIPPED' } }),
-        prisma.order.count({ where: { status: 'DELIVERED' } }),
-        prisma.order.count({ where: { status: 'CANCELLED' } }),
-        prisma.order.aggregate({
-            where: { status: { not: 'CANCELLED' } },
-            _sum: { finalTotal: true }
-        }),
-        prisma.order.count({
-            where: {
-                createdAt: {
-                    gte: new Date(new Date().setHours(0, 0, 0, 0))
-                }
-            }
-        }),
-        prisma.order.aggregate({
-            where: {
-                status: { not: 'CANCELLED' },
-                createdAt: {
-                    gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-                }
-            },
-            _sum: { finalTotal: true }
-        })
+        prisma.order.count({ where: { status: 'DELIVERED' } })
     ]);
 
-    const stats = {
-        orders: {
-            total: totalOrders,
-            pending: pendingOrders,
-            confirmed: confirmedOrders,
-            shipped: shippedOrders,
-            delivered: deliveredOrders,
-            cancelled: cancelledOrders,
-            today: todayOrders
-        },
-        revenue: {
-            total: totalRevenue._sum.finalTotal || 0,
-            monthly: monthlyRevenue._sum.finalTotal || 0
+    const topProducts = await prisma.orderItem.groupBy({
+        by: ['productVariantId'],
+        _sum: { quantity: true },
+        orderBy: { _sum: { quantity: 'desc' } },
+        take: 5
+    });
+
+    const topVariantIds = topProducts.map(item => item.productVariantId);
+    const variantDetails = await prisma.productVariant.findMany({
+        where: { id: { in: topVariantIds } },
+        select: {
+            id: true,
+            size: true,
+            product: {
+                select: {
+                    id: true,
+                    name: true,
+                    image: true
+                }
+            }
         }
+    });
+
+    const topProductsWithDetails = topProducts.map(item => {
+        const variant = variantDetails.find(v => v.id === item.productVariantId);
+        return {
+            product: variant?.product,
+            variant: {
+                id: variant?.id,
+                size: variant?.size
+            },
+            totalSold: item._sum.quantity
+        };
+    });
+
+    const stats = {
+        totalOrders,
+        pendingOrders,
+        completedOrders: deliveredOrders,
+        topProducts: topProductsWithDetails
     };
 
     return sendSuccess(res, { stats });

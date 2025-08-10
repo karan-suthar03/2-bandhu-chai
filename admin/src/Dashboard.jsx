@@ -5,7 +5,7 @@ import OrdersView from './components/OrdersView';
 import ProductsView from './components/ProductsView';
 import AnalyticsView from './components/AnalyticsView';
 import ReviewsView from './components/ReviewsView';
-import DashboardContent from './components/DashboardContent';
+import EmailsView from './components/EmailsView';
 import AddProduct from "./components/productPage/addProduct/AddProduct.jsx";
 import EditProduct from "./components/productPage/editProduct/EditProduct.jsx";
 import ProductDetails from "./components/productPage/viewProduct/ProductDetails.jsx";
@@ -20,15 +20,7 @@ const Dashboard = ({ onLogout, currentAdmin }) => {
             <Sidebar />
             <Box sx={{ flex: 1, overflowX: 'auto' }}>
                 <Routes>
-                    <Route
-                        path=""
-                        element={
-                            <DashboardContent
-                                onLogout={onLogout}
-                                currentAdmin={currentAdmin}
-                            />
-                        }
-                    />
+                    <Route path="" element={<AnalyticsView />} />
                     <Route path="orders" element={<OrdersView />} />
                     <Route path="orders/view/:orderId" element={<OrderDetails />} />
                     <Route path="orders/edit/:orderId" element={<EditOrder />} />
@@ -39,6 +31,7 @@ const Dashboard = ({ onLogout, currentAdmin }) => {
                     <Route path="variants" element={<VariantsView />} />
                     <Route path="reviews" element={<ReviewsView />} />
                     <Route path="reviews/view/:reviewId" element={<ReviewDetails />} />
+                    <Route path="emails" element={<EmailsView />} />
                     <Route path="analytics" element={<AnalyticsView />} />
                 </Routes>
             </Box>

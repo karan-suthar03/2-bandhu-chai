@@ -13,6 +13,7 @@ import {
 } from '@mui/icons-material';
 import { getAllVariants } from '../api';
 import PaginationControl from './SectionComponents/PaginationControl.jsx';
+import Filters from "./SectionComponents/Filters.jsx";
 import MyTable from "./SectionComponents/MyTable.jsx";
 import VariantRow from "./variantsPage/VariantRow.jsx";
 import useDataList from "./hooks/useDataList.js";
@@ -22,20 +23,19 @@ const defaultFilters = {
     page: 1,
     limit: 15,
     search: '',
-    _sort: 'createdAt',
-    _order: 'desc',
 };
 
 const columns = [
-    { label: 'SKU', key: 'sku', field: 'sku' },
-    { label: 'Product', key: 'productName', field: 'product.name' },
-    { label: 'Category', key: 'category', field: 'product.category' },
-    { label: 'Size', key: 'size', field: 'size' },
-    { label: 'Price', key: 'price', field: 'price' },
-    { label: 'Old Price', key: 'oldPrice', field: 'oldPrice' },
-    { label: 'Discount', key: 'discount', field: 'discount' },
-    { label: 'Stock', key: 'stock', field: 'stock' },
-    { label: 'Status', key: 'status', field: 'stock' },
+    { label: 'SKU' },
+    { label: 'Product' },
+    { label: 'Image' },
+    { label: 'Category' },
+    { label: 'Size' },
+    { label: 'Price' },
+    { label: 'Old Price' },
+    { label: 'Discount' },
+    { label: 'Stock' },
+    { label: 'Status' },
 ];
 
 const VariantsView = () => {
@@ -44,11 +44,40 @@ const VariantsView = () => {
 
     const {
         filters, setFilters,
-        sort, handleSortChange,
         data: variants,
         pagination,
-        loading
+        loading,
+        searchDebounce,
+        setSearchDebounce
     } = useDataList(defaultFilters, getAllVariants);
+
+    const allExtraFilters = [
+        { label: 'SKU', key: 'sku' },
+        { label: 'Product ID', key: 'productId' },
+        { label: 'Size', key: 'size' },
+        { label: 'Min Price', key: 'minPrice' },
+        { label: 'Max Price', key: 'maxPrice' },
+        { label: 'Min Stock', key: 'minStock' },
+        { label: 'Max Stock', key: 'maxStock' },
+        { 
+            label: 'Low Stock Only', 
+            key: 'lowStock', 
+            isEnum: true, 
+            enumValues: [
+                { label: 'All', value: '' },
+                { label: 'Low Stock Only', value: 'true' },
+            ]
+        },
+        { 
+            label: 'Out of Stock Only', 
+            key: 'outOfStock', 
+            isEnum: true, 
+            enumValues: [
+                { label: 'All', value: '' },
+                { label: 'Out of Stock Only', value: 'true' },
+            ]
+        },
+    ];
 
     return (
         <Box p={3}>
@@ -78,13 +107,17 @@ const VariantsView = () => {
                     {error}
                 </Alert>
             )}
+            
+            <Filters
+                filters={filters}
+                setFilters={setFilters}
+                searchDebounce={searchDebounce}
+                setSearchDebounce={setSearchDebounce}
+                allExtraFilters={allExtraFilters}
+            />
+            
             <MyTable
-                sort={sort}
-                handleSortChange={handleSortChange}
                 columns={columns}
-                onSelectAll={() => {}}
-                allSelected={false}
-                someSelected={false}
             >
                 {variants && Array.isArray(variants) ? variants.map((variant) => (
                     <VariantRow
@@ -94,13 +127,13 @@ const VariantsView = () => {
                     />
                 )) : loading ? (
                     <TableRow>
-                        <TableCell colSpan={columns.length + 1} style={{ textAlign: 'center', padding: '20px' }}>
+                        <TableCell colSpan={columns.length} style={{ textAlign: 'center', padding: '20px' }}>
                             Loading variants...
                         </TableCell>
                     </TableRow>
                 ) : (
                     <TableRow>
-                        <TableCell colSpan={columns.length + 1} style={{ textAlign: 'center', padding: '20px' }}>
+                        <TableCell colSpan={columns.length} style={{ textAlign: 'center', padding: '20px' }}>
                             No variants found
                         </TableCell>
                     </TableRow>

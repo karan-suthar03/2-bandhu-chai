@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import { Routes, Route, Navigate, useNavigate} from 'react-router-dom';
 import Login from './Login';
-import Analytics from './Analytics';
+import Dashboard from './Dashboard';
 import PrivateRoute from './PrivateRoute';
 import { isAdminLoggedIn, isAdminLoggedInSync, getAdminFromStorage, logoutAdmin } from './api';
 
@@ -61,7 +61,7 @@ function App() {
           path="/*"
           element={
             <PrivateRoute loggedIn={loggedIn}>
-              <Analytics onLogout={handleLogout} currentAdmin={currentAdmin} />
+              <Dashboard onLogout={handleLogout} currentAdmin={currentAdmin} />
             </PrivateRoute>
           }
         />

@@ -37,7 +37,7 @@ const defaultFilters = {
   status: '',
   recipient: '',
   orderId: '',
-  _sort: '',
+  _sort: 'createdAt',
   _order: 'desc',
 };
 
@@ -274,7 +274,7 @@ const EmailsView = () => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length + 1} align="center">
+              <TableCell colSpan={columns.length} align="center">
                 <Typography variant="body2" color="textSecondary" py={3}>
                   No emails found
                 </Typography>

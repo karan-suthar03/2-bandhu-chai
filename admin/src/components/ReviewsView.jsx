@@ -104,8 +104,8 @@ const ReviewsView = () => {
     }
   };
 
-  const handleSelectAll = (checked) => {
-    if (checked) {
+  const handleSelectAll = (event) => {
+    if (event.target.checked) {
       setSelectedIds(reviews.map(review => review.id));
     } else {
       setSelectedIds([]);

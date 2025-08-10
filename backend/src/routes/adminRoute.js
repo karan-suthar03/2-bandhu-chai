@@ -45,6 +45,10 @@ import {
     getOrderEmailLogs,
     retryFailedEmails
 } from '../controllers/emailTrackingController.js';
+import {
+    getSystemAnalytics,
+    getLowStockProducts
+} from '../controllers/analyticsController.js';
 import {validateCreateProduct, validateProductMediaUpdate, validateProductCategorization, validateProductCoreDetails, validateProductPricing} from "../middlewares/productMiddleware.js";
 import { 
     invalidateProductCachesMiddleware, 
@@ -61,6 +65,8 @@ router.use(authenticateToken);
 router.use(requireAdmin);
 
 router.get('/dashboard/stats', getDashboardStats);
+router.get('/analytics', getSystemAnalytics);
+router.get('/low-stock', getLowStockProducts);
 
 router.get('/profile', getAdminProfile);
 router.put('/profile', updateAdminProfile);

@@ -84,8 +84,8 @@ const ProductsView = () => {
     );
   };
 
-  const handleSelectAll = (checked) => {
-    if (checked) {
+  const handleSelectAll = (event) => {
+    if (event.target.checked) {
       setSelectedIds(products.map((p) => p.id));
     } else {
       setSelectedIds([]);

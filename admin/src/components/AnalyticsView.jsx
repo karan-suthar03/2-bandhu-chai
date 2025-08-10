@@ -1,4 +1,30 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  Button,
+  CircularProgress,
+  Alert,
+  LinearProgress,
+  Avatar,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Divider,
+  Chip,
+  Paper
+} from '@mui/material';
+import {
+  Refresh as RefreshIcon,
+  CheckCircle as CheckIcon,
+  Warning as WarningIcon,
+  TrendingUp as TrendingUpIcon,
+  Inventory as InventoryIcon
+} from '@mui/icons-material';
 import { getSystemAnalytics, getDashboardStats } from '../api';
 
 const AnalyticsView = () => {
@@ -14,6 +40,8 @@ const AnalyticsView = () => {
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
+      setError('');
+      
       const [analyticsRes, statsRes] = await Promise.all([
         getSystemAnalytics(),
         getDashboardStats()
@@ -23,7 +51,8 @@ const AnalyticsView = () => {
       setStats(statsRes.data.stats);
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
-      setError('Failed to load analytics data');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to load analytics data';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -40,190 +69,244 @@ const AnalyticsView = () => {
     return `${(value || 0).toFixed(1)}%`;
   };
 
+  const getProductImageUrl = (product) => {
+    if (!product?.image) return null;
+    
+    let imageObj = product.image;
+    
+    // Handle case where image might be a JSON string
+    if (typeof imageObj === 'string') {
+      try {
+        imageObj = JSON.parse(imageObj);
+      } catch (e) {
+        console.warn('Failed to parse product image JSON:', imageObj);
+        return null;
+      }
+    }
+    
+    // Return the appropriate image URL (preferring smaller sizes for thumbnails)
+    return imageObj?.smallUrl || imageObj?.mediumUrl || imageObj?.largeUrl || imageObj?.originalUrl || null;
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-96">
-        <div className="text-lg">Loading analytics...</div>
+      <div className="flex justify-center items-center min-h-96 flex-col gap-4">
+        <CircularProgress size={60} />
+        <Typography variant="h6" color="text.secondary">
+          Loading analytics...
+        </Typography>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center min-h-96">
-        <div className="text-red-600">{error}</div>
+      <div className="flex justify-center items-center min-h-96 p-6">
+        <Paper elevation={2} sx={{ p: 4, textAlign: 'center', maxWidth: 400 }}>
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+          <Button
+            variant="contained"
+            startIcon={<RefreshIcon />}
+            onClick={fetchAnalyticsData}
+            color="primary"
+          >
+            Retry
+          </Button>
+        </Paper>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h1>
-        <button
+    <div className="p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <Typography variant="h4" component="h1" fontWeight="bold">
+          Analytics Dashboard
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<RefreshIcon />}
           onClick={fetchAnalyticsData}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          color="primary"
         >
           Refresh Data
-        </button>
+        </Button>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Total Revenue"
-          value={formatCurrency(stats?.totalRevenue)}
-          subtitle="All time"
-          icon="💰"
-          color="bg-green-500"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <MetricCard
           title="Order Completion Rate"
           value={formatPercentage(analytics?.orderCompletionRate)}
           subtitle="Success rate"
-          icon="✅"
-          color="bg-blue-500"
-        />
-        <MetricCard
-          title="Average Order Value"
-          value={formatCurrency(analytics?.averageOrderValue)}
-          subtitle="Per order"
-          icon="📊"
-          color="bg-purple-500"
+          icon={<CheckIcon />}
+          color="primary"
         />
         <MetricCard
           title="Low Stock Items"
           value={analytics?.lowStockCount || 0}
           subtitle="Need attention"
-          icon="⚠️"
-          color="bg-orange-500"
+          icon={<WarningIcon />}
+          color="warning"
         />
       </div>
 
-      {/* Order Status Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-semibold mb-4">Order Status Distribution</h2>
-          <div className="space-y-4">
-            <OrderStatusBar
-              label="Pending"
-              count={stats?.pendingOrders || 0}
-              total={stats?.totalOrders || 1}
-              color="bg-yellow-500"
-            />
-            <OrderStatusBar
-              label="Delivered"
-              count={stats?.completedOrders || 0}
-              total={stats?.totalOrders || 1}
-              color="bg-green-500"
-            />
-            <OrderStatusBar
-              label="Others"
-              count={(stats?.totalOrders || 0) - (stats?.pendingOrders || 0) - (stats?.completedOrders || 0)}
-              total={stats?.totalOrders || 1}
-              color="bg-gray-500"
-            />
-          </div>
-        </div>
+      {/* Order Status Distribution & Product Performance */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <Card elevation={2}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom fontWeight="bold">
+              Order Status Distribution
+            </Typography>
+            <div className="mt-6 space-y-4">
+              <OrderStatusBar
+                label="Pending"
+                count={stats?.pendingOrders || 0}
+                total={stats?.totalOrders || 1}
+                color="warning"
+              />
+              <OrderStatusBar
+                label="Delivered"
+                count={stats?.completedOrders || 0}
+                total={stats?.totalOrders || 1}
+                color="success"
+              />
+              <OrderStatusBar
+                label="Others"
+                count={(stats?.totalOrders || 0) - (stats?.pendingOrders || 0) - (stats?.completedOrders || 0)}
+                total={stats?.totalOrders || 1}
+                color="inherit"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Product Performance */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-semibold mb-4">Top Performing Products</h2>
-          <div className="space-y-3">
-            {stats?.topProducts?.slice(0, 5).map((item, index) => (
-              <div key={item.product?.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                    {index + 1}
+        <Card elevation={2}>
+          <CardContent className="p-6">
+            <Typography variant="h6" gutterBottom fontWeight="bold" className="mb-4">
+              Top Performing Products
+            </Typography>
+            <div className="space-y-1">
+              {stats?.topProducts?.slice(0, 5).map((item, index) => (
+                <div key={item.product?.id || index}>
+                  <div className="flex items-center gap-3 py-3 px-2 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <Avatar sx={{ bgcolor: 'primary.main', width: 28, height: 28, fontSize: '0.875rem' }}>
+                        {index + 1}
+                      </Avatar>
+                      <Avatar
+                        src={getProductImageUrl(item.product)}
+                        alt={item.product?.name}
+                        sx={{ width: 48, height: 48 }}
+                        variant="rounded"
+                      >
+                        <InventoryIcon />
+                      </Avatar>
+                    </div>
+                    <div className="flex-grow min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Typography 
+                          variant="subtitle1" 
+                          fontWeight="medium" 
+                          className="truncate"
+                          sx={{ fontSize: '0.95rem' }}
+                        >
+                          {item.product?.name || 'Unknown Product'}
+                        </Typography>
+                        {item.variant?.size && (
+                          <Chip 
+                            label={item.variant.size} 
+                            size="small" 
+                            variant="outlined"
+                            sx={{ 
+                              height: '20px', 
+                              fontSize: '0.75rem',
+                              flexShrink: 0
+                            }}
+                          />
+                        )}
+                      </div>
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{ fontSize: '0.85rem' }}
+                      >
+                        Sold: {item.totalSold} units
+                      </Typography>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{item.product?.name}</p>
-                    <p className="text-sm text-gray-600">Sold: {item.totalSold} units</p>
-                  </div>
+                  {index < 4 && <Divider sx={{ my: 0 }} />}
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Revenue Insights */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold mb-4">Revenue Insights</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center p-4 bg-green-50 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-700">Total Revenue</h3>
-            <p className="text-3xl font-bold text-green-600">
-              {formatCurrency(stats?.totalRevenue)}
-            </p>
-            <p className="text-sm text-gray-600 mt-1">
-              From {stats?.completedOrders || 0} completed orders
-            </p>
-          </div>
-          
-          <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-700">Average Order Value</h3>
-            <p className="text-3xl font-bold text-blue-600">
-              {formatCurrency(analytics?.averageOrderValue)}
-            </p>
-            <p className="text-sm text-gray-600 mt-1">
-              Revenue per order
-            </p>
-          </div>
-          
-          <div className="text-center p-4 bg-purple-50 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-700">Total Products</h3>
-            <p className="text-3xl font-bold text-purple-600">
-              {stats?.totalProducts || 0}
-            </p>
-            <p className="text-sm text-gray-600 mt-1">
-              In inventory
-            </p>
-          </div>
-        </div>
+              )) || (
+                <div className="flex justify-center py-8">
+                  <Typography variant="body2" color="text.secondary">
+                    No product data available
+                  </Typography>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* System Health */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold mb-4">System Health</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-lg font-medium text-gray-700 mb-3">Order Processing</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Success Rate:</span>
-                <span className="font-medium">{formatPercentage(analytics?.orderCompletionRate)}</span>
+      <Card elevation={2}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom fontWeight="bold">
+            System Health
+          </Typography>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
+            <div>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Order Processing
+              </Typography>
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between">
+                  <Typography variant="body2" color="text.secondary">Success Rate:</Typography>
+                  <Typography variant="body2" fontWeight="medium">
+                    {formatPercentage(analytics?.orderCompletionRate)}
+                  </Typography>
+                </div>
+                <div className="flex justify-between">
+                  <Typography variant="body2" color="text.secondary">Total Orders:</Typography>
+                  <Typography variant="body2" fontWeight="medium">
+                    {stats?.totalOrders || 0}
+                  </Typography>
+                </div>
+                <div className="flex justify-between">
+                  <Typography variant="body2" color="text.secondary">Pending Orders:</Typography>
+                  <Typography variant="body2" fontWeight="medium" color="warning.main">
+                    {stats?.pendingOrders || 0}
+                  </Typography>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Orders:</span>
-                <span className="font-medium">{stats?.totalOrders || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Pending Orders:</span>
-                <span className="font-medium text-yellow-600">{stats?.pendingOrders || 0}</span>
+            </div>
+            
+            <div>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Inventory Status
+              </Typography>
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between">
+                  <Typography variant="body2" color="text.secondary">Low Stock Items:</Typography>
+                  <Typography variant="body2" fontWeight="medium" color="warning.main">
+                    {analytics?.lowStockCount || 0}
+                  </Typography>
+                </div>
+                <div className="flex justify-between">
+                  <Typography variant="body2" color="text.secondary">Out of Stock:</Typography>
+                  <Typography variant="body2" fontWeight="medium" color="error.main">
+                    0
+                  </Typography>
+                </div>
               </div>
             </div>
           </div>
-          
-          <div>
-            <h3 className="text-lg font-medium text-gray-700 mb-3">Inventory Status</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Products:</span>
-                <span className="font-medium">{stats?.totalProducts || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Low Stock Items:</span>
-                <span className="font-medium text-orange-600">{analytics?.lowStockCount || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Out of Stock:</span>
-                <span className="font-medium text-red-600">0</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
@@ -231,18 +314,32 @@ const AnalyticsView = () => {
 // Helper Components
 const MetricCard = ({ title, value, subtitle, icon, color }) => {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          <p className="text-sm text-gray-500">{subtitle}</p>
+    <Card elevation={2}>
+      <CardContent>
+        <div className="flex justify-between items-center">
+          <div>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              {title}
+            </Typography>
+            <Typography variant="h4" fontWeight="bold" gutterBottom>
+              {value}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {subtitle}
+            </Typography>
+          </div>
+          <Avatar 
+            sx={{ 
+              bgcolor: `${color}.main`,
+              width: 56, 
+              height: 56 
+            }}
+          >
+            {icon}
+          </Avatar>
         </div>
-        <div className={`w-12 h-12 ${color} rounded-lg flex items-center justify-center text-white text-xl`}>
-          {icon}
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -251,16 +348,20 @@ const OrderStatusBar = ({ label, count, total, color }) => {
   
   return (
     <div>
-      <div className="flex justify-between mb-1">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
-        <span className="text-sm text-gray-600">{count} ({percentage.toFixed(1)}%)</span>
+      <div className="flex justify-between mb-2">
+        <Typography variant="body2" fontWeight="medium">
+          {label}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {count} ({percentage.toFixed(1)}%)
+        </Typography>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-2.5">
-        <div
-          className={`h-2.5 rounded-full ${color}`}
-          style={{ width: `${percentage}%` }}
-        ></div>
-      </div>
+      <LinearProgress 
+        variant="determinate" 
+        value={percentage} 
+        color={color}
+        sx={{ height: 8, borderRadius: 4 }}
+      />
     </div>
   );
 };

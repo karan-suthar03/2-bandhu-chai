@@ -11,13 +11,33 @@ import {
     Typography,
 } from '@mui/material';
 
-const MyTable = ({ children, sort, handleSortChange, columns }) => {
+const MyTable = ({ 
+    children, 
+    sort, 
+    handleSortChange, 
+    columns, 
+    onSelectAll, 
+    allSelected, 
+    someSelected 
+}) => {
+    const hasSelection = typeof onSelectAll === 'function';
+
     return (
         <Paper sx={{ width: '100%', overflow: 'hidden' }}>
             <TableContainer sx={{ overflow: 'auto' }}>
                 <Table stickyHeader size="small">
                     <TableHead>
                         <TableRow>
+                            {hasSelection && (
+                                <TableCell padding="checkbox">
+                                    <Checkbox
+                                        color="primary"
+                                        indeterminate={someSelected}
+                                        checked={allSelected}
+                                        onChange={onSelectAll}
+                                    />
+                                </TableCell>
+                            )}
                             {columns.map((col) => (
                                 <TableCell key={col.label}>
                                     {col.key ? (

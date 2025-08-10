@@ -11,7 +11,6 @@ export const calculateItemPrice = (variant, quantity) => {
 export const calculateOrderSummary = (items, policies = {}) => {
     const {
         freeShippingThreshold = 999,
-        taxRate = 0.18,
         baseShippingCost = 99
     } = policies;
 
@@ -27,18 +26,15 @@ export const calculateOrderSummary = (items, policies = {}) => {
     });
 
     const shippingCost = subtotal >= freeShippingThreshold ? 0 : baseShippingCost;
-    const tax = Math.round(subtotal * taxRate);
-    const finalTotal = subtotal + shippingCost + tax;
+    const finalTotal = subtotal + shippingCost;
 
     return {
         subtotal,
         totalDiscount,
         shippingCost,
-        tax,
         finalTotal,
         itemCount,
-        freeShippingThreshold,
-        taxRate
+        freeShippingThreshold
     };
 };
 

@@ -188,10 +188,6 @@ function OrderSuccessPage() {
                                                 {confirmation.order.summary.shippingCost === 0 ? 'FREE' : formatPrice(confirmation.order.summary.shippingCost)}
                                             </span>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span>Tax (GST)</span>
-                                            <span>{formatPrice(confirmation.order.summary.tax)}</span>
-                                        </div>
                                         <div className="flex justify-between text-lg font-bold pt-2 border-t">
                                             <span>Total</span>
                                             <span>{formatPrice(confirmation.order.summary.finalTotal)}</span>

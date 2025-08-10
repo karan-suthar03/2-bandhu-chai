@@ -56,15 +56,6 @@ const OrderDetailsInfo = ({ order }) => {
                             {order.shippingCost > 0 ? formatCurrency(order.shippingCost) : 'Free'}
                         </Typography>
                     </Grid>
-                    
-                    <Grid item xs={12} md={6}>
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                            Tax (GST 18%)
-                        </Typography>
-                        <Typography variant="h6" gutterBottom>
-                            {formatCurrency(order.tax)}
-                        </Typography>
-                    </Grid>
                 </Grid>
 
                 <Divider sx={{ my: 3 }} />
@@ -107,13 +98,6 @@ const OrderDetailsInfo = ({ order }) => {
                         </Grid>
                         <Grid item xs={4} textAlign="right">
                             <Typography variant="body2">+{formatCurrency(order.shippingCost)}</Typography>
-                        </Grid>
-                        
-                        <Grid item xs={8}>
-                            <Typography variant="body2">Add: Tax (GST):</Typography>
-                        </Grid>
-                        <Grid item xs={4} textAlign="right">
-                            <Typography variant="body2">+{formatCurrency(order.tax)}</Typography>
                         </Grid>
                         
                         <Grid item xs={12}>

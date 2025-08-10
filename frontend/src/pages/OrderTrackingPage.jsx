@@ -261,10 +261,6 @@ function OrderTrackingPage() {
                                             <span>Shipping</span>
                                             <span>{order.shippingCost === 0 ? 'FREE' : formatPrice(order.shippingCost)}</span>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span>Tax (GST)</span>
-                                            <span>{formatPrice(order.tax)}</span>
-                                        </div>
                                         <div className="flex justify-between text-lg font-bold pt-2 border-t">
                                             <span>Total</span>
                                             <span>{formatPrice(order.finalTotal)}</span>

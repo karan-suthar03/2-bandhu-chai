@@ -431,11 +431,6 @@ function CheckoutPage() {
                                 </span>
                             </div>
                             
-                            <div className="flex justify-between text-[#5b4636]">
-                                <span>Tax (GST 18%)</span>
-                                <span>{formatPrice(checkoutPreview.summary.tax)}</span>
-                            </div>
-                            
                             <div className="flex justify-between text-xl font-bold pt-3 border-t border-gray-200 text-[#e67e22]">
                                 <span>Total Amount</span>
                                 <span>{formatPrice(checkoutPreview.summary.finalTotal)}</span>

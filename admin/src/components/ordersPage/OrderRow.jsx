@@ -46,7 +46,6 @@ const OrderRow = ({ order, selected, onSelectRow, onDelete, onEdit }) => {
             </TableCell>
             <TableCell sx={{ fontWeight: 'bold' }}>{formatCurrency(order.finalTotal)}</TableCell>
             <TableCell>{formatCurrency(order.subtotal)}</TableCell>
-            <TableCell>{formatCurrency(order.tax)}</TableCell>
             <TableCell>{formatCurrency(order.totalDiscount)}</TableCell>
             <TableCell>{formatDate(order.confirmedAt)}</TableCell>
             <TableCell>{formatDate(order.shippedAt)}</TableCell>

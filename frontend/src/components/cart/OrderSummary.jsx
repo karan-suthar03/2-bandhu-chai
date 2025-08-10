@@ -71,10 +71,6 @@ function OrderSummary({ orderSummary, loading = false }) {
                                         {orderSummary.shippingCost === 0 ? 'FREE' : formatPrice(orderSummary.shippingCost)}
                                     </span>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span className="text-[#5b4636]">Tax (GST 18%)</span>
-                                    <span className="font-semibold text-[#3a1f1f]">{formatPrice(orderSummary.tax)}</span>
-                                </div>
                             </div>
 
                             <div className="border-t pt-4">

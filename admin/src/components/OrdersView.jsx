@@ -28,7 +28,6 @@ const columns = [
   { label: 'Payment Method', key: 'paymentMethod' },
   { label: 'Final Total', key: 'finalTotal' },
   { label: 'Subtotal', key: 'subtotal' },
-  { label: 'Tax', key: 'tax' },
   { label: 'Discount', key: 'totalDiscount' },
   { label: 'Confirmed At', key: 'confirmedAt' },
   { label: 'Shipped At', key: 'shippedAt' },

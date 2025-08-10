@@ -33,3 +33,10 @@ export const formatDiscount = (discount) => {
     const percentage = Number(discount * 100).toFixed(0);
     return `${percentage}% Off`;
 };
+
+export const formatRating = (rating) => {
+    if (rating === null || rating === undefined || isNaN(rating)) {
+        return '0.0';
+    }
+    return Number(rating).toFixed(1);
+};

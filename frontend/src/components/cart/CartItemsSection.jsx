@@ -1,4 +1,5 @@
 import CartItem from "./CartItem.jsx";
+import RecommendedProducts from "./RecommendedProducts.jsx";
 import productImage from "../../assets/product.jpg";
 import { useNavigate } from "react-router-dom";
 
@@ -102,27 +103,7 @@ function CartItemsSection({
                 </div>
             </div>
 
-            <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-bold text-[#3a1f1f] mb-4">Recommended for you</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[1, 2].map((item) => (
-                        <div key={item} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:shadow-md transition cursor-pointer">
-                            <img src={productImage} alt="Recommended Tea" className="w-16 h-16 object-cover rounded-lg" />
-                            <div className="flex-1">
-                                <h4 className="font-semibold text-[#3a1f1f] text-sm">Earl Grey Tea</h4>
-                                <p className="text-xs text-[#5b4636] mb-1">Classic blend with bergamot</p>
-                                <div className="flex items-center space-x-2">
-                                    <span className="text-sm font-bold text-[#3a1f1f]">₹549</span>
-                                    <span className="text-xs text-gray-500 line-through">₹699</span>
-                                </div>
-                            </div>
-                            <button className="text-[#e67e22] hover:text-[#d35400] text-sm font-medium cursor-pointer">
-                                Add
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </div>
+            <RecommendedProducts />
         </>
     );
 }

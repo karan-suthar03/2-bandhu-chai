@@ -17,7 +17,6 @@ export const CartProvider = ({ children }) => {
     subtotal: 0,
     totalDiscount: 0,
     shippingCost: 0,
-    tax: 0,
     finalTotal: 0,
     itemCount: 0
   });
@@ -123,7 +122,6 @@ export const CartProvider = ({ children }) => {
           subtotal: 0,
           totalDiscount: 0,
           shippingCost: 0,
-          tax: 0,
           finalTotal: 0,
           itemCount: 0
         });

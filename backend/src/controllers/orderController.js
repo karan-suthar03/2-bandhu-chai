@@ -137,7 +137,6 @@ const getOrderConfirmation = asyncHandler(async (req, res) => {
             subtotal: order.subtotal,
             totalDiscount: order.totalDiscount,
             shippingCost: order.shippingCost,
-            tax: order.tax,
             finalTotal: order.finalTotal,
             notes: order.notes,
             createdAt: order.createdAt,

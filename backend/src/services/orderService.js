@@ -102,7 +102,6 @@ export class OrderService {
             subtotal: 'subtotal',
             totalDiscount: 'totalDiscount',
             shippingCost: 'shippingCost',
-            tax: 'tax',
             finalTotal: 'finalTotal',
             createdAt: 'createdAt',
             updatedAt: 'updatedAt',
@@ -282,8 +281,7 @@ export class OrderService {
         }
 
         const shippingCost = subtotal > 999 ? 0 : 99;
-        const tax = Math.round(subtotal * 0.18);
-        const finalTotal = subtotal + shippingCost + tax;
+        const finalTotal = subtotal + shippingCost;
 
         const order = await prisma.$transaction(async (tx) => {
             const newOrder = await tx.order.create({
@@ -297,7 +295,6 @@ export class OrderService {
                     subtotal,
                     totalDiscount,
                     shippingCost,
-                    tax,
                     finalTotal,
                     notes,
                     orderItems: {

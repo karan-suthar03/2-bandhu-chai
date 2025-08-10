@@ -104,17 +104,6 @@ const OrderPaymentDetails = ({ order }) => {
                                 </TableRow>
                             )}
                             
-                            {parseFloat(order.tax || 0) > 0 && (
-                                <TableRow>
-                                    <TableCell component="th" scope="row" sx={{ border: 'none', px: 0 }}>
-                                        Tax (GST 18%)
-                                    </TableCell>
-                                    <TableCell align="right" sx={{ border: 'none', px: 0 }}>
-                                        {formatCurrency(order.tax)}
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                            
                             <TableRow>
                                 <TableCell component="th" scope="row" sx={{ 
                                     border: 'none', 

@@ -32,7 +32,6 @@ export const useOrderDetails = (orderId) => {
                         subtotal: orderData.subtotal || 0,
                         totalDiscount: orderData.totalDiscount || 0,
                         shippingCost: orderData.shippingCost || 0,
-                        tax: orderData.tax || 0,
                         finalTotal: orderData.finalTotal || 0,
                         orderItems: orderData.orderItems || [],
                         createdAt: orderData.createdAt,

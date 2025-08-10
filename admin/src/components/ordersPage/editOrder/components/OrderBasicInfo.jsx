@@ -21,7 +21,6 @@ const OrderBasicInfo = ({ order, onSave, saving }) => {
         subtotal: order.subtotal || '0',
         totalDiscount: order.totalDiscount || '0',
         shippingCost: order.shippingCost || '0',
-        tax: order.tax || '0',
         finalTotal: order.finalTotal || '0'
     });
     const [autoCalculate, setAutoCalculate] = useState(false);
@@ -35,13 +34,10 @@ const OrderBasicInfo = ({ order, onSave, saving }) => {
             const totalDiscount = parseFloat(formData.totalDiscount) || 0;
             const shippingCost = parseFloat(formData.shippingCost) || 0;
 
-            const taxableAmount = Math.max(0, subtotal - totalDiscount);
-            const calculatedTax = Math.round(taxableAmount * 0.18);
-            const calculatedFinalTotal = subtotal - totalDiscount + shippingCost + calculatedTax;
+            const calculatedFinalTotal = subtotal - totalDiscount + shippingCost;
 
             setFormData(prev => ({
                 ...prev,
-                tax: calculatedTax.toString(),
                 finalTotal: calculatedFinalTotal.toString()
             }));
         }
@@ -61,18 +57,16 @@ const OrderBasicInfo = ({ order, onSave, saving }) => {
         const subtotal = parseFloat(formData.subtotal) || 0;
         const totalDiscount = parseFloat(formData.totalDiscount) || 0;
         const shippingCost = parseFloat(formData.shippingCost) || 0;
-        const tax = parseFloat(formData.tax) || 0;
         const finalTotal = parseFloat(formData.finalTotal) || 0;
 
         if (subtotal < 0) return 'Subtotal cannot be negative';
         if (totalDiscount < 0) return 'Discount cannot be negative';
         if (totalDiscount > subtotal) return 'Discount cannot be greater than subtotal';
         if (shippingCost < 0) return 'Shipping cost cannot be negative';
-        if (tax < 0) return 'Tax cannot be negative';
         if (finalTotal < 0) return 'Final total cannot be negative';
 
         if (!autoCalculate) {
-            const expectedTotal = subtotal - totalDiscount + shippingCost + tax;
+            const expectedTotal = subtotal - totalDiscount + shippingCost;
             const difference = Math.abs(expectedTotal - finalTotal);
             if (difference > 0.01) { // Allow for small floating-point rounding differences
                 return `Manual calculation mismatch. Expected total: ${formatCurrency(expectedTotal)}, but got: ${formatCurrency(finalTotal)}`;
@@ -95,7 +89,6 @@ const OrderBasicInfo = ({ order, onSave, saving }) => {
             subtotal: parseFloat(formData.subtotal),
             totalDiscount: parseFloat(formData.totalDiscount),
             shippingCost: parseFloat(formData.shippingCost),
-            tax: parseFloat(formData.tax),
             finalTotal: parseFloat(formData.finalTotal)
         };
 
@@ -154,9 +147,6 @@ const OrderBasicInfo = ({ order, onSave, saving }) => {
                     <Grid item xs={12} sm={6}>
                         <TextField fullWidth label="Shipping Cost" type="number" value={formData.shippingCost} onChange={(e) => handleInputChange('shippingCost', e.target.value)} InputProps={{ startAdornment: '₹' }} helperText="Shipping and handling charges" />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
-                        <TextField fullWidth label="Tax (GST 18%)" type="number" value={formData.tax} onChange={(e) => handleInputChange('tax', e.target.value)} InputProps={{ startAdornment: '₹' }} helperText={autoCalculate ? "Auto-calculated at 18%" : "Manual tax amount"} disabled={autoCalculate} />
-                    </Grid>
                     <Grid item xs={12}>
                         <TextField fullWidth label="Final Total" type="number" value={formData.finalTotal} onChange={(e) => handleInputChange('finalTotal', e.target.value)} InputProps={{ startAdornment: '₹' }} helperText={autoCalculate ? "Auto-calculated total" : "Manual final total"} disabled={autoCalculate} sx={{ '& .MuiInputBase-root': { backgroundColor: autoCalculate ? 'action.hover' : 'transparent', fontWeight: 'bold' } }} />
                     </Grid>
@@ -179,9 +169,6 @@ const OrderBasicInfo = ({ order, onSave, saving }) => {
                             <Grid item xs={8}><Typography variant="body2">Add: Shipping:</Typography></Grid>
                             <Grid item xs={4} textAlign="right"><Typography variant="body2">+{formatCurrency(formData.shippingCost)}</Typography></Grid>
 
-                            <Grid item xs={8}><Typography variant="body2">Add: Tax (GST):</Typography></Grid>
-                            <Grid item xs={4} textAlign="right"><Typography variant="body2">+{formatCurrency(formData.tax)}</Typography></Grid>
-
                             <Grid item xs={12}><Divider sx={{ my: 1 }} /></Grid>
 
                             <Grid item xs={8}><Typography variant="body1" fontWeight="bold">Final Total:</Typography></Grid>
@@ -192,7 +179,7 @@ const OrderBasicInfo = ({ order, onSave, saving }) => {
 
                 <Box mt={3} p={2} bgcolor="info.light" sx={{ color: 'info.dark' }} borderRadius={1}>
                     <Typography variant="body2">
-                        <strong>Auto-Calculate Mode:</strong> When enabled, tax and total are calculated automatically. When disabled, you can set all values manually, but they must add up correctly.
+                        <strong>Auto-Calculate Mode:</strong> When enabled, totals are calculated automatically. When disabled, you can set all values manually, but they must add up correctly.
                     </Typography>
                 </Box>
             </CardContent>

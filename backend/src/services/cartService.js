@@ -184,7 +184,6 @@ export class CartService {
             summary: cartData.orderSummary,
             policies: {
                 freeShippingThreshold: 999,
-                taxRate: 18,
                 returnPolicy: '7 days return policy',
                 exchangePolicy: 'Exchange within 7 days'
             }

@@ -24,7 +24,6 @@ class CartService {
                         subtotal: 0,
                         totalDiscount: 0,
                         shippingCost: 0,
-                        tax: 0,
                         finalTotal: 0,
                         itemCount: 0
                     }

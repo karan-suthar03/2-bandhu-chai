@@ -140,7 +140,6 @@ model Order {
   subtotal      Float
   totalDiscount Float @default(0)
   shippingCost  Float @default(0)
-  tax           Float @default(0)
   finalTotal    Float
 
   createdAt   DateTime  @default(now())

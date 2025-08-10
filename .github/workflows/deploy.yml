@@ -138,6 +138,15 @@ jobs:
               echo "⚠️  WARNING: No .env file found! Please upload your .env file manually."
             fi
 
+            echo ">>> Fix prisma binary permissions"
+            chmod -R u+rx ./node_modules/.bin
+
+            echo ">>> Generate Prisma client"
+            npx prisma generate
+
+            echo ">>> Run database migrations"
+            npx prisma migrate deploy || echo "Migration completed or up to date"
+
             echo ">>> Generate Prisma client"
             npx prisma generate
 

@@ -1,9 +1,7 @@
 import emailTrackingService from '../services/emailTrackingService.js';
-import { sendSuccess, sendBadRequest, sendNotFound } from '../utils/responseUtils.js';
+import { sendSuccess, sendBadRequest, sendNotFound, createPaginatedResponse, sendResponse } from '../utils/responseUtils.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../config/prisma.js';
 
 const getEmailStats = asyncHandler(async (req, res) => {
     const { 

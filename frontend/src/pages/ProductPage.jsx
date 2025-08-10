@@ -3,7 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { getProduct } from "../api/products.js";
 import { getProductReviews, createProductReview } from "../api/reviews.js";
-import {formatCurrency, formatDiscount} from "../utils/priceUtils.js";
+import { formatCurrency, formatDiscount, formatRating } from "../utils/priceUtils.js";
+import YouMayAlsoLike from "../components/YouMayAlsoLike.jsx";
 import productImage from "../assets/product.jpg";
 function ProductPage() {
     const { productId } = useParams();
@@ -293,7 +294,7 @@ function ProductPage() {
                                                 ))}
                                             </div>
                                             <span className="ml-2 text-sm text-[#5b4636]">
-                                                {product.rating} ({product.reviews ?? product.reviewCount ?? 0} reviews)
+                                                {formatRating(product.rating)} ({product.reviews ?? product.reviewCount ?? 0} reviews)
                                             </span>
                                         </div>
                                         <span className="text-green-600 text-sm font-medium">
@@ -674,33 +675,7 @@ function ProductPage() {
                     </div>
                 </section>
 
-                <section className="bg-gray-50 py-12 px-4">
-                    <div className="max-w-7xl mx-auto">
-                        <h3 className="text-3xl font-bold text-[#3a1f1f] text-center mb-12">
-                            You May Also Like
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                            {}
-                            {[1, 2, 3, 4].map((item) => (
-                                <div key={item} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                                    <div className="h-48 bg-gray-200 flex items-center justify-center">
-                                        <img src={productImage} alt="Related Product" className="w-20 h-20 object-cover" />
-                                    </div>
-                                    <div className="p-4">
-                                        <h4 className="font-semibold text-[#3a1f1f] mb-2">Related Tea Product</h4>
-                                        <p className="text-sm text-[#5b4636] mb-2">Short description here</p>
-                                        <div className="flex items-center justify-between">
-                                            <span className="font-bold text-[#3a1f1f]">₹599</span>
-                                            <button className="bg-[#e67e22] text-white px-3 py-1 rounded text-sm hover:bg-[#d35400] transition">
-                                                Add to Cart
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
+                <YouMayAlsoLike currentProductId={product.id} />
             </main>
         </>
     );

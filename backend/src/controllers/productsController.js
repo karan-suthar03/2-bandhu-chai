@@ -56,8 +56,20 @@ const getProduct = async (req, res) => {
     }
 };
 
+const getRelatedProducts = asyncHandler(async (req, res) => {
+    const { productId } = req.params;
+    const limit = parseInt(req.query.limit) || 4;
+    
+    const relatedProducts = await ProductService.getRelatedProducts(productId, limit);
+    
+    return sendSuccess(res, {
+        data: relatedProducts
+    });
+});
+
 export {
     getProducts,
     getFeaturedProducts,
-    getProduct
+    getProduct,
+    getRelatedProducts
 };

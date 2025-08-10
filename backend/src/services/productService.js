@@ -191,11 +191,42 @@ export class ProductService {
         return formattedProduct;
     }
 
+    static async getRelatedProducts(productId, limit = 4) {
+        const relatedProducts = await prisma.product.findMany({
+            where: {
+                deactivated: false,
+                id: { not: parseInt(productId) }
+            },
+            include: {
+                variants: true,
+                defaultVariant: true
+            },
+            take: limit,
+            orderBy: [
+                { featured: 'desc' },
+                { rating: 'desc' },
+                { createdAt: 'desc' }
+            ]
+        });
+
+        return relatedProducts.map(this.formatProduct);
+    }
+
     static formatProduct(product) {
+        let image = product.image;
+
+        if (image && typeof image === 'string') {
+            try {
+                image = JSON.parse(image);
+            } catch (e) {
+                console.warn('Failed to parse image JSON string:', image);
+            }
+        }
+
         return {
             id: product.id,
             name: product.name,
-            image: product.image,
+            image: image,
             price: product.defaultVariant?.price || 0,
             oldPrice: product.defaultVariant?.oldPrice,
             discount: product.defaultVariant?.discount,
@@ -210,7 +241,8 @@ export class ProductService {
             fastDelivery: product.fastDelivery,
             isNew: product.isNew,
             defaultVariant: product.defaultVariant,
-            variants: product.variants
+            variants: product.variants,
+            description: product.description
         };
     }
 }

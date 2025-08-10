@@ -45,6 +45,23 @@ const getProduct = async (productId) => {
     }
 }
 
+const getRelatedProducts = async (productId, limit = 4) => {
+    try {
+        const response = await axiosInstance.get(`/products/${productId}/related`, { 
+            params: { limit } 
+        });
+        return response.data.data;
+    } catch (error) {
+        console.error('Error fetching related products:', error);
+
+        if (error.isNetworkError || error.isServerDown || error.isTimeout) {
+            return [];
+        }
+        
+        throw error;
+    }
+};
+
 const getCartItems = async (cartItems) => {
     try {
         const response = await axiosInstance.post('/products/cart', { cartItems });
@@ -60,4 +77,4 @@ const getCartItems = async (cartItems) => {
     }
 };
 
-export { getProducts, getFeaturedProducts, getProduct, getCartItems };
+export { getProducts, getFeaturedProducts, getProduct, getRelatedProducts, getCartItems };

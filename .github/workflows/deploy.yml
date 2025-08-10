@@ -23,7 +23,7 @@ jobs:
           node-version: 18
 
       ################################################
-      # FRONTEND
+      # FRONTEND (Vite -> dist)
       ################################################
       - name: Install & build frontend
         run: |
@@ -31,13 +31,13 @@ jobs:
           cd frontend
           npm ci
           npm run build
-          echo ">>> Build output listing (frontend/build):"
-          ls -la build || true
+          echo ">>> Build output listing (frontend/dist):"
+          ls -la dist || true
 
       - name: Ensure frontend build exists
         run: |
-          if [ ! -d "frontend/build" ] || [ -z "$(ls -A frontend/build 2>/dev/null)" ]; then
-            echo "Error: frontend/build is missing or empty"
+          if [ ! -d "frontend/dist" ] || [ -z "$(ls -A frontend/dist 2>/dev/null)" ]; then
+            echo "Error: frontend/dist is missing or empty"
             exit 1
           fi
           echo "frontend build okay"
@@ -48,14 +48,13 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "frontend/build/*"
+          source: "frontend/dist/*"
           target: "/var/www/chai.karansuthar.works"
           overwrite: true
-          strip_components: 0
           timeout: 60s
 
       ################################################
-      # ADMIN
+      # ADMIN PANEL (Vite -> dist)
       ################################################
       - name: Install & build admin
         run: |
@@ -63,13 +62,13 @@ jobs:
           cd admin
           npm ci
           npm run build
-          echo ">>> Build output listing (admin/build):"
-          ls -la build || true
+          echo ">>> Build output listing (admin/dist):"
+          ls -la dist || true
 
       - name: Ensure admin build exists
         run: |
-          if [ ! -d "admin/build" ] || [ -z "$(ls -A admin/build 2>/dev/null)" ]; then
-            echo "Error: admin/build is missing or empty"
+          if [ ! -d "admin/dist" ] || [ -z "$(ls -A admin/dist 2>/dev/null)" ]; then
+            echo "Error: admin/dist is missing or empty"
             exit 1
           fi
           echo "admin build okay"
@@ -80,10 +79,9 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "admin/build/*"
-          target: "/var/www/admin.chai.karansuthar.works"
+          source: "admin/dist/*"
+          target: "/var/www/chai-admin.karansuthar.works"
           overwrite: true
-          strip_components: 0
           timeout: 60s
 
       ################################################
@@ -98,7 +96,6 @@ jobs:
           source: "backend/*"
           target: "~/backend"
           overwrite: true
-          strip_components: 0
           timeout: 120s
 
       - name: Install backend deps & restart services on EC2
@@ -111,16 +108,14 @@ jobs:
             set -e
             echo ">>> Ensuring folders permissions..."
             sudo mkdir -p /var/www/chai.karansuthar.works
-            sudo mkdir -p /var/www/admin.chai.karansuthar.works
+            sudo mkdir -p /var/www/chai-admin.karansuthar.works
             sudo chown -R $USER:$USER /var/www || true
 
             echo ">>> Backend: install deps"
             cd ~/backend || exit 1
-            # install production deps
             npm ci --production
 
             echo ">>> Restarting backend with pm2"
-            # replace server.js with your entrypoint if different
             pm2 restart chai-backend || pm2 start server.js --name chai-backend
 
             echo ">>> Restarting nginx"

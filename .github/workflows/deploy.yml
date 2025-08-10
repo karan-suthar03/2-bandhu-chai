@@ -87,6 +87,7 @@ jobs:
       ################################################
       # BACKEND
       ################################################
+
       - name: Deploy backend source to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -94,9 +95,10 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "backend/*"
-          target: "~/backend"
+          target: "/var/www/chai.karansuthar.works/backend"
           overwrite: true
           timeout: 120s
+
 
       - name: Install backend deps & restart services on EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -112,7 +114,7 @@ jobs:
             sudo chown -R $USER:$USER /var/www || true
 
             echo ">>> Backend: install deps"
-            cd ~/backend || exit 1
+            cd /var/www/chai.karansuthar.works/backend || exit 1
             npm install --omit=dev
 
             echo ">>> Restarting backend with pm2"

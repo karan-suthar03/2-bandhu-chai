@@ -16,10 +16,17 @@ import contactRouter from "./routes/contactRoute.js";
 
 app.use(express.json());
 app.use(cors({
-    origin: [
-        'https://chai.karansuthar.works',
-        'https://chai-admin.karansuthar.works'
-    ],
+    origin: function(origin, callback) {
+        const allowed = [
+            'https://chai.karansuthar.works',
+            'https://chai-admin.karansuthar.works'
+        ];
+        if (!origin || allowed.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 app.use(cookieParser());

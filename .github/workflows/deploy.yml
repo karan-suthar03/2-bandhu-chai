@@ -1,0 +1,85 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - deployment
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Checkout code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2. Set up Node.js
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    # ===== FRONTEND =====
+    - name: Build Frontend
+      working-directory: frontend
+      run: |
+        npm ci
+        npm run build
+
+    - name: Deploy Frontend to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "frontend/build/*"
+        target: "/var/www/chai.karansuthar.works"
+
+    # ===== ADMIN PANEL =====
+    - name: Build Admin Panel
+      working-directory: admin
+      run: |
+        npm ci
+        npm run build
+
+    - name: Deploy Admin Panel to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "admin/build/*"
+        target: "/var/www/chai-admin.karansuthar.works"
+
+    # ===== BACKEND =====
+    - name: Deploy Backend to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "backend/*"
+        target: "/var/www/chai-backend"
+
+    - name: Restart Backend
+      uses: appleboy/ssh-action@v0.1.8
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd /var/www/chai-backend
+          npm install --production
+          pm2 restart chai-backend || pm2 start server.js --name chai-backend
+
+    # ===== RESTART NGINX =====
+    - name: Restart Nginx
+      uses: appleboy/ssh-action@v0.1.8
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          sudo systemctl restart nginx
+

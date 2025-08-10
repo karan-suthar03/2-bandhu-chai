@@ -114,9 +114,26 @@ jobs:
             sudo mkdir -p /var/www/chai-backend
             sudo chown -R $USER:$USER /var/www || true
 
+            echo ">>> Backup .env file if it exists"
+            if [ -f "/var/www/chai-backend/backend/.env" ]; then
+              cp /var/www/chai-backend/backend/.env /tmp/.env.backup
+              echo ".env file backed up"
+            else
+              echo "No existing .env file found"
+            fi
+
             echo ">>> Backend: install deps"
             cd /var/www/chai-backend/backend || exit 1
             npm install --omit=dev
+
+            echo ">>> Restore .env file if backup exists"
+            if [ -f "/tmp/.env.backup" ]; then
+              cp /tmp/.env.backup /var/www/chai-backend/backend/.env
+              echo ".env file restored from backup"
+              rm /tmp/.env.backup
+            else
+              echo "⚠️  WARNING: No .env file found! Please upload your .env file manually."
+            fi
 
             echo ">>> Generate Prisma client"
             npx prisma generate

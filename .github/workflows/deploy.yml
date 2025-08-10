@@ -124,6 +124,7 @@ jobs:
 
             echo ">>> Backend: install deps"
             cd /var/www/chai-backend/backend || exit 1
+
             echo "Running npm install to ensure all dependencies are up to date..."
             npm install --omit=dev
 

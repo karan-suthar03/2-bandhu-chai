@@ -6,7 +6,7 @@ import { formatCurrency, formatDiscount } from "../utils/priceUtils.js";
 function ProductCard({ product, onAddToCart, onBuyNow }) {
     const [imageLoaded, setImageLoaded] = useState(false);
     const [loadingAction, setLoadingAction] = useState(null);
-    const { isInCart, isAddingToCart } = useCart();
+    const { isInCart } = useCart();
     const navigate = useNavigate();
 
     const handleProductClick = () => {

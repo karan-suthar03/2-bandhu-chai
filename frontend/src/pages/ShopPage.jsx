@@ -1,303 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { getProducts } from "../api/products.js";
-
-import {formatCurrency, formatDiscount} from "../utils/priceUtils.js";
-function ProductCard({ product, onAddToCart, onBuyNow, onQuickView }) {
-    const [isInWishlist, setIsInWishlist] = useState(false);
-    const [imageLoaded, setImageLoaded] = useState(false);
-    const { isInCart, isAddingToCart } = useCart();
-    const navigate = useNavigate();
-
-    const handleProductClick = () => {
-        navigate(`/product/${product.id}`);
-    };
-
-    return (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden transform hover:-translate-y-2 hover:shadow-xl transition-all duration-300 group cursor-pointer">
-            <div className="relative h-56 sm:h-64 overflow-hidden cursor-pointer" onClick={handleProductClick}>
-                <img
-                    src={product.image.mediumUrl}
-                    alt={product.name}
-                    className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ${
-                        imageLoaded ? 'opacity-100' : 'opacity-0'
-                    }`}
-                    onLoad={() => setImageLoaded(true)}
-                />
-                {!imageLoaded && (
-                    <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
-                        <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                        </svg>
-                    </div>
-                )}
-                
-                <span className="absolute top-3 right-3 bg-[#3a1f1f] text-white text-xs font-medium px-3 py-1 rounded-lg shadow-md">
-                    {product.badge}
-                </span>
-                
-                {product.isNew && (
-                    <span className="absolute top-3 left-3 bg-[#e67e22] text-white text-xs font-medium px-3 py-1 rounded-lg shadow-md">
-                        New
-                    </span>
-                )}
-
-                <div className="absolute top-3 left-1/2 transform -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setIsInWishlist(!isInWishlist);
-                        }}
-                        className={`p-2 rounded-full shadow-md transition-colors ${
-                            isInWishlist ? 'bg-red-500 text-white' : 'bg-white text-gray-600 hover:text-red-500'
-                        }`}
-                    >
-                        <svg className="w-4 h-4" fill={isInWishlist ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                    </button>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onQuickView(product);
-                        }}
-                        className="p-2 bg-white text-gray-600 hover:text-[#e67e22] rounded-full shadow-md transition-colors"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                    </button>
-                </div>
-                {product.stock <= 5 && product.stock > 0 && (
-                    <div className="absolute bottom-3 left-3 bg-orange-500 text-white text-xs font-medium px-2 py-1 rounded">
-                        Only {product.stock} left
-                    </div>
-                )}
-                {product.stock === 0 && (
-                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                        <span className="bg-red-500 text-white px-4 py-2 rounded-lg font-medium">Out of Stock</span>
-                    </div>
-                )}
-            </div>
-
-            <div className="p-5">
-                <div className="flex items-start justify-between mb-2">
-                    <h4 className="text-lg font-semibold text-[#3a1f1f] line-clamp-2 flex-1 cursor-pointer hover:text-[#e67e22] transition" onClick={handleProductClick}>
-                        {product.name}
-                    </h4>
-                    {product.organic && (
-                        <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                            Organic
-                        </span>
-                    )}
-                </div>
-
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
-
-                <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xl font-bold text-[#3a1f1f]">{formatCurrency(product.price)}</span>
-                    {product.oldPrice && (
-                        <>
-                            <span className="text-sm text-gray-500 line-through">{formatCurrency(product.oldPrice)}</span>
-                            {formatDiscount(product.discount) && (
-                                <span className="text-xs font-medium text-[#e67e22] bg-orange-100 px-2 py-1 rounded">
-                                    {formatDiscount(product.discount)}
-                                </span>
-                            )}
-                        </>
-                    )}
-                </div>
-
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center">
-                        <div className="flex">
-                            {[...Array(5)].map((_, i) => (
-                                <svg
-                                    key={i}
-                                    className={`w-4 h-4 ${i < Math.round(product.rating) ? 'text-yellow-400' : 'text-gray-300'}`}
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                >
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.518 4.674h4.911c.969 0 1.371 1.24.588 1.81l-3.977 2.89 1.518 4.674c.3.921-.755 1.688-1.54 1.118l-3.977-2.89-3.977 2.89c-.784.57-1.838-.197-1.54-1.118l1.518-4.674-3.977-2.89c-.784-.57-.38-1.81.588-1.81h4.911l1.518-4.674z" />
-                                </svg>
-                            ))}
-                        </div>
-                        <span className="text-xs text-gray-600 ml-2">({product.reviews})</span>
-                    </div>
-                    {product.fastDelivery && (
-                        <span className="text-xs text-[#e67e22] font-medium">⚡ Fast Delivery</span>
-                    )}
-                </div>
-
-                <div className="flex gap-2">
-                    <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onAddToCart(product);
-                        }}
-                        disabled={product.stock === 0 || isAddingToCart(product.id)}
-                        className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                            product.stock === 0 
-                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                : isAddingToCart(product.id)
-                                ? 'bg-gray-100 border-2 border-gray-300 text-gray-500 cursor-not-allowed'
-                                : isInCart(product.id)
-                                ? 'bg-green-100 border-2 border-green-500 text-green-700'
-                                : 'bg-white border-2 border-[#e67e22] text-[#e67e22] hover:bg-[#e67e22] hover:text-white hover:scale-105'
-                        }`}
-                    >
-                        {product.stock === 0 
-                            ? 'Out of Stock' 
-                            : isAddingToCart(product.id) 
-                                ? (
-                                    <span className="flex items-center justify-center">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-1"></div>
-                                        Adding...
-                                    </span>
-                                )
-                                : isInCart(product.id) 
-                                    ? 'In Cart' 
-                                    : 'Add to Cart'
-                        }
-                    </button>
-                    <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onBuyNow(product);
-                        }}
-                        disabled={product.stock === 0}
-                        className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-                            product.stock === 0
-                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                : 'bg-[#e67e22] text-white hover:bg-[#d35400] hover:scale-105'
-                        }`}
-                    >
-                        Buy Now
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function QuickViewModal({ product, onClose, onAddToCart, onBuyNow }) {
-    const { isInCart, isAddingToCart } = useCart();
-    if (!product) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="relative">
-                    <button
-                        onClick={onClose}
-                        className="absolute top-4 right-4 z-10 p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 transition"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                    
-                    <div className="md:flex">
-                        <div className="md:w-1/2">
-                            <img src={product.image.mediumUrl} alt={product.name} className="w-full h-64 md:h-96 object-cover" />
-                        </div>
-                        
-                        <div className="md:w-1/2 p-6">
-                            <h3 className="text-2xl font-bold text-[#3a1f1f] mb-2">{product.name}</h3>
-                            <p className="text-gray-600 mb-4">{product.description}</p>
-                            
-                            <div className="flex items-center gap-3 mb-4">
-                                <span className="text-3xl font-bold text-[#3a1f1f]">{formatCurrency(product.price)}</span>
-                                {product.oldPrice && (
-                                    <>
-                                        <span className="text-lg text-gray-500 line-through">{formatCurrency(product.oldPrice)}</span>
-                                        {formatDiscount(product.discount) && (
-                                            <span className="text-sm font-medium text-[#e67e22] bg-orange-100 px-2 py-1 rounded text-nowrap">
-                                                {formatDiscount(product.discount)}
-                                            </span>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                            
-                            <div className="flex items-center mb-4">
-                                <div className="flex">
-                                    {[...Array(5)].map((_, i) => (
-                                        <svg
-                                            key={i}
-                                            className={`w-5 h-5 ${i < Math.round(product.rating) ? 'text-yellow-400' : 'text-gray-300'}`}
-                                            fill="currentColor"
-                                            viewBox="0 0 20 20"
-                                        >
-                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.518 4.674h4.911c.969 0 1.371 1.24.588 1.81l-3.977 2.89 1.518 4.674c.3.921-.755 1.688-1.54 1.118l-3.977-2.89-3.977 2.89c-.784.57-1.838-.197-1.54-1.118l1.518-4.674-3.977-2.89c-.784-.57-.38-1.81.588-1.81h4.911l1.518-4.674z" />
-                                        </svg>
-                                    ))}
-                                </div>
-                                <span className="text-sm text-gray-600 ml-2">({product.reviews} reviews)</span>
-                            </div>
-                            
-                            {product.features && (
-                                <div className="mb-4">
-                                    <h4 className="font-semibold text-[#3a1f1f] mb-2">Features:</h4>
-                                    <ul className="text-sm text-gray-600 space-y-1">
-                                        {product.features.map((feature, index) => (
-                                            <li key={index} className="flex items-center">
-                                                <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                </svg>
-                                                {feature}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                            
-                            <div className="flex gap-3 mt-6">
-                                <button 
-                                    onClick={() => {
-                                        onAddToCart(product);
-                                        if (!isAddingToCart(product.id)) onClose();
-                                    }}
-                                    disabled={isAddingToCart(product.id)}
-                                    className={`flex-1 py-3 rounded-lg font-medium transition ${
-                                        isAddingToCart(product.id)
-                                            ? 'bg-gray-100 border-2 border-gray-300 text-gray-500 cursor-not-allowed'
-                                            : isInCart(product.id)
-                                            ? 'bg-green-100 border-2 border-green-500 text-green-700'
-                                            : 'bg-white border-2 border-[#e67e22] text-[#e67e22] hover:bg-[#e67e22] hover:text-white'
-                                    }`}
-                                >
-                                    {isAddingToCart(product.id) 
-                                        ? (
-                                            <span className="flex items-center justify-center">
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                                                Adding...
-                                            </span>
-                                        )
-                                        : isInCart(product.id) 
-                                            ? 'In Cart' 
-                                            : 'Add to Cart'
-                                    }
-                                </button>
-                                <button 
-                                    onClick={() => {
-                                        onBuyNow(product);
-                                        onClose();
-                                    }}
-                                    className="flex-1 bg-[#e67e22] text-white py-3 rounded-lg font-medium hover:bg-[#d35400] transition"
-                                >
-                                    Buy Now
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
+import ProductCard from "../components/ProductCard.jsx";
+import { useNavigate } from "react-router-dom";
 
 function ShopPage() {
     const [selectedCategory, setSelectedCategory] = useState("all");
@@ -305,13 +10,13 @@ function ShopPage() {
     const [sortBy, setSortBy] = useState("name");
     const [searchTerm, setSearchTerm] = useState("");
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-    const [quickViewProduct, setQuickViewProduct] = useState(null);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchLoading, setSearchLoading] = useState(false);
     const [error, setError] = useState(null);
     const { addToCart } = useCart();
+    const navigate = useNavigate();
 
     // Debounce search term - delay API calls by 500ms after user stops typing
     useEffect(() => {
@@ -401,19 +106,17 @@ function ShopPage() {
         if (success) {
             setShowSuccessMessage(true);
         }
-        console.log("Added to cart:", product);
     };
 
-    const handleBuyNow = (product) => {
-        console.log("Buy now:", product);
-    };
-
-    const handleQuickView = (product) => {
-        setQuickViewProduct(product);
-    };
-
-    const closeQuickView = () => {
-        setQuickViewProduct(null);
+    const handleBuyNow = async (product) => {
+        const options = {};
+        if (product.defaultVariant?.id) {
+            options.variantId = product.defaultVariant.id;
+        }
+        const success = await addToCart(product.id, options);
+        if(success){
+            navigate("/cart")
+        }
     };
 
     return (
@@ -668,22 +371,12 @@ function ShopPage() {
                                         product={product} 
                                         onAddToCart={handleAddToCart}
                                         onBuyNow={handleBuyNow}
-                                        onQuickView={handleQuickView}
                                     />
                                 ))}
                             </div>
                         )}
                     </div>
                 </section>
-
-                {quickViewProduct && (
-                    <QuickViewModal 
-                        product={quickViewProduct}
-                        onClose={closeQuickView}
-                        onAddToCart={handleAddToCart}
-                        onBuyNow={handleBuyNow}
-                    />
-                )}
 
                 <section className="bg-[#f7ebc9] py-16 px-4">
                     <div className="max-w-4xl mx-auto text-center">

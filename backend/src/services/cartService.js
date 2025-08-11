@@ -133,11 +133,11 @@ export class CartService {
         return true;
     }
 
-    static removeCartItem(session, productId, variantId) {
+    static removeCartItem(session, productId) {
         this.initializeCart(session);
 
         const itemIndex = session.cart.items.findIndex(
-            item => item.productId === productId && (!variantId || item.variantId === variantId)
+            item => item.productId === productId
         );
 
         if (itemIndex === -1) {

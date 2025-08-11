@@ -16,15 +16,19 @@ import contactRouter from "./routes/contactRoute.js";
 
 app.use(express.json());
 app.use(cors({
-    origin: function(origin, callback) {
-        const allowed = [
-            'https://chai.karansuthar.works',
-            'https://chai-admin.karansuthar.works'
-        ];
-        if (!origin || allowed.includes(origin)) {
-            callback(null, true);
+    origin: function (origin, callback) {
+        if (process.env.CURRENT_SYSTEM === "PRODUCTION") {
+            const allowed = [
+                'https://chai.karansuthar.works',
+                'https://chai-admin.karansuthar.works'
+            ];
+            if (!origin || allowed.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
         } else {
-            callback(new Error('Not allowed by CORS'));
+            callback(null, true);
         }
     },
     credentials: true

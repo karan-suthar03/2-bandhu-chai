@@ -352,7 +352,7 @@ function ProductPage() {
                                                     }`}
                                                 >
                                                     <div className="text-center">
-                                                        <div className="font-semibold">{size.size}</div>
+                                                        <div className="font-semibold">{getVariantSizeDisplay(size.size)}</div>
                                                         <div className="text-xs">
                                                             {formatCurrency(size.price)}
                                                         </div>

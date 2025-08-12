@@ -14,7 +14,6 @@ import authRouter from "./routes/authRoute.js";
 import adminRouter from "./routes/adminRoute.js";
 import contactRouter from "./routes/contactRoute.js";
 
-app.use(express.json());
 app.use(cors({
     origin: function (origin, callback) {
         if (process.env.CURRENT_SYSTEM === "PRODUCTION") {
@@ -46,7 +45,8 @@ app.use(session({
     name: 'bandhu.cart.sid'
 }));
 
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 app.use(express.static("public"));
 
 // app.use((req,res,next)=>{

@@ -1,3 +1,6 @@
+
+import { getVariantSizeLabel } from "./variantUtils.js";
+
 export const calculateItemPrice = (variant, quantity) => {
     const basePrice = variant.price * quantity;
     const discount = variant.oldPrice ? (variant.oldPrice - variant.price) * quantity : 0;
@@ -77,7 +80,7 @@ export const validateCartStock = (cartItems, products) => {
         if (variant.stock < cartItem.quantity) {
             stockIssues.push({
                 productId: product.id,
-                productName: `${product.name} (${variant.size})`,
+                productName: `${product.name} (${getVariantSizeLabel(variant.size)})`,
                 requested: cartItem.quantity,
                 available: variant.stock
             });

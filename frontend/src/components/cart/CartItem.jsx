@@ -1,4 +1,5 @@
 import { formatPrice, formatDiscount } from "../../utils/priceUtils.js";
+import { getVariantSizeDisplay } from "../../utils/variantSizeEnum.js";
 
 function CartItem({ item, onQuantityUpdate, onRemove, onProductClick }) {
     return (
@@ -19,7 +20,7 @@ function CartItem({ item, onQuantityUpdate, onRemove, onProductClick }) {
                         {item.name}
                     </h3>
                     {item.size && (
-                        <p className="text-sm text-[#5b4636] mb-1">Size: {item.size}</p>
+                        <p className="text-sm text-[#5b4636] mb-1">Size: {getVariantSizeDisplay(item.size)}</p>
                     )}
                     <div className="flex items-center space-x-2">
                         <span className="text-lg font-bold text-[#3a1f1f]">

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import {useProductVariants} from "./useProductVariant.js";
+import { useNavigate } from 'react-router-dom';
 import {calculateDiscountPercentage} from "../../utils/pricingUtils.js";
 import {postProduct} from "../../api/index.js";
 
@@ -16,10 +17,11 @@ const initialProductState = {
     fastDelivery: true,
 };
 
-const initialVariant = { id: `temp_${Date.now()}`, size: 'Default', price: '', oldPrice: '', stock: '', sku: '' };
+const initialVariant = { id: `temp_${Date.now()}`, size: 'GM_250', price: '', oldPrice: '', stock: '', sku: '' };
 
 export const useAddProductForm = () => {
     const [product, setProduct] = useState(initialProductState);
+    const navigate = useNavigate();
     const {
         variants, defaultVariantId, setDefaultVariantId,
         handleAddVariant, handleRemoveVariant, handleVariantChange
@@ -99,8 +101,14 @@ export const useAddProductForm = () => {
         gallery.forEach(file => formData.append('gallery', file));
 
         try {
-            await postProduct(formData);
-            setSubmissionStatus({ type: 'success', message: 'Product created successfully!' });
+            let response = await postProduct(formData);
+            if (response.success){
+                let product = response.data;
+                navigate(`/products/view/${product.id}`);
+                setSubmissionStatus({ type: 'success', message: 'Product created successfully!' });
+            }else{
+                throw new Error(response.message);
+            }
         } catch (error) {
             setSubmissionStatus({ type: 'error', message: error.response?.data?.message || 'Failed to create product.' });
         } finally {

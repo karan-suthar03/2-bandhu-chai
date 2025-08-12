@@ -4,10 +4,10 @@ export const useProductVariants = (initialVariants = [], initialDefaultVariantId
     const [variants, setVariants] = useState(initialVariants);
     const [defaultVariantId, setDefaultVariantId] = useState(initialDefaultVariantId);
 
-    const handleAddVariant = () => {
+    const handleAddVariant = (size = '') => {
         const newVariant = {
             id: `temp_${Date.now()}`,
-            size: '',
+            size,
             price: '',
             oldPrice: '',
             stock: '',

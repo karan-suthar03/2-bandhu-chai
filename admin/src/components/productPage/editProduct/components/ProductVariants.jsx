@@ -40,15 +40,20 @@ const ProductVariants = ({ product, onSave, loading }) => {
         if (!validate()) return;
         setStatus(null);
 
+        const normalizeId = (id) => {
+            if (id === undefined || id === null) return undefined;
+            const idStr = String(id);
+            return idStr.startsWith('temp_') ? undefined : parseInt(idStr, 10);
+        };
         const variantsForSubmission = variants.map(v => ({
-            id: v.id?.startsWith('temp_') ? undefined : parseInt(v.id, 10),
+            id: normalizeId(v.id),
             size: v.size,
             price: parseFloat(v.price) || 0,
             oldPrice: v.oldPrice ? parseFloat(v.oldPrice) : null,
             stock: parseInt(v.stock, 10) || 0,
             sku: v.sku,
             discount: calculateDiscountPercentage(v.price, v.oldPrice),
-            isDefault: v.id === defaultVariantId,
+            isDefault: String(v.id) === String(defaultVariantId),
         }));
         const updateData = { variants: variantsForSubmission };
 

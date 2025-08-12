@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getVariantSizeDisplay } from '../utils/variantSizeEnum.js';
 import { useParams } from 'react-router-dom';
 import { formatPrice } from '../utils/priceUtils.js';
 import axios from '../api/axios.js';
@@ -234,7 +235,7 @@ function OrderTrackingPage() {
                                                 <h4 className="font-medium text-gray-800">{item.productName}</h4>
                                                 <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
                                                 {item.size && (
-                                                    <p className="text-sm text-gray-600">Size: {item.size}</p>
+                                                    <p className="text-sm text-gray-600">Size: {getVariantSizeDisplay(item.size)}</p>
                                                 )}
                                                 <p className="text-sm text-gray-600">Price: {formatPrice(item.price)}</p>
                                             </div>

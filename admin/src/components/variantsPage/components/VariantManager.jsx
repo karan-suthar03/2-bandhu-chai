@@ -1,12 +1,27 @@
 import React from 'react';
 import {
     Box, Button, TextField, Typography, Card, CardContent, Stack, Divider, Radio,
-    Paper, Grid, IconButton, Tooltip, FormControlLabel
+    Paper, Grid, IconButton, Tooltip, FormControlLabel, Select, MenuItem, InputLabel, FormControl
 } from '@mui/material';
 import { AttachMoney, AddCircleOutline, Delete } from '@mui/icons-material';
 import { calculateDiscountPercentage, formatDiscountDisplay } from '../../../utils/pricingUtils.js';
 
+const VARIANT_SIZES = [
+    { value: "GM_250", label: "250gm" },
+    { value: "GM_500", label: "500gm" },
+    { value: "KG_1", label: "1kg" },
+];
+
 const VariantManager = ({ variants, defaultVariantId, setDefaultVariantId, errors, loading, onVariantChange, onAddVariant, onRemoveVariant }) => {
+    const usedSizes = variants.map(v => v.size);
+    const availableSizes = VARIANT_SIZES.filter(s => !usedSizes.includes(s.value));
+    const canAddMore = availableSizes.length > 0;
+
+    const handleAddVariant = () => {
+        if (!canAddMore) return;
+        const nextSize = availableSizes[0]?.value;
+        onAddVariant(nextSize);
+    };
 
     return (
         <Card elevation={2}>
@@ -35,7 +50,26 @@ const VariantManager = ({ variants, defaultVariantId, setDefaultVariantId, error
                                 />
 
                                 <Grid container spacing={2}>
-                                    <Grid item xs={12} sm={6} md={3}><TextField label="Size" name="size" value={variant.size} fullWidth required onChange={(e) => onVariantChange(variant.id, 'size', e.target.value)} error={!!variantErrors.size} helperText={variantErrors.size} disabled={loading}/></Grid>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                        <FormControl fullWidth required error={!!variantErrors.size} disabled={loading}>
+                                            <InputLabel id={`variant-size-label-${variant.id}`}>Size</InputLabel>
+                                            <Select
+                                                labelId={`variant-size-label-${variant.id}`}
+                                                id={`variant-size-select-${variant.id}`}
+                                                value={variant.size || ''}
+                                                label="Size"
+                                                name="size"
+                                                onChange={(e) => onVariantChange(variant.id, 'size', e.target.value)}
+                                            >
+                                                {VARIANT_SIZES.map(opt => (
+                                                    <MenuItem key={opt.value} value={opt.value} disabled={usedSizes.includes(opt.value) && variant.size !== opt.value}>
+                                                        {opt.label}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                            {variantErrors.size && <Typography color="error" variant="caption">{variantErrors.size}</Typography>}
+                                        </FormControl>
+                                    </Grid>
                                     <Grid item xs={12} sm={6} md={3}><TextField label="Price" name="price" type="number" value={variant.price} fullWidth required onChange={(e) => onVariantChange(variant.id, 'price', e.target.value)} error={!!variantErrors.price} helperText={variantErrors.price} disabled={loading}/></Grid>
                                     <Grid item xs={12} sm={6} md={3}><TextField label="Old Price" name="oldPrice" type="number" value={variant.oldPrice} fullWidth onChange={(e) => onVariantChange(variant.id, 'oldPrice', e.target.value)} disabled={loading}/></Grid>
                                     <Grid item xs={12} sm={6} md={3}><TextField label="Stock" name="stock" type="number" value={variant.stock} fullWidth required onChange={(e) => onVariantChange(variant.id, 'stock', e.target.value)} error={!!variantErrors.stock} helperText={variantErrors.stock} disabled={loading}/></Grid>
@@ -55,7 +89,7 @@ const VariantManager = ({ variants, defaultVariantId, setDefaultVariantId, error
                     })}
                 </Stack>
 
-                <Button startIcon={<AddCircleOutline />} onClick={onAddVariant} sx={{ mt: 2 }} disabled={loading}>
+                <Button startIcon={<AddCircleOutline />} onClick={handleAddVariant} sx={{ mt: 2 }} disabled={loading || !canAddMore}>
                     Add Another Variant
                 </Button>
                 {typeof errors.variants === 'string' && <Typography color="error" variant="body2" sx={{ display: 'block', mt: 1 }}>{errors.variants}</Typography>}

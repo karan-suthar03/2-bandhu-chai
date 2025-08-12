@@ -1,4 +1,6 @@
 import { sendSuccess } from "../utils/responseUtils.js";
+
+import { getVariantSizeLabel } from "../utils/variantUtils.js";
 import asyncHandler from "../middlewares/asyncHandler.js";
 import prisma from "../config/prisma.js";
 
@@ -52,7 +54,7 @@ const getLowStockProducts = asyncHandler(async (req, res) => {
 
     const products = lowStockVariants.map(variant => ({
         id: variant.product.id,
-        name: `${variant.product.name} (${variant.size})`,
+        name: `${variant.product.name} (${getVariantSizeLabel(variant.size)})`,
         stock: variant.stock,
         image: variant.product.image,
         price: variant.price,

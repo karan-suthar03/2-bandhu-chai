@@ -122,11 +122,12 @@ export const getAdminProduct = async (productId) => {
 };
 
 export const postProduct = async (formData) => {
-  return api.post('/admin/product', formData, {
+  let response = await api.post('/admin/product', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
+  return response.data;
 };
 
 export const updateProduct = async (productId, data) => {

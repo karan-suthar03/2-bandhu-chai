@@ -42,9 +42,8 @@ const updateCartItem = asyncHandler(async (req, res) => {
 
 const removeFromCart = asyncHandler(async (req, res) => {
     const productId = validateId(req.params.productId, 'Product ID');
-    const variantId = req.body.variantId ? validateId(req.body.variantId, 'Variant ID') : null;
 
-    await CartService.removeCartItem(req.session, productId, variantId);
+    await CartService.removeCartItem(req.session, productId);
     
     const cartData = await CartService.getCartData(req.session);
     return sendSuccess(res, {

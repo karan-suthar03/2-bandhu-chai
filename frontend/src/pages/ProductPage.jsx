@@ -105,7 +105,7 @@ function ProductPage() {
 
     const handleSizeChange = (size) => {
         setSelectedSize(size);
-        const variant = product.sizes.find(s => s.size === size);
+        const variant = product.sizes.find(s => getVariantSizeDisplay(s.size) === getVariantSizeDisplay(size));
         setSelectedVariant(variant);
     };
 

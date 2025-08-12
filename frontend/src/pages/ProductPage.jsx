@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { getVariantSizeDisplay } from "../utils/variantSizeEnum.js";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { getProduct } from "../api/products.js";
 import { getProductReviews, createProductReview } from "../api/reviews.js";
 import { formatCurrency, formatDiscount, formatRating } from "../utils/priceUtils.js";
 import YouMayAlsoLike from "../components/YouMayAlsoLike.jsx";
-import productImage from "../assets/product.jpg";
 function ProductPage() {
     const { productId } = useParams();
-    const { addToCart, isInCart, isAddingToCart } = useCart();
+    const navigate = useNavigate();
+    const { addToCart, isInCart } = useCart();
     const [product, setProduct] = useState(null);
     const [selectedImage, setSelectedImage] = useState(0);
     const [selectedSize, setSelectedSize] = useState(null);
@@ -16,21 +17,20 @@ function ProductPage() {
     const [quantity, setQuantity] = useState(1);
     const [reviews, setReviews] = useState([]);
     const [reviewsSummary, setReviewsSummary] = useState(null);
-    const [submittingReview, setSubmittingReview] = useState(false);
+    const [submittingAction, setSubmittingAction] = useState(null); // "cart" | "buy" | "review" | null
     const [reviewForm, setReviewForm] = useState({ name: "", email: "", rating: 5, comment: "" });
     const [hoveredRating, setHoveredRating] = useState(0);
     const [reviewErrors, setReviewErrors] = useState({});
-    const [isInWishlist, setIsInWishlist] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    
+
     useEffect(() => {
         const loadProduct = async () => {
             try {
                 setLoading(true);
                 setError(null);
                 const productData = await getProduct(productId);
-                
+
                 if (!productData) {
                     setError("Product not found or server unavailable");
                     setProduct(null);
@@ -52,14 +52,14 @@ function ProductPage() {
                         setReviews([]);
                         setReviewsSummary(null);
                     }
-                    
+
                     if (productData.sizes && productData.sizes.length > 0) {
                         const defaultSize = productData.defaultVariant?.size || productData.sizes[0].size;
                         const defaultVariant = productData.sizes.find(size => size.size === defaultSize) || productData.sizes[0];
                         setSelectedSize(defaultSize);
                         setSelectedVariant(defaultVariant);
                     }
-                    
+
                     if (productData.images && productData.images.length > 0) {
                         const mainImageIndex = productData.images.findIndex(img => img.isMain);
                         setSelectedImage(mainImageIndex !== -1 ? mainImageIndex : 0);
@@ -79,23 +79,34 @@ function ProductPage() {
     }, [productId]);
 
     const handleAddToCart = async () => {
-        const variantId = selectedVariant?.id || product.defaultVariant?.id;
-        await addToCart(product.id, { variantId, quantity });
-        console.log("Adding to cart:", { product, selectedVariant, quantity });
+        setSubmittingAction("cart");
+        try {
+            const variantId = selectedVariant?.id || product.defaultVariant?.id;
+            await addToCart(product.id, { variantId, quantity });
+        } catch (err) {
+            console.error("Failed to add to cart:", err);
+        } finally {
+            setSubmittingAction(null);
+        }
+    };
+
+    const handleBuyNow = async () => {
+        setSubmittingAction("buy");
+        try {
+            const variantId = selectedVariant?.id || product.defaultVariant?.id;
+            await addToCart(product.id, { variantId, quantity });
+            navigate("/cart");
+        } catch (err) {
+            console.error("Failed to process Buy Now:", err);
+        } finally {
+            setSubmittingAction(null);
+        }
     };
 
     const handleSizeChange = (size) => {
         setSelectedSize(size);
-        const variant = product.sizes.find(s => s.size === size);
+        const variant = product.sizes.find(s => getVariantSizeDisplay(s.size) === getVariantSizeDisplay(size));
         setSelectedVariant(variant);
-    };
-
-    const handleBuyNow = () => {
-        console.log("Buy now:", { product, quantity });
-    };
-
-    const handleWishlist = () => {
-        setIsInWishlist(!isInWishlist);
     };
 
     const refreshReviews = async () => {
@@ -121,9 +132,7 @@ function ProductPage() {
     const handleSubmitReview = async () => {
         setReviewErrors({});
         const errors = {};
-        if (!reviewForm.name.trim()) {
-            errors.name = "Name is required";
-        }
+        if (!reviewForm.name.trim()) errors.name = "Name is required";
         if (!reviewForm.email.trim()) {
             errors.email = "Email is required";
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reviewForm.email)) {
@@ -138,9 +147,9 @@ function ProductPage() {
             return;
         }
 
-        setSubmittingReview(true);
+        setSubmittingAction("review");
         try {
-            const created = await createProductReview(product.id, {
+            await createProductReview(product.id, {
                 name: reviewForm.name.trim(),
                 email: reviewForm.email.trim(),
                 rating: Number(reviewForm.rating),
@@ -153,55 +162,53 @@ function ProductPage() {
             const errorMessage = e?.response?.data?.error?.message || e?.response?.data?.message || 'Failed to submit review';
             setReviewErrors({ submit: errorMessage });
         } finally {
-            setSubmittingReview(false);
+            setSubmittingAction(null);
         }
     };
 
     if (loading) {
         return (
-            <>
-                <div className="min-h-screen pt-20 flex items-center justify-center">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#e67e22] mx-auto mb-4"></div>
-                        <h2 className="text-2xl font-bold text-[#3a1f1f] mb-2">Loading Product...</h2>
-                        <p className="text-[#5b4636]">Please wait while we fetch the product details.</p>
-                    </div>
+            <div className="min-h-screen pt-20 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#e67e22] mx-auto mb-4"></div>
+                    <h2 className="text-2xl font-bold text-[#3a1f1f] mb-2">Loading Product...</h2>
+                    <p className="text-[#5b4636]">Please wait while we fetch the product details.</p>
                 </div>
-            </>
+            </div>
         );
     }
 
     if (error || !product) {
         return (
-            <>
-                <div className="min-h-screen pt-20 flex items-center justify-center">
-                    <div className="text-center">
-                        <div className="bg-red-100 border border-red-400 text-red-800 px-8 py-6 rounded-lg max-w-md mx-auto">
-                            <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <h2 className="text-xl font-bold mb-2">Unable to Load Product</h2>
-                            <p className="mb-4">{error || "Product not found or server unavailable"}</p>
-                            <div className="space-x-4">
-                                <button 
-                                    onClick={() => window.location.reload()}
-                                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
-                                >
-                                    Retry
-                                </button>
-                                <button 
-                                    onClick={() => navigate('/')}
-                                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition"
-                                >
-                                    Go Home
-                                </button>
-                            </div>
+            <div className="min-h-screen pt-20 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="bg-red-100 border border-red-400 text-red-800 px-8 py-6 rounded-lg max-w-md mx-auto">
+                        <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <h2 className="text-xl font-bold mb-2">Unable to Load Product</h2>
+                        <p className="mb-4">{error || "Product not found or server unavailable"}</p>
+                        <div className="space-x-4">
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+                            >
+                                Retry
+                            </button>
+                            <button
+                                onClick={() => navigate('/')}
+                                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition"
+                            >
+                                Go Home
+                            </button>
                         </div>
                     </div>
                 </div>
-            </>
+            </div>
         );
     }
+
+    const isOutOfStock = (selectedVariant?.stock || product.stock) === 0;
 
     return (
         <>
@@ -298,9 +305,7 @@ function ProductPage() {
                                             </span>
                                         </div>
                                         <span className="text-green-600 text-sm font-medium">
-                                            {(selectedVariant?.stock || product.stock) > 0 
-                                                ? `${selectedVariant?.stock || product.stock} in stock` 
-                                                : 'Out of stock'}
+                                            {isOutOfStock ? 'Out of stock' : `${selectedVariant?.stock || product.stock} in stock`}
                                         </span>
                                     </div>
                                 </div>
@@ -404,53 +409,40 @@ function ProductPage() {
                                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                                     <button
                                         onClick={handleAddToCart}
-                                        disabled={(selectedVariant?.stock || product.stock) === 0 || isAddingToCart(product.id)}
+                                        disabled={isOutOfStock || submittingAction !== null || isInCart(product.id, selectedVariant?.id)}
                                         className={`flex-1 py-4 px-6 rounded-xl font-semibold text-lg transition-all ${
-                                            (selectedVariant?.stock || product.stock) === 0
+                                            isOutOfStock
                                                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                                : isInCart(product.id)
-                                                ? 'bg-green-100 border-2 border-green-500 text-green-700'
-                                                : isAddingToCart(product.id)
+                                                : submittingAction === 'cart'
                                                 ? 'bg-gray-100 border-2 border-gray-300 text-gray-500 cursor-not-allowed'
+                                                : isInCart(product.id, selectedVariant?.id)
+                                                ? 'bg-green-100 border-2 border-green-500 text-green-700 cursor-not-allowed'
                                                 : 'bg-white border-2 border-[#e67e22] text-[#e67e22] hover:bg-[#e67e22] hover:text-white hover:scale-105'
                                         }`}
                                     >
-                                        {(selectedVariant?.stock || product.stock) === 0 
-                                            ? 'Out of Stock' 
-                                            : isAddingToCart(product.id) 
-                                                ? (
-                                                    <span className="flex items-center justify-center">
-                                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></div>
-                                                        Adding...
-                                                    </span>
-                                                )
-                                                : isInCart(product.id) 
-                                                    ? 'In Cart' 
-                                                    : 'Add to Cart'
-                                        }
+                                        {isOutOfStock ? 'Out of Stock' :
+                                         submittingAction === 'cart' ? (
+                                            <span className="flex items-center justify-center">
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></div>
+                                                Adding...
+                                            </span>
+                                        ) : isInCart(product.id, selectedVariant?.id) ? 'In Cart' : 'Add to Cart'}
                                     </button>
                                     <button
                                         onClick={handleBuyNow}
-                                        disabled={(selectedVariant?.stock || product.stock) === 0}
+                                        disabled={isOutOfStock || submittingAction !== null}
                                         className={`flex-1 py-4 px-6 rounded-xl font-semibold text-lg transition-all ${
-                                            (selectedVariant?.stock || product.stock) === 0
-                                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                            isOutOfStock || submittingAction !== null
+                                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                                 : 'bg-[#e67e22] text-white hover:bg-[#d35400] hover:scale-105'
                                         }`}
                                     >
-                                        Buy Now
-                                    </button>
-                                    <button
-                                        onClick={handleWishlist}
-                                        className={`p-4 rounded-xl border-2 transition-all ${
-                                            isInWishlist
-                                                ? 'border-red-500 bg-red-50 text-red-500'
-                                                : 'border-gray-200 hover:border-red-500 hover:text-red-500'
-                                        }`}
-                                    >
-                                        <svg className="w-6 h-6" fill={isInWishlist ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                        </svg>
+                                        {submittingAction === 'buy' ? (
+                                            <span className="flex items-center justify-center">
+                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></div>
+                                                Processing...
+                                            </span>
+                                        ) : 'Buy Now'}
                                     </button>
                                 </div>
 
@@ -606,12 +598,12 @@ function ProductPage() {
                                     <div className="mt-4">
                                         <button
                                             onClick={handleSubmitReview}
-                                            disabled={submittingReview}
+                                            disabled={submittingAction !== null}
                                             className={`bg-[#e67e22] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#d35400] transition-all duration-200 transform hover:scale-105 ${
-                                                submittingReview ? 'opacity-70 cursor-not-allowed' : ''
+                                                submittingAction !== null ? 'opacity-70 cursor-not-allowed' : ''
                                             }`}
                                         >
-                                            {submittingReview ? (
+                                            {submittingAction === 'review' ? (
                                                 <span className="flex items-center">
                                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                                                     Submitting...

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getVariantSizeDisplay } from '../utils/variantSizeEnum.js';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { formatPrice } from '../utils/priceUtils.js';
 import axios from '../api/axios.js';
@@ -166,7 +167,7 @@ function OrderSuccessPage() {
                                                 <p className="font-medium">{item.name}</p>
                                                 <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                                                 {item.size && (
-                                                    <p className="text-sm text-gray-600">Size: {item.size}</p>
+                                                    <p className="text-sm text-gray-600">Size: {getVariantSizeDisplay(item.size)}</p>
                                                 )}
                                             </div>
                                         </div>

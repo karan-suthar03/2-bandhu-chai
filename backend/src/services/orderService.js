@@ -1,5 +1,6 @@
 import prisma from "../config/prisma.js";
 import emailService from "./emailService.js";
+import {getVariantSizeLabel} from "../utils/variantUtils.js";
 
 export class OrderService {
     static async getOrders(filters = {}) {
@@ -262,7 +263,7 @@ export class OrderService {
             }
 
             if (variant.stock < cartItem.quantity) {
-                throw new Error(`Sorry, we don't have enough stock for "${product.name}" (${variant.size}). Available: ${variant.stock}, Requested: ${cartItem.quantity}. Please update your cart and try again.`);
+                throw new Error(`Sorry, we don't have enough stock for "${product.name}" (${getVariantSizeLabel(variant.size)}). Available: ${variant.stock}, Requested: ${cartItem.quantity}. Please update your cart and try again.`);
             }
 
             const itemTotal = variant.price * cartItem.quantity;
@@ -273,7 +274,7 @@ export class OrderService {
 
             orderItems.push({
                 productVariantId: variant.id,
-                productName: `${product.name} (${variant.size})`,
+                productName: `${product.name} (${getVariantSizeLabel(variant.size)})`,
                 price: variant.price,
                 oldPrice: variant.oldPrice,
                 quantity: cartItem.quantity

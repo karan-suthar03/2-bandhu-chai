@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getVariantSizeDisplay } from '../utils/variantSizeEnum.js';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext.jsx';
 import { formatPrice } from '../utils/priceUtils.js';
@@ -396,7 +397,7 @@ function CheckoutPage() {
                                         <h4 className="font-medium text-[#3a1f1f]">{item.name}</h4>
                                         <p className="text-sm text-[#5b4636]">Quantity: {item.quantity}</p>
                                         {item.size && (
-                                            <p className="text-sm text-[#5b4636]">Size: {item.size}</p>
+                                            <p className="text-sm text-[#5b4636]">Size: {getVariantSizeDisplay(item.size)}</p>
                                         )}
                                     </div>
                                     <div className="text-right">

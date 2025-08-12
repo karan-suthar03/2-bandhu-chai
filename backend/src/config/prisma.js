@@ -7,6 +7,7 @@ const prisma = new PrismaClient({
             url: process.env.DATABASE_URL + '?connection_limit=50&pool_timeout=60&connect_timeout=60'
         }
     },
+    transactionOptions: {maxWait: 20000, timeout: 20000},
     errorFormat: 'minimal'
 });
 

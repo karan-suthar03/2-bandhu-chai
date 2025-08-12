@@ -41,7 +41,7 @@ function ShopPage() {
                 const data = await getProducts({
                     sortBy,
                     priceRange,
-                    searchTerm: debouncedSearchTerm,
+                    search: debouncedSearchTerm,
                     selectedCategory
                 });
                 

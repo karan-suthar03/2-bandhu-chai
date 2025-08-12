@@ -52,7 +52,7 @@ model ProductVariant {
   productId Int
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  size     String
+  size     VariantSize
   price    Float
   oldPrice Float?
   discount Float?
@@ -64,6 +64,11 @@ model ProductVariant {
   defaultForProduct Product? @relation("DefaultVariant")
 
   @@map("product_variants")
+}
+enum VariantSize {
+  GM_250
+  GM_500
+  KG_1
 }
 
 model Admin {

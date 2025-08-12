@@ -17,7 +17,7 @@ const initialProductState = {
     fastDelivery: true,
 };
 
-const initialVariant = { id: `temp_${Date.now()}`, size: 'Default', price: '', oldPrice: '', stock: '', sku: '' };
+const initialVariant = { id: `temp_${Date.now()}`, size: 'GM_250', price: '', oldPrice: '', stock: '', sku: '' };
 
 export const useAddProductForm = () => {
     const [product, setProduct] = useState(initialProductState);

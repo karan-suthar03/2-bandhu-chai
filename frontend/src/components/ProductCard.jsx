@@ -26,8 +26,8 @@ function ProductCard({ product, onAddToCart, onBuyNow }) {
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden transform hover:-translate-y-2 hover:shadow-xl transition-all duration-300 group cursor-pointer">
-            <div className="relative h-56 sm:h-64 overflow-hidden cursor-pointer" onClick={handleProductClick}>
+        <div className="bg-white rounded-xl shadow-md overflow-hidden transform hover:-translate-y-2 hover:shadow-xl transition-all duration-300 group cursor-pointer" onClick={handleProductClick}>
+            <div className="relative h-56 sm:h-64 overflow-hidden cursor-pointer">
                 <img
                     src={product.image.mediumUrl}
                     alt={product.name}

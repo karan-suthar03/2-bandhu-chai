@@ -1,5 +1,5 @@
 name: Deploy Full Stack to EC2
- 
+
 on:
   push:
     branches:
